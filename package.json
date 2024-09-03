@@ -1,0 +1,35 @@
+{
+  "name": "expressjs-ldap-api",
+  "version": "1.0.0",
+  "description": "A RESTful API built with ExpressJS and LDAP.js for managing user auth and directory services.",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "ldapjs": "^2.3.3",
+    "morgan": "^1.10.0",
+    "nodemon": "^3.1.4"
+  },
+  "scripts": {
+    "start": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PrasanthVijayy/LDAP-AD_Service.git"
+  },
+  "keywords": [
+    "ExpressJS",
+    "LDAP",
+    "Authentication",
+    "REST API",
+    "User management"
+  ],
+  "author": "Prasanth",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/PrasanthVijayy/LDAP-AD_Service/issues"
+  },
+  "homepage": "https://github.com/PrasanthVijayy/LDAP-AD_Service#readme"
+}
