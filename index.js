@@ -9,6 +9,7 @@ import userRoutes from "./modules/routes/userRoutes.js";
 
 
 import errorHandling from "./middleware/errorMiddleware.js";
+import { connectToLDAP } from "./config/ldapconfig.js";
 
 dotenv.config();
 const app = express();
@@ -25,6 +26,13 @@ userRoutes(app);
 /* ERROR HANDLING */
 app.use(errorHandling);
 
-const server = app.listen(process.env.PORT || 3001, () => {
-  console.log("Listening on port " + server.address().port);
-});
+// Wait for LDAP connection before starting the server
+connectToLDAP()
+  .then(() => {
+    const server = app.listen(process.env.PORT || 3001, () => {
+      console.log("Listening on port " + server.address().port);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to connect to LDAP. Server not started.", err);
+  });
