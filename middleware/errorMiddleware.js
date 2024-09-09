@@ -25,7 +25,7 @@ const errorMiddleware = (err, req, res, next) => {
         // Custom conflict error handling
         return res.status(409).json({
             status: 'error',
-            message: 'Conflict with current state of the resource',
+            message: err.message
         });
     } else {
         // General error handling for unexpected errors
