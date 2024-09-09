@@ -63,4 +63,17 @@ const modify = (dn, changes) => {
   });
 };
 
-export { ldapClient, bind, search, add, modify };
+const deleteEntry = (dn) => {
+  return new Promise((resolve, reject) => {
+      ldapClient.del(dn, (err) => {
+          if (err) {
+              reject(new Error("LDAP delete operation failed: " + err.message));
+          } else {
+              resolve();
+          }
+      });
+  });
+};
+
+
+export { ldapClient, bind, search, add, modify, deleteEntry };
