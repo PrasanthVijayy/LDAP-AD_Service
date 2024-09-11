@@ -1,7 +1,8 @@
 import GroupService from "../services/groupService.js";
-import { ValidationError, ConflictError } from "../../utils/error";
+import { ValidationError, ConflictError } from "../../utils/error.js";
+import { search } from "../../utils/ldapUtils.js";
 
-class groupController {
+class GroupController {
   constructor() {
     this.groupService = new GroupService();
   }
@@ -9,16 +10,20 @@ class groupController {
   async createGroup(req, res, next) {
     try {
       console.log("Controller: createGroup - Started");
-      const { groupName,attributes, accessControl } = req.body;
+      const { groupName, attributes } = req.body;
       if (!groupName) {
         throw new ValidationError("Group name is required");
       }
 
-      const groupExists = await this.groupService.getGroupByName(groupName);
+      const groupExists = await search(
+        `ou=groups,${process.env.LDAP_BASE_DN}`,
+        `(cn=${groupName})`
+      );
       if (groupExists) {
-        throw new ConflictError(`Group already exists`);
+        throw new ConflictError(`Group name already exists`);
       }
-      const group = await this.groupService.createGroup(groupName, attributes, accessControl);
+
+      const group = await this.groupService.createGroup(groupName, attributes);
       console.log("Controller: createGroup - Completed");
       res.status(201).json(group);
     } catch (error) {
@@ -36,3 +41,5 @@ class groupController {
     }
   }
 }
+
+export default GroupController;

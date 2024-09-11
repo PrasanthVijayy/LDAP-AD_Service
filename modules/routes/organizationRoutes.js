@@ -1,8 +1,13 @@
-import express from 'express';
-import { listOU } from '../controllers/organizationController.js';
+import express from "express";
+import OrganizationController from "../controllers/organizationController.js";
 
-const router = express.Router();
+const organizationController = new OrganizationController();
 
-router.get('/listou', listOU);
+const organizationRoutes = (app) => {
+  const router = express.Router();
+  app.use("/LDAP/v1/organizations", router);
 
-export default router;
+  router.get("/listOrganizations", (req, res, next) => organizationController.listOrganizaitons(req, res, next)
+  );
+};
+export default organizationRoutes;

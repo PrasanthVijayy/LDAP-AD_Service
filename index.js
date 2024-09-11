@@ -6,8 +6,8 @@ import morgan from "morgan";
 
 /* Import routes */
 import userRoutes from "./modules/routes/userRoutes.js";
-
-
+import groupRoutes from "./modules/routes/groupRoutes.js";
+import organizationRoutes from "./modules/routes/organizationRoutes.js";
 import errorHandling from "./middleware/errorMiddleware.js";
 import { connectToLDAP } from "./config/ldapconfig.js";
 
@@ -20,13 +20,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
 /* ROUTES */
-userRoutes(app);
-// Use other routes similarly
+userRoutes(app); groupRoutes(app); organizationRoutes(app);
 
 /* ERROR HANDLING */
 app.use(errorHandling);
 
-// Wait for LDAP connection before starting the server
+// Waiting for LDAP connection before starting the server
 connectToLDAP()
   .then(() => {
     const server = app.listen(process.env.PORT || 3001, () => {

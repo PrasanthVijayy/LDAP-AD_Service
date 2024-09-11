@@ -1,5 +1,5 @@
 import UserService from "../services/userService.js";
-import { ValidationError, ConflictError } from "../../utils/error.js";
+import { ValidationError, ConflictError, NotFoundError } from "../../utils/error.js";
 import { search } from "../../utils/ldapUtils.js";
 class UserController {
   constructor() {
@@ -98,7 +98,7 @@ class UserController {
         `(cn=${username})`
       );
       if (userExists.length === 0) {    
-        throw new ValidationError(`User with username ${username} not found.`);
+        throw new NotFoundError(`User details not found.`);
       }
 
       const message = await this.userService.deleteUser(username);  

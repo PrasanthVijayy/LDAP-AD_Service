@@ -1,9 +1,9 @@
-import { bind, search, add, modify, deleteEntry } from "../../utils/ldapUtils.js";
+import { bind, add } from "../../utils/ldapUtils.js";
 import { ValidationError, UnauthorizedError, ConflictError } from "../../utils/error.js";
 
 class GroupService {
 
-    async createGroup(groupName, attributes, accessControl) {
+    async createGroup(groupName, attributes) {
         try{
             console.log("Service: createGroup - Started");
             await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
@@ -11,8 +11,7 @@ class GroupService {
             const groupAttributes = {
                 cn: groupName,
                 objectClass: ["top", "groupOfNames"],
-                description: attributes.description || "",
-                ...accessControl,
+                // description: attributes.description || "",
                 ...attributes
         }
 
@@ -23,3 +22,5 @@ class GroupService {
     }
 }
 }
+
+export default GroupService;
