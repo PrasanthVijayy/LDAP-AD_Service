@@ -14,4 +14,4 @@ const groupRoutes = (app) => {
     router.post("/addAdminGroup", (req, res, next) => groupController.addAdminGroup(req, res, next));
     router.post("/deleteAdminGroup", (req, res, next) => groupController.deleteAdminGroup(req, res, next));
 }
-export default router;
+export default groupRoutes;
