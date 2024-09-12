@@ -27,4 +27,11 @@ class ConflictError extends Error {
   }
 }
 
-export { ValidationError, UnauthorizedError, NotFoundError, ConflictError };
+class TooManyRequestsError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "TooManyRequestsError";
+  }
+}
+
+export { ValidationError, UnauthorizedError, NotFoundError, ConflictError, TooManyRequestsError };
