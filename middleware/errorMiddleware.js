@@ -19,7 +19,7 @@ const errorMiddleware = (err, req, res, next) => {
     // Custom not found error handling
     return res.status(404).json({
       status: "error",
-      message: "Resource not found",
+      message: err.message,
     });
   } else if (err.name === "ConflictError") {
     // Custom conflict error handling

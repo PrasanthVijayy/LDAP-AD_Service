@@ -1,5 +1,9 @@
 import UserService from "../services/userService.js";
-import { ValidationError, ConflictError, NotFoundError } from "../../utils/error.js";
+import {
+  ValidationError,
+  ConflictError,
+  NotFoundError,
+} from "../../utils/error.js";
 import { search } from "../../utils/ldapUtils.js";
 class UserController {
   constructor() {
@@ -7,7 +11,7 @@ class UserController {
   }
 
   // Add a new user to the LDAP directory
-  async addUser(req, res, next) {
+  addUser = async (req, res, next) => {
     try {
       console.log("Controller: addUser - Started");
       const { username, password, attributes } = req.body;
@@ -33,6 +37,15 @@ class UserController {
         );
       }
 
+      const passwordPattern =
+        /^(?=.*[0-9])(?=.*[!@#$%^&*()_+[\]{};':"\\|,.<>/?]).{6,}$/;
+
+      // Validate password format
+      if (!passwordPattern.test(password)) {
+        throw new ValidationError(
+          "Password must be atleast 6 characters with one number and one special character."
+        );
+      }
       const message = await this.userService.addUser(
         username,
         attributes,
@@ -43,25 +56,24 @@ class UserController {
     } catch (error) {
       next(error);
     }
-  }
+  };
 
   //List users with custom attributes
-  async listUsers(req, res, next) {
+  listUsers = async (req, res, next) => {
     try {
       console.log("Controller: listUsers - Started");
       const filter = req.query.filter || "";
       console.log("Filter", filter);
       const users = await this.userService.listUsers(filter);
       console.log("Controller: listUsers - Completed");
-      res.status(200).json(users);
+      res.status(302).json(users);
     } catch (error) {
       next(error);
     }
-  }
-
+  };
 
   // Reset user password based on username from LDAP directory
-  async resetPassword(req, res, next) {
+  resetPassword = async (req, res, next) => {
     try {
       console.log("Controller: resetPassword - Started");
       const { username, password } = req.body;
@@ -77,17 +89,28 @@ class UserController {
       if (userExists.length === 0) {
         throw new ValidationError(`User with username ${username} not found.`);
       }
+
+      const passwordPattern =
+        /^(?=.*[0-9])(?=.*[!@#$%^&*()_+[\]{};':"\\|,.<>/?]).{6,}$/;
+
+      // Validate password format
+      if (!passwordPattern.test(password)) {
+        throw new ValidationError(
+          "Password must be atleast 6 characters with one number and one special character."
+        );
+      }
+
       const message = await this.userService.resetPassword(username, password);
       console.log("Controller: resetPassword - Completed");
       res.status(200).json(message);
     } catch (error) {
       next(error);
     }
-  }
+  };
 
   // Delete a user from the LDAP directory
-  async deleteUser(req, res, next) {
-    try {    
+  deleteUser = async (req, res, next) => {
+    try {
       console.log("Controller: deleteUser - Started");
       const { username } = req.query;
       if (!username) {
@@ -97,17 +120,17 @@ class UserController {
         `ou=users,${process.env.LDAP_BASE_DN}`,
         `(cn=${username})`
       );
-      if (userExists.length === 0) {    
+      if (userExists.length === 0) {
         throw new NotFoundError(`User details not found.`);
       }
 
-      const message = await this.userService.deleteUser(username);  
+      const message = await this.userService.deleteUser(username);
       console.log("Controller: deleteUser - Completed");
       res.status(200).json(message);
     } catch (error) {
       next(error);
     }
-  }
+  };
 }
 
 export default UserController;
