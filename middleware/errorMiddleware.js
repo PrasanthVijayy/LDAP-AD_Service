@@ -3,7 +3,7 @@ const errorMiddleware = (err, req, res, next) => {
   console.error(err.stack);
 
   // Handle different types of errors
-  if (err.name === "ValidationError") {
+  if (err.name === "BadRequestError") {
     // Custom validation error handling
     return res.status(400).json({
       status: "error",
