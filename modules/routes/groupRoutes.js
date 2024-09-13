@@ -8,11 +8,11 @@ const groupRoutes = (app) => {
   app.use("/LDAP/v1/groups", router);
 
   router.post("/createGroup", groupController.createGroup);
-  router.get("/listGroups", groupController.listGroups);
+  router.get("/listGroups", groupController.listGroups); //additional
   router.post("/addToGroup", groupController.addToGroup);
   router.delete("/deleteFromGroup", groupController.deleteFromGroup);
-  router.get("/membersInGroup", groupController.membersInGroup);
-  router.post("/addAdminGroup", groupController.addAdminGroup);
-  router.delete("/deleteAdminGroup", groupController.deleteAdminGroup);
+  router.get("/membersInGroup", groupController.membersInGroup); //additional
+  router.post("/addToAdminGroup", groupController.addToAdminGroup);
+  router.delete("/deleteFromAdminGroup", groupController.deleteFromAdminGroup);
 };
 export default groupRoutes;
