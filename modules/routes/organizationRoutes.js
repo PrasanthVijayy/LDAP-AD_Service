@@ -7,7 +7,7 @@ const organizationRoutes = (app) => {
   const router = express.Router();
   app.use("/LDAP/v1/organizations", router);
 
-  router.get("/listOrganizations", (req, res, next) => organizationController.listOrganizaitons(req, res, next)
-  );
+  router.post("/createOrganization", organizationController.createOrganization); //additional
+  router.get("/listOrganizations", organizationController.listOrganizaitons);
 };
 export default organizationRoutes;
