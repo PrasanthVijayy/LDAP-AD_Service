@@ -52,8 +52,23 @@ const add = (dn, attributes) => {
 };
 
 const modify = (dn, changes) => {
+  const ldapChanges = [];
+
+  for (const change of changes) {
+    if (change.operation && change.modification) {
+      ldapChanges.push({
+        operation: change.operation,
+        modification: change.modification,
+      });
+    } else {
+      throw new Error(
+        "Invalid change object: operation and modification required"
+      );
+    }
+  }
+
   return new Promise((resolve, reject) => {
-    ldapClient.modify(dn, changes, (err) => {
+    ldapClient.modify(dn, ldapChanges, (err) => {
       if (err) {
         reject(new Error("LDAP modify failed: " + err.message));
       } else {

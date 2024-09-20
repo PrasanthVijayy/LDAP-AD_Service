@@ -46,7 +46,7 @@ class OrganizationController {
         filter
       );
       console.log("Controller: listOrganizaitons - Completed");
-      res.status(302).json(organizations);
+      res.status(200).json(organizations);
     } catch (error) {
       console.log("Controller: listOrganizaitons - Error", error);
       next(error);
