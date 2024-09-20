@@ -45,7 +45,7 @@ class GroupService {
       if (groups.length === 0) {
         throw new NotFoundError("No groups found.");
       }
-      return { groups };
+      return { count: groups.length, groups };
     } catch (error) {
       console.log("Service: listGroups - Error", error);
       throw error;
@@ -127,7 +127,7 @@ class GroupService {
       const groupDetails = await search(groupDN, "(objectClass=groupOfNames)");
       const members = groupDetails[0].member;
       console.log("Service: membersInGroup - Completed");
-      return { members };
+      return { count: members.length, members };
     } catch (error) {
       console.log("Service: membersInGroup - Error", error);
       throw error;
