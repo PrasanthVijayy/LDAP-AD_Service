@@ -65,15 +65,14 @@ const modify = (dn, changes) => {
 
 const deleteEntry = (dn) => {
   return new Promise((resolve, reject) => {
-      ldapClient.del(dn, (err) => {
-          if (err) {
-              reject(new Error("LDAP delete operation failed: " + err.message));
-          } else {
-              resolve();
-          }
-      });
+    ldapClient.del(dn, (err) => {
+      if (err) {
+        reject(new Error("LDAP delete operation failed: " + err.message));
+      } else {
+        resolve();
+      }
+    });
   });
 };
-
 
 export { ldapClient, bind, search, add, modify, deleteEntry };
