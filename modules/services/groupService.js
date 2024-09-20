@@ -11,7 +11,7 @@ class GroupService {
         cn: groupName,
         objectClass: ["top", "groupOfNames"],
         member: "",
-        businessCategory: groupType === "admin" ? "admin" : "user",
+        businessCategory: groupType === "admin" ? "admin" : "general",
         description: attributes.description || "Default group",
         ...attributes,
       };

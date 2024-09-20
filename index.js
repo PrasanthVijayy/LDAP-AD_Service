@@ -11,6 +11,7 @@ import hpp from "hpp";
 import userRoutes from "./modules/routes/userRoutes.js";
 import groupRoutes from "./modules/routes/groupRoutes.js";
 import organizationRoutes from "./modules/routes/organizationRoutes.js";
+import domainRoutes from "./modules/routes/domainRoutes.js";
 import errorHandling from "./middleware/errorMiddleware.js";
 import { connectToLDAP } from "./config/ldapconfig.js";
 
@@ -32,6 +33,7 @@ app.use(hpp());
 userRoutes(app);
 groupRoutes(app);
 organizationRoutes(app);
+domainRoutes(app);
 
 /* ERROR HANDLING */
 app.use(errorHandling);

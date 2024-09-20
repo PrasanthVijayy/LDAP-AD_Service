@@ -27,9 +27,9 @@ class GroupController {
       }
 
       //validation for groupType while creating
-      if (!["admin", "user"].includes(groupType)) {
+      if (!["admin", "general"].includes(groupType)) {
         return next(
-          new BadRequestError("Group type must be 'admin' or 'user'.")
+          new BadRequestError("Group type must be 'admin' or 'general'.")
         );
       }
 
@@ -69,7 +69,10 @@ class GroupController {
       console.log("Filter", filter);
       const groups = await this.groupService.listGroups(filter);
       console.log("Controller: listGroups - Completed");
-      res.status(302).json(groups);
+      if (groups.count === 0) {
+        res.status(204).end();
+      }
+      res.status(200).json(groups);
     } catch (error) {
       console.log("Controller: listGroups - Error", error);
       next(error);
@@ -169,7 +172,7 @@ class GroupController {
   membersInGroup = async (req, res, next) => {
     try {
       console.log("Controller: membersInGroup - Started");
-      const { groupName } = req.body;
+      const { groupName } = req.query;
 
       if (!groupName) {
         return new BadRequestError("Group name is required");
@@ -179,7 +182,7 @@ class GroupController {
       const groupExists = await search(baseDN, `(cn=${groupName})`);
 
       if (groupExists.length === 0) {
-        throw new NotFoundError(`Group ${groupName} does not exist`);
+        throw new NotFoundError(`Group does not exist`);
       }
 
       const group = await this.groupService.membersInGroup(groupName);
