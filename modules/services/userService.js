@@ -10,6 +10,7 @@ import {
   BadRequestError,
   ConflictError,
   NotFoundError,
+  UnauthorizedError,
 } from "../../utils/error.js";
 import CryptoJS from "crypto-js";
 import { uid } from "uid";
@@ -386,6 +387,159 @@ class UserService {
       }));
     } catch (error) {
       console.log("Service: listLockedUsers - Error", error);
+      throw error;
+    }
+  }
+
+  searchUser = async (username) => {
+    try {
+      console.log("Service: searchUser - Started");
+
+      // Bind using the LDAP admin or a service account
+      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+
+      const searchBase = `ou=users,${process.env.LDAP_BASE_DN}`;
+      const searchFilter = `(cn=${username})`;
+
+      // Search for the user in LDAP
+      const userExists = await search(searchBase, searchFilter);
+
+      if (userExists.length === 0) {
+        throw new NotFoundError(`User not found.`);
+      }
+      console.log("Service: searchUser - Completed");
+      return userExists.map((user) => ({
+        uid: user.uid,
+        firstName: user.cn,
+        lastName: user.sn,
+        username: user.givenName,
+        mail: user.mail,
+        address: user.registeredAddress,
+        postalCode: user.postalCode,
+        phoneNumber: user.telephoneNumber,
+        accountStatus: user.description,
+      }));
+    } catch (error) {
+      console.log("Service: searchUser - Error", error);
+      throw error;
+    }
+  };
+
+  async chpwd(username, currentPassword, newPassword) {
+    try {
+      console.log("Service: chpwd - Started");
+  
+      const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
+  
+      // Attempt to bind with the current password
+      try {
+        await bind(userDN, currentPassword);
+      } catch (error) {
+        throw new BadRequestError("Current password is incorrect.");
+      }
+  
+      // Retrieve user information
+      const searchResults = await search(userDN, "(objectClass=*)");
+  
+      if (searchResults.length === 0) {
+        throw new NotFoundError("User not found.");
+      }
+  
+      const user = searchResults[0];
+      const userPassword = user.userPassword; // Retrieve the currently stored password
+  
+      // Hash the new password
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+  
+      // Store the old password temporarily
+      const changes = [
+        {
+          operation: "replace",
+          modification: {
+            userPassword: hashedNewPassword, // Update the new password
+          },
+        },
+        {
+          operation: "replace",
+          modification: {
+            shadowLastChange: Math.floor(Date.now() / 1000), // Store last change timestamp
+          },
+        },
+        {
+          operation: "add", // Add a temporary field to store old password
+          modification: {
+            oldUserPassword: userPassword, // Store the old password
+          },
+        },
+      ];
+  
+      await modify(userDN, changes);
+  
+      console.log("Service: chpwd - Completed");
+      return {
+        message:
+          "Password changed successfully. Old password valid for 10 minutes.",
+      };
+    } catch (error) {
+      console.log("Service: chpwd - Error", error);
+      throw error;
+    }
+  }
+  
+
+  async login(username, password) {
+    try {
+      console.log("Service: login - Started");
+
+      const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
+
+      // Bind with user credentials (self-service)
+      await bind(userDN, password);
+
+      const searchResults = await search(userDN, "(objectClass=*)");
+      if (searchResults.length === 0) {
+        throw new NotFoundError("User not found.");
+      }
+
+      const userPassword = searchResults[0].userPassword;
+      const previousPassword = searchResults[0]?.previousPassword; // If stored
+      const lastChangeTimestamp = searchResults[0]?.shadowLastChange; // Last password change
+      const shadowExpire = searchResults[0]?.shadowExpire; // Account lock/expiration
+      const accountState = searchResults[0].description; // Account enabled/disabled
+
+      // Check if the account is disabled & locked
+      if (shadowExpire === "0" && accountState === "disabled") {
+        throw new UnauthorizedError("Account is disabled, contact admin.");
+      } else if (shadowExpire === "0" && accountState === "enabled") {
+        throw new UnauthorizedError("Account is locked, contact admin.");
+      } else if (!shadowExpire && !accountState) {
+        throw new NotFoundError("User not found.");
+      }
+
+      const encryptedInputPassword = CryptoJS.SHA256(password).toString();
+
+      const currentTime = Math.floor(Date.now() / 1000);
+      const isOldPasswordValid = currentTime - lastChangeTimestamp <= 600; // 600 seconds = 10 minutes
+
+      let isPasswordValid = false;
+
+      // Check if the input password matches either the current or old password
+      if (encryptedInputPassword === userPassword) {
+        isPasswordValid = true;
+      } else if (
+        isOldPasswordValid &&
+        encryptedInputPassword === previousPassword
+      ) {
+        isPasswordValid = true; // Matches the old password within 10 minutes
+      }
+
+      if (!isPasswordValid) {
+        throw new BadRequestError("Invalid Credentials.");
+      }
+      console.log("Service: login - Completed");
+      return { message: "Login successful." };
+    } catch (error) {
+      console.log("Service: login - Error", error);
       throw error;
     }
   }
