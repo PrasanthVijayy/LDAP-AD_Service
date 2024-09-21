@@ -20,6 +20,12 @@ const userRoutes = (app) => {
   router.get("/getdisabledUsers", apiLimiter(10), userController.getdisabledUsers); //additional
   router.post("/modifyUserLockStatus", userController.modifyUserLockStatus);
   router.get("/listLockedUsers", apiLimiter(10), userController.listLockedUsers); 
+
+
+  /* SELF SERVICE ROUTES */
+  router.get("/search", userController.searchUser);
+  router.post("/chpwd", userController.chpwd);
+  router.post("/authenticate", userController.login);
 };
 
 export default userRoutes;

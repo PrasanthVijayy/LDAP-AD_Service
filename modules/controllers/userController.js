@@ -431,6 +431,108 @@ class UserController {
       next(error);
     }
   };
+
+  // Search user - self service
+  searchUser = async (req, res, next) => {
+    try {
+      console.log("Controller: searchUser - Started");
+      const { username } = req.query;
+      if (!username) {
+        throw new BadRequestError("Missing username field.");
+      }
+
+      const userExists = await search(
+        `ou=users,${process.env.LDAP_BASE_DN}`,
+        `(cn=${username})`
+      );
+      if (userExists.length === 0) {
+        throw new NotFoundError(`User not found.`);
+      }
+      console.log("Controller: searchUser - Completed");
+      const users = await this.userService.searchUser(username);
+      res
+        .status(200)
+        .json({ message: "User fetched successfully.", users: users });
+    } catch (error) {
+      console.log("Controller: searchUser - Error", error);
+      next(error);
+    }
+  };
+
+  // Change Password - self service
+  chpwd = async (req, res, next) => {
+    try {
+      console.log("Controller: chpwd - Started");
+      const { username, currentPassword, newPassword } = req.body;
+
+      let missingFields = [];
+      if (!username) missingFields.push("username");
+      if (!userPAss) missingFields.push("currentPassword");
+      if (!newPassword) missingFields.push("newPassword");
+
+      if (missingFields.length > 0) {
+        return next(
+          new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
+        );
+      }
+
+      const userExists = await search(
+        `ou=users,${process.env.LDAP_BASE_DN}`,
+        `(cn=${username})`
+      );
+
+      if (userExists.length === 0) {
+        throw new NotFoundError(`User not found.`);
+      }
+
+      const message = await this.userService.chpwd(
+        username,
+        currentPassword,
+        newPassword
+      );
+      console.log("Controller: chpwd - Completed");
+      res.status(202).json(message);
+    } catch (error) {
+      console.log("Controller: chpwd - Error", error);
+      next(error);
+    }
+  };
+
+  // Login - Self service
+  login = async (req, res, next) => {
+    try {
+      console.log("Controller: login - Started");
+
+      const { username, password } = req.body;
+
+      let missingFields = [];
+      if (!username) missingFields.push("username");
+      if (!password) missingFields.push("password");
+      if (missingFields.length > 0) {
+        return next(
+          new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
+        );
+      }
+
+      // Check if user exists
+      const userExists = await search(
+        `ou=users,${process.env.LDAP_BASE_DN}`,
+        `(cn=${username})`
+      );
+      
+      if (userExists.length === 0) {
+        throw new NotFoundError(`User not found`);
+      }
+
+      const message = await this.userService.login(username, password);
+      console.log("Controller: login - Completed");
+
+      res.status(202).json(message);
+    } catch (error) {
+      console.log("Controller: login - Error", error);
+      next(error);
+    }
+  };
 }
 
 export default UserController;

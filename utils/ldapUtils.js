@@ -7,18 +7,23 @@ const ldapClient = ldap.createClient({
   url: process.env.LDAP_SERVER_URL,
 });
 
+//Function to bind/connect to LDAP directory
 const bind = (dn, password) => {
   return new Promise((resolve, reject) => {
+    console.log(`Attempting to bind to DN: ${dn}`);
     ldapClient.bind(dn, password, (err) => {
       if (err) {
+        console.error(`LDAP bind error: ${err.message}`);
         reject(new Error("LDAP bind failed: " + err.message));
       } else {
+        console.log(`Successfully bound to ${dn}`);
         resolve();
       }
     });
   });
 };
 
+// Function to search attributes in LDAP directory
 const search = (baseDN, filter, scope = "sub") => {
   return new Promise((resolve, reject) => {
     ldapClient.search(baseDN, { filter, scope }, (err, res) => {
@@ -33,24 +38,28 @@ const search = (baseDN, filter, scope = "sub") => {
       });
 
       res.on("end", () => {
+        console.log(`Search completed with ${entries.length} entries found.`);
         resolve(entries);
       });
     });
   });
 };
 
+// Function to add new entry to LDAP directory
 const add = (dn, attributes) => {
   return new Promise((resolve, reject) => {
     ldapClient.add(dn, attributes, (err) => {
       if (err) {
         reject(new Error("LDAP add failed: " + err.message));
       } else {
+        console.log(`Successfully added entry: ${dn}`);
         resolve();
       }
     });
   });
 };
 
+// Function to modify existing entry in LDAP directory
 const modify = (dn, changes) => {
   const ldapChanges = [];
 
@@ -72,18 +81,21 @@ const modify = (dn, changes) => {
       if (err) {
         reject(new Error("LDAP modify failed: " + err.message));
       } else {
+        console.log(`Successfully modified entry: ${dn}`);
         resolve();
       }
     });
   });
 };
 
+// Function to delete entry from LDAP directory
 const deleteEntry = (dn) => {
   return new Promise((resolve, reject) => {
     ldapClient.del(dn, (err) => {
       if (err) {
         reject(new Error("LDAP delete operation failed: " + err.message));
       } else {
+        console.log(`Successfully deleted entry: ${dn}`);
         resolve();
       }
     });
