@@ -20,6 +20,7 @@ The LDAP Management API is a comprehensive backend solution designed to handle v
    - **List Groups**: List groups with custom attributes.
    - **Add to Group**: Add a user to a specified group.
    - **Remove from Group**: Remove a user from a specified group.
+   - **Lock members from Group**: Lock members from a group.
 
 3. **Organizational Unit Management**
    - **List Organizational Units (OUs)**: List OUs with custom attributes.
@@ -27,10 +28,10 @@ The LDAP Management API is a comprehensive backend solution designed to handle v
 4. **Domain Controller Management**
    - **List Domain Controllers**: Retrieve details of domain controllers.
 
-5. **Multi-Factor Authentication (MFA)**
-   - **Verify MFA Offline**: Perform offline authentication for users.
+<!-- 5. **Multi-Factor Authentication (MFA)**
+   - **Verify MFA Offline**: Perform offline authentication for users. -->
 
-6. **Error Handling**
+5. **Error Handling**
    - Custom error handling with meaningful HTTP responses for various types of errors.
 
 ### Technical Stack
@@ -39,6 +40,7 @@ The LDAP Management API is a comprehensive backend solution designed to handle v
 - **LDAP Library**: `ldapjs` for LDAP operations
 - **Middleware**: Custom middleware for error handling and authentication
 - **Utilities**: Utility functions for LDAP operations and custom error handling
+- **Encryption**: SHA1 algorthim and salting technique to store userPassword
 
 ### Usage
 

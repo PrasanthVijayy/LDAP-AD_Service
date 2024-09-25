@@ -645,11 +645,10 @@ class UserService {
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
       const searchBase = `ou=users,${process.env.LDAP_BASE_DN}`;
 
-      // LDAP filter to ensure shadowLastChange is present and greater than zero
+      // LDAP filter to get users present with shadowLastChange attribute
       const searchFilter = `(shadowLastChange=*)`;
 
       const updatedUsers = await search(searchBase, searchFilter);
-      console.log("updatedUsers", updatedUsers);
       console.log("Service: listUpdatedUsers - Completed");
 
       // Map the raw user data into a usable format
