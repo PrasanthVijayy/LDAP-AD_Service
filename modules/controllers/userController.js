@@ -159,6 +159,12 @@ class UserController {
         throw new NotFoundError(`User details not found.`);
       }
 
+      if (userExists[0].shadowFlag == 1) {
+        throw new BadRequestError(`User is already deleted`);
+      }
+
+      console.log("User exists", userExists[0]);
+
       const message = await this.userService.deleteUser(username);
       console.log("Controller: deleteUser - Completed");
       res.status(200).json(message);
@@ -198,6 +204,13 @@ class UserController {
       }
 
       const currentUser = userExists[0];
+
+      // Validate the account state
+      if (currentUser.shadowFlag == 1) {
+        throw new BadRequestError("Cannot update a deleted user");
+      } else if (currentUser.shadowInactive == 1) {
+        throw new BadRequestError("Cannot update an inactive user");
+      }
 
       // Validate and check if email is different
       if (attributes.mail) {
@@ -273,6 +286,16 @@ class UserController {
         );
       }
 
+      // Ensure only 'mail' and 'telephoneNumber' are allowed
+      const validFields = ["mail", "telephoneNumber"];
+      const invalidFields = Object.keys(attributes).filter(
+        (attr) => !validFields.includes(attr)
+      );
+
+      if (invalidFields.length > 0) {
+        throw new BadRequestError("Only mail and telephoneNumber are allowed");
+      }
+
       const userExist = await search(
         `ou=users,${process.env.LDAP_BASE_DN}`,
         `(cn=${username})`
@@ -281,34 +304,54 @@ class UserController {
         throw new NotFoundError("User not found");
       }
 
-      const validEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      if (!validEmail.test(attributes.mail)) {
-        throw new BadRequestError("Invalid email address");
-      }
+      const currentUser = userExist[0];
 
-      const validPhoneNumber = /^\d{10}$/;
-      if (!validPhoneNumber.test(attributes.telephoneNumber)) {
-        throw new BadRequestError("Invalid phone number");
-      }
+      // Validate and check if email is different
+      if (attributes.mail) {
+        const validEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!validEmail.test(attributes.mail)) {
+          throw new BadRequestError("Invalid email address");
+        }
 
-      // Check if email is already in use by another user
-      const emailInUse = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
-        `(mail=${attributes.mail})`
-      );
-      if (emailInUse.length > 0 && emailInUse[0].cn !== username) {
-        throw new ConflictError("Mail is already in use by another user");
-      }
+        // Check if email is the same as the current one
+        if (attributes.mail === currentUser.mail) {
+          throw new BadRequestError("Update with new mail ID");
+        }
 
-      // Check if phone number is already in use by another user
-      const phoneInUse = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
-        `(telephoneNumber=${attributes.telephoneNumber})`
-      );
-      if (phoneInUse.length > 0 && phoneInUse[0].cn !== username) {
-        throw new ConflictError(
-          "Phone number is already in use by another user"
+        // Check if email is already in use by another user
+        const emailInUse = await search(
+          `ou=users,${process.env.LDAP_BASE_DN}`,
+          `(mail=${attributes.mail})`
         );
+
+        if (emailInUse.length > 0 && emailInUse[0].cn !== username) {
+          throw new ConflictError("Mail is already in use by another user");
+        }
+      }
+
+      // Validate and check if phone number is different
+      if (attributes.telephoneNumber) {
+        const validPhoneNumber = /^\d{10}$/;
+        if (!validPhoneNumber.test(attributes.telephoneNumber)) {
+          throw new BadRequestError("Invalid phone number");
+        }
+
+        // Check if phone number is the same as the current one
+        if (attributes.telephoneNumber === currentUser.telephoneNumber) {
+          throw new BadRequestError("Update with new phone number");
+        }
+
+        // Check if phone number is already in use by another user
+        const phoneInUse = await search(
+          `ou=users,${process.env.LDAP_BASE_DN}`,
+          `(telephoneNumber=${attributes.telephoneNumber})`
+        );
+
+        if (phoneInUse.length > 0 && phoneInUse[0].cn !== username) {
+          throw new ConflictError(
+            "Phone number is already in use by another user"
+          );
+        }
       }
 
       const details = await this.userService.updateContactDetails(
@@ -382,8 +425,33 @@ class UserController {
     }
   };
 
-  // Lock a user
-  modifyUserLockStatus = async (req, res, next) => {
+  // Lock users on group basis
+  lockGroupMembers = async (req, res, next) => {
+    try {
+      console.log("Controller: modifyUserLockStatus - Started");
+      const { groupName } = req.body;
+
+      if (!groupName) throw new BadRequestError("Group name is required");
+
+      const groupExists = await search(
+        `ou=groups,${process.env.LDAP_BASE_DN}`,
+        `(cn=${groupName})`
+      );
+      if (groupExists.length === 0) {
+        throw new NotFoundError("Group not found");
+      }
+
+      const message = await this.userService.lockGroupMembers(groupName);
+      console.log("Controller: lockUser - Completed");
+      res.status(202).json(message);
+    } catch (error) {
+      console.log("Controller: lockUser - Error", error);
+      next(error);
+    }
+  };
+
+  // Unlock a user
+  userLockAction = async (req, res, next) => {
     try {
       console.log("Controller: modifyUserLockStatus - Started");
       const { username, action } = req.body;
@@ -397,24 +465,27 @@ class UserController {
         );
       }
 
-      if (!["lock", "unlock"].includes(action)) {
-        return next(
-          new BadRequestError("Action should be either lock or unlock")
-        );
+      if (!["unlock", "lock"].includes(action)) {
+        throw new BadRequestError("Action should be either lock or unlock");
+      }
+      const userExists = await search(
+        `ou=users,${process.env.LDAP_BASE_DN}`,
+        `(cn=${username})`
+      );
+      if (userExists.length === 0) {
+        throw new NotFoundError("User not found");
       }
 
-      const message = await this.userService.modifyUserLockStatus(
-        username,
-        action
-      );
-      console.log("Controller: lockUser - Completed");
+      const message = await this.userService.userLockAction(username, action);
+      console.log("Controller: modifyUserLockStatus - Completed");
       res.status(202).json(message);
     } catch (error) {
-      console.log("Controller: lockUser - Error", error);
+      console.log("Controller: modifyUserLockStatus - Error", error);
       next(error);
     }
   };
 
+  // List locked users
   listLockedUsers = async (req, res, next) => {
     try {
       console.log("Controller: listLockedUsers - Started");
@@ -467,7 +538,7 @@ class UserController {
 
       let missingFields = [];
       if (!username) missingFields.push("username");
-      if (!userPAss) missingFields.push("currentPassword");
+      if (!currentPassword) missingFields.push("currentPassword");
       if (!newPassword) missingFields.push("newPassword");
 
       if (missingFields.length > 0) {
@@ -519,7 +590,9 @@ class UserController {
         `ou=users,${process.env.LDAP_BASE_DN}`,
         `(cn=${username})`
       );
-      
+
+      console.log("userDetails", userExists);
+
       if (userExists.length === 0) {
         throw new NotFoundError(`User not found`);
       }
@@ -530,6 +603,31 @@ class UserController {
       res.status(202).json(message);
     } catch (error) {
       console.log("Controller: login - Error", error);
+      next(error);
+    }
+  };
+
+  // Get list of updated users
+  listUpdatedUsers = async (req, res, next) => {
+    try {
+      console.log("Controller: listUpdatedUsers - Started");
+      // const { timeStamp } = req.query;
+
+      // const timeStampRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+      // if (!timeStampRegex.test(timeStamp)) {
+      //   throw new BadRequestError("Invalid timestamp");
+      // }
+      // const date = new Date(timestamp);
+      // const epochTimestamp = Math.floor(date.getTime() / 1000);
+
+      const updatedUsers = await this.userService.listUpdatedUsers();
+      console.log("Controller: listUpdatedUsers - Completed");
+      res.status(200).json({
+        message: "Updated users fetched successfully.",
+        updatedUsers: updatedUsers,
+      });
+    } catch (error) {
+      console.log("Controller: listUpdatedUsers - Error", error);
       next(error);
     }
   };

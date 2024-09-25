@@ -8,7 +8,7 @@ const domainRoutes = (app) => {
   const router = express.Router();
   app.use("/LDAP/v1/dc", router);
 
-  router.get("/listDCs", apiLimiter(10), domainController.listDCs);
+  router.get("/listDCs", apiLimiter(10), domainController.listDCs); // list DCs
 };
 
 export default domainRoutes;

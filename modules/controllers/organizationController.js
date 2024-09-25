@@ -15,15 +15,13 @@ class OrganizationController {
         throw new BadRequestError("Missing field: organizationName");
       }
 
-      const baseDN = `ou=groups,${process.env.LDAP_BASE_DN}`;
+      const baseDN = `${process.env.LDAP_BASE_DN}`;
       const filter = `(ou=${organizationName})`;
 
       // Search for existing OU
       const organizationExists = await search(baseDN, filter);
       if (organizationExists.length > 0) {
-        throw new ConflictError(
-          `Organization with name ${organizationName} already exists.`
-        );
+        throw new ConflictError(`Organization already exists.`);
       }
 
       const organization = await this.organizationService.createOrganization(

@@ -6,7 +6,7 @@ class OrganizationService {
     try {
       console.log("Service: createOrganization - Started");
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const organizationDN = `ou=${organizationName},ou=groups,${process.env.LDAP_BASE_DN}`;
+      const organizationDN = `ou=${organizationName},${process.env.LDAP_BASE_DN}`;
       const organizationAttributes = {
         ou: organizationName,
         objectClass: ["top", "organizationalUnit"],

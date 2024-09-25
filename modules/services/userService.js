@@ -13,9 +13,14 @@ import {
   UnauthorizedError,
 } from "../../utils/error.js";
 import CryptoJS from "crypto-js";
+import { createSSHAHash } from "../../utils/encryption.js";
 import { uid } from "uid";
 
 class UserService {
+  static encodePassword(password) {
+    return Buffer.from(password, "utf-8").toString("base64");
+  }
+
   async addUser(payload) {
     try {
       console.log("Service: addUser - Started");
@@ -24,6 +29,11 @@ class UserService {
       const userDN = `cn=${payload.givenName},ou=users,${process.env.LDAP_BASE_DN}`;
 
       const uniqueUid = uid(10); // Generate a unique UID
+      if (!payload.userPassword) {
+        throw new BadRequestError("Missing password field");
+      }
+
+      const hashedPassword = createSSHAHash(payload.userPassword);
 
       const userAttributes = {
         uid: uniqueUid,
@@ -37,24 +47,29 @@ class UserService {
           "shadowAccount",
         ],
         givenName: payload.givenName,
-        userPassword: payload.userPassword,
+        userPassword: hashedPassword,
         telephoneNumber: payload.telephoneNumber || "",
         mail: payload.mail || `${payload.givenName}@example.com`,
         registeredAddress: payload.registeredAddress || "",
         postalCode: payload.postalCode || "",
-        description: "enabled",
+        // description: "enabled",
+        shadowExpire: 0, // Set to accountLock
+        shadowFlag: 0, // Set to
       };
 
       console.log("Service: addUser - User Attributes", userAttributes);
 
-      if (payload.userPassword) {
-        const hashedPassword = CryptoJS.SHA1(payload.userPassword).toString(
-          CryptoJS.enc.Base64
-        );
-        userAttributes.userPassword = `{SSHA}${hashedPassword}`;
-      } else {
-        throw new BadRequestError("missing password field");
-      }
+      // if (payload.userPassword) {
+      //   const hashedPassword = createSSHAHash(payload.userPassword);
+      //   userAttributes.userPassword = hashedPassword;
+
+      //   // const encodedPassword = UserService.encodePassword(payload.userPassword);
+      //   // userAttributes.userPassword = encodedPassword;
+      // } else {
+      //   throw new BadRequestError("missing password field");
+      // }
+
+      console.log("userDetails", userAttributes);
 
       await add(userDN, userAttributes);
       console.log("Service: addUser - Completed");
@@ -74,22 +89,33 @@ class UserService {
       const scope = "sub";
       const rawUsers = await search(baseDN, searchFilter, scope);
       console.log("Service: listUsers - Completed");
-      const users = rawUsers.map((user) => ({
-        dn: user.dn,
-        firstName: user.cn,
-        lastName: user.sn,
-        email: user.mail,
-        phone: user.telephoneNumber,
-        Address: user.registeredAddress,
-        postalCode: user.postalCode,
-        password: user.userPassword,
-        description: user.description,
-      }));
-      if (users.length === 0) {
-        return { count: users.length, users: [] };
-      } else {
-        return { count: users.length, users };
-      }
+
+      const users = rawUsers.map((user) => {
+        // Determine the status based on priority
+        let status;
+        if (user.shadowFlag == 1) {
+          status = "deleted";
+        } else if (user.shadowInactive == 1) {
+          status = "disabled";
+        } else if (user.shadowExpire == 1) {
+          status = "locked";
+        } else {
+          status = "active";
+        }
+
+        return {
+          dn: user.dn,
+          firstName: user.cn,
+          lastName: user.sn,
+          email: user.mail,
+          phone: user.telephoneNumber,
+          address: user.registeredAddress,
+          postalCode: user.postalCode,
+          status, // List the status based on priority
+        };
+      });
+
+      return { count: users.length, users };
     } catch (error) {
       console.log("Service: listUsers - Error", error);
       throw error;
@@ -127,8 +153,16 @@ class UserService {
       console.log("Service: deleteUser - Started");
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
       const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
-      await deleteEntry(userDN);
+      const changes = [
+        {
+          operation: "replace",
+          modification: {
+            shadowFlag: 1,
+          },
+        },
+      ];
 
+      await modify(userDN, changes);
       console.log("Service: deleteUser - Completed");
       return { message: "User deleted successfully." };
     } catch (error) {
@@ -143,7 +177,7 @@ class UserService {
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
       const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
 
-      const changes = [];
+      let changes = [];
 
       // Update only for requested attributes
       if (attributes.mail) {
@@ -174,6 +208,14 @@ class UserService {
         });
       }
 
+      //Adding timeStamp to lastest updated date
+      changes.push({
+        operation: "replace",
+        modification: {
+          shadowLastChange: new Date().toISOString(),
+        },
+      });
+
       await modify(userDN, changes);
       console.log("Service: updateUser - Completed");
       return { message: "User updated successfully." };
@@ -183,31 +225,32 @@ class UserService {
     }
   }
 
-  async updateContactDetails(payload) {
+  async updateContactDetails(username, attributes) {
     try {
       console.log("Service: updateContactDetails - Started");
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
 
-      const userDN = `cn=${payload.username},ou=users,${process.env.LDAP_BASE_DN}`;
+      const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
 
-      const changes = [];
+      let changes = [];
 
-      // Update only for requested attributes
-      if (payload.email) {
+      if (attributes.mail) {
         changes.push({
           operation: "replace",
-          modification: { mail: payload.email },
+          modification: { mail: attributes.mail },
         });
       }
 
-      if (payload.phone) {
+      if (attributes.telephoneNumber) {
         changes.push({
           operation: "replace",
-          modification: { telephoneNumber: payload.phone },
+          modification: { telephoneNumber: attributes.telephoneNumber },
         });
       }
 
+      // Applying changes to the user
       await modify(userDN, changes);
+
       console.log("Service: updateContactDetails - Completed");
       return { message: "Contact details updated successfully." };
     } catch (error) {
@@ -233,14 +276,14 @@ class UserService {
         throw new Error(`User not found.`);
       }
 
-      const currentStatus = searchResults[0].description || "enabled"; // Default to 'enabled' if no description is found
+      const currentStatus = searchResults[0].shadowInactive || 0; // Default to 'enabled' if no description is found
 
       // Validation based on the current status and requested action
-      if (action === "disable" && currentStatus === "disabled") {
+      if (action === "disable" && currentStatus == 1) {
         throw new ConflictError(`User already disabled.`);
       }
 
-      if (action === "enable" && currentStatus === "enabled") {
+      if (action === "enable" && currentStatus == 0) {
         throw new ConflictError(`User already enabled.`);
       }
 
@@ -251,7 +294,7 @@ class UserService {
           {
             operation: "replace",
             modification: {
-              description: "disabled",
+              shadowInactive: 1,
             },
           },
         ];
@@ -260,7 +303,7 @@ class UserService {
           {
             operation: "replace",
             modification: {
-              description: "enabled",
+              shadowInactive: 0,
             },
           },
         ];
@@ -268,6 +311,7 @@ class UserService {
         throw new BadRequestError("Invalid action. Use enable or disable.");
       }
 
+      // Apply the modifications to the user
       await modify(userDN, modifications);
       console.log(`Service: modifyUserStatus - ${action} - Completed`);
 
@@ -284,7 +328,7 @@ class UserService {
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
 
       // Search for users with the `description` attribute set to 'disabled'
-      const filter = `(description=disabled)`;
+      const filter = `(shadowInactive=1)`;
       const lockedUsers = await search(
         `ou=users,${process.env.LDAP_BASE_DN}`,
         filter
@@ -295,7 +339,7 @@ class UserService {
       return lockedUsers.map((user) => ({
         username: user.cn,
         mail: user.mail,
-        status: user.description,
+        status: "disabled",
       }));
     } catch (error) {
       console.log("Service: getLockedUsers - Error", error);
@@ -303,66 +347,144 @@ class UserService {
     }
   }
 
-  async modifyUserLockStatus(username, action) {
+  async lockGroupMembers(groupName) {
     try {
-      console.log(`Service: modifyUserLockStatus - ${action}ed - Started`);
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-
-      const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
-
-      // Verify if the user exists before modifying
-      const searchResults = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
-        `(cn=${username})`
+      console.log(
+        `Service: lockGroupMembers - Locking members of group ${groupName} Started`
       );
 
-      if (searchResults.length === 0) {
-        throw new NotFoundError(`User not found.`);
+      // Bind with LDAP admin credentials
+      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+
+      // Define the group's distinguished name (DN)
+      const groupDN = `cn=${groupName},ou=groups,${process.env.LDAP_BASE_DN}`;
+
+      // Search for all members (users) in the group
+      const searchFilter = `(member=*)`; // Searches for the "member" attribute in the group
+      const groupSearchResults = await search(groupDN, searchFilter);
+
+      // Extract members' DNs (Distinguished Names)
+      const groupMembers = groupSearchResults[0].member || [];
+
+      console.log("groupMembers", groupMembers);
+
+      if (groupMembers.length === 0) {
+        throw new BadRequestError(`Group ${groupName} has no members.`);
       }
 
-      // Determine current shadowExpire value
-      const currentExpire = searchResults[0].shadowExpire;
+      // Counter to track the number of successful locks
+      let lockedCount = 0;
 
-      // Validate current status and requested action
-      if (action === "unlock" && !currentExpire) {
-        throw new ConflictError(`User already unlocked.`);
+      // Loop through each member and lock them
+      for (const userDN of groupMembers) {
+        try {
+          // Verify the user exists and fetch their details
+          const userSearchResults = await search(
+            userDN,
+            "(objectClass=inetOrgPerson)"
+          );
+
+          if (userSearchResults.length === 0) {
+            console.log(`User ${userDN} not found.`);
+            continue; // Skip if the user is not found
+          }
+
+          const user = userSearchResults[0];
+
+          // Check if the user is already locked
+          if (user.shadowExpire === 1) {
+            console.log(`User ${userDN} is already locked.`);
+            continue; // Skip if already locked
+          }
+
+          const modifications = [
+            {
+              operation: "replace",
+              modification: {
+                shadowExpire: 1, // Set to 1 to lock the users
+              },
+            },
+          ];
+
+          // Apply the modification to lock the user
+          await modify(userDN, modifications);
+          console.log(`Locked user: ${userDN}`);
+          lockedCount++; // Increment the locked user count
+        } catch (err) {
+          console.log(`Error locking user ${userDN}:`, err);
+        }
       }
 
-      if (action === "lock" && currentExpire === "0") {
+      // if (lockedCount === 0) {
+      //   throw new BadRequestError(`No users were locked in group ${groupName}.`);
+      // }
+
+      console.log(`Service: lockGroupMembers - Completed`);
+      return {
+        message: `Locked ${lockedCount} member(s) from group successfully.`,
+      };
+    } catch (error) {
+      console.log(`Service: lockGroupMembers - Error`, error);
+      throw error;
+    }
+  }
+
+  async userLockAction(username, action) {
+    try {
+      console.log(`Service: userLockAction - ${action} - Started`);
+      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+      const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
+
+      // Verify the user exists and fetch their details
+      const userSearchResults = await search(
+        userDN,
+        "(objectClass=inetOrgPerson)"
+      );
+
+      if (userSearchResults.length === 0) {
+        throw new BadRequestError(`User ${username} not found.`);
+      }
+
+      const user = userSearchResults[0].shadowExpire || 0;
+
+      // Validation based on the current status and requested action
+      if (action === "lock" && user == 1) {
         throw new ConflictError(`User already locked.`);
+      } else if (action === "unlock" && user == 0) {
+        throw new ConflictError(`User already unlocked.`);
       }
 
       let modifications;
 
       if (action === "lock") {
-        // Lock the user by setting shadowExpire to 0
         modifications = [
           {
             operation: "replace",
             modification: {
-              shadowExpire: "0", // Set to "0" to lock
+              shadowExpire: 1, // Set to 1 to lock the users
             },
           },
         ];
       } else if (action === "unlock") {
-        // Unlock the user by removing the shadowExpire attribute
         modifications = [
           {
-            operation: "delete",
+            operation: "replace",
             modification: {
-              shadowExpire: null,
+              shadowExpire: 0, // Set to 0 to unlock the users
             },
           },
         ];
       } else {
-        throw new BadRequestError("Invalid action. Use lock or unlock.");
+        throw new BadRequestError(`Invalid action: ${action}`);
       }
 
+      // Apply the modification to the user
       await modify(userDN, modifications);
-      console.log(`Service: modifyUserLockStatus - ${action}ed - Completed`);
-      return { message: `User ${action}ed successfully.` };
+
+      console.log(`Service: userLockAction - ${action} - Completed`);
+      return { message: `User ${action}ed successfully` };
     } catch (error) {
-      console.log(`Service: modifyUserLockStatus - Error`, error);
+      console.log("Service: userLockAction - Error", error);
       throw error;
     }
   }
@@ -373,7 +495,7 @@ class UserService {
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
 
       // Search for users with the `title` attribute set to 'locked'
-      const filter = `(shadowExpire=0)`;
+      const filter = `(shadowExpire=1)`;
       const lockedUsers = await search(
         `ou=users,${process.env.LDAP_BASE_DN}`,
         filter
@@ -391,7 +513,7 @@ class UserService {
     }
   }
 
-  searchUser = async (username) => {
+  async searchUser(username) {
     try {
       console.log("Service: searchUser - Started");
 
@@ -423,69 +545,61 @@ class UserService {
       console.log("Service: searchUser - Error", error);
       throw error;
     }
-  };
+  }
 
   async chpwd(username, currentPassword, newPassword) {
     try {
       console.log("Service: chpwd - Started");
-  
+
       const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
-  
-      // Attempt to bind with the current password
+
+      // Attempt to bind with the current password to verify it
       try {
         await bind(userDN, currentPassword);
       } catch (error) {
-        throw new BadRequestError("Current password is incorrect.");
+        throw new BadRequestError("Invalid credentials.");
       }
-  
+
       // Retrieve user information
       const searchResults = await search(userDN, "(objectClass=*)");
-  
+
       if (searchResults.length === 0) {
         throw new NotFoundError("User not found.");
       }
-  
+
       const user = searchResults[0];
       const userPassword = user.userPassword; // Retrieve the currently stored password
-  
-      // Hash the new password
-      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-  
-      // Store the old password temporarily
+
+      // Hash the new password using SSHA
+      const hashedNewPassword = createSSHAHash(newPassword);
+
+      // Prepare the changes for LDAP
       const changes = [
         {
           operation: "replace",
           modification: {
-            userPassword: hashedNewPassword, // Update the new password
+            userPassword: hashedNewPassword, // Update with SSHA hashed password
           },
         },
         {
           operation: "replace",
           modification: {
-            shadowLastChange: Math.floor(Date.now() / 1000), // Store last change timestamp
-          },
-        },
-        {
-          operation: "add", // Add a temporary field to store old password
-          modification: {
-            oldUserPassword: userPassword, // Store the old password
+            shadowLastChange: Date.now(), // Store last change timestamp
           },
         },
       ];
-  
+
       await modify(userDN, changes);
-  
+
       console.log("Service: chpwd - Completed");
       return {
-        message:
-          "Password changed successfully. Old password valid for 10 minutes.",
+        message: "Password changed successfully.",
       };
     } catch (error) {
       console.log("Service: chpwd - Error", error);
       throw error;
     }
   }
-  
 
   async login(username, password) {
     try {
@@ -493,53 +607,51 @@ class UserService {
 
       const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
 
-      // Bind with user credentials (self-service)
-      await bind(userDN, password);
+      // Use the bind function to validate the password
+      try {
+        await bind(userDN, password);
+      } catch (error) {
+        throw new BadRequestError("Invalid credentials.");
+      }
 
+      // Fetch user details to get the stored hashed password
       const searchResults = await search(userDN, "(objectClass=*)");
       if (searchResults.length === 0) {
         throw new NotFoundError("User not found.");
       }
 
-      const userPassword = searchResults[0].userPassword;
-      const previousPassword = searchResults[0]?.previousPassword; // If stored
-      const lastChangeTimestamp = searchResults[0]?.shadowLastChange; // Last password change
-      const shadowExpire = searchResults[0]?.shadowExpire; // Account lock/expiration
-      const accountState = searchResults[0].description; // Account enabled/disabled
+      console.log("userDetials", searchResults);
 
-      // Check if the account is disabled & locked
-      if (shadowExpire === "0" && accountState === "disabled") {
-        throw new UnauthorizedError("Account is disabled, contact admin.");
-      } else if (shadowExpire === "0" && accountState === "enabled") {
-        throw new UnauthorizedError("Account is locked, contact admin.");
-      } else if (!shadowExpire && !accountState) {
-        throw new NotFoundError("User not found.");
+      //check account status
+      if (searchResults[0].shadowInactive == 1) {
+        throw new UnauthorizedError("Account disabled, contact admin.");
+      } else if (searchResults[0].shadowFlag == 1) {
+        throw new UnauthorizedError("Account deleted, contact admin.");
+      } else if (searchResults[0].shadowExpire == 1) {
+        throw new UnauthorizedError("Account locked, contact admin.");
       }
 
-      const encryptedInputPassword = CryptoJS.SHA256(password).toString();
-
-      const currentTime = Math.floor(Date.now() / 1000);
-      const isOldPasswordValid = currentTime - lastChangeTimestamp <= 600; // 600 seconds = 10 minutes
-
-      let isPasswordValid = false;
-
-      // Check if the input password matches either the current or old password
-      if (encryptedInputPassword === userPassword) {
-        isPasswordValid = true;
-      } else if (
-        isOldPasswordValid &&
-        encryptedInputPassword === previousPassword
-      ) {
-        isPasswordValid = true; // Matches the old password within 10 minutes
-      }
-
-      if (!isPasswordValid) {
-        throw new BadRequestError("Invalid Credentials.");
-      }
       console.log("Service: login - Completed");
       return { message: "Login successful." };
     } catch (error) {
       console.log("Service: login - Error", error);
+      throw error;
+    }
+  }
+
+  async listUpdatedUsers() {
+    try {
+      console.log("Service: listUpdatedUsers - Started");
+      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+      const searchBase = `ou=users,${process.env.LDAP_BASE_DN}`;
+      const searchFilter = `(&(objectClass=inetOrgPerson)(shadowLastChange>=${
+        Date.now() - 1000 * 60 * 60 * 24 * 30
+      }))`;
+      const updatedUsers = await search(searchBase, searchFilter);
+      console.log("Service: listUpdatedUsers - Completed");
+      return updatedUsers;
+    } catch (error) {
+      console.log("Service: listUpdatedUsers - Error", error);
       throw error;
     }
   }

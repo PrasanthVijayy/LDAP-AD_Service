@@ -13,7 +13,7 @@ const errorMiddleware = (err, req, res, next) => {
     // Custom unauthorized error handling
     return res.status(401).json({
       status: "error",
-      message: "Unauthorized access",
+      message: err.message,
     });
   } else if (err.name === "NotFoundError") {
     // Custom not found error handling
