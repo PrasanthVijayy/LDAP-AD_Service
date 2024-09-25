@@ -13,13 +13,13 @@ const userRoutes = (app) => {
   router.post("/addUser", userController.addUser); // Add user
   router.get("/listUsers", apiLimiter(50), userController.listUsers); // List user
   router.put("/resetPwd", userController.resetPassword); // Reset password
-  router.patch("/deleteUser", userController.deleteUser); // Delete user (shadowFlag -> 1)
+  router.patch("/deleteUser", userController.deleteUser); // Delete user (shadowFlag -> 0 or 1)
   router.put("/updateUser", userController.updateUser); // Update user
   router.put("/updateContactDetails", userController.updateContactDetails) // Update contactDetails only
-  router.post("/modifyUserAccess", userController.updateUserStatus); // Enable or Disable user
-  router.get("/getdisabledUsers", apiLimiter(10), userController.getdisabledUsers); //additional
+  router.post("/modifyUserAccess", userController.updateUserStatus); // Enable or Disable user (shadowInactive -> 0 or 1)
+  router.get("/getdisabledUsers", apiLimiter(10), userController.getdisabledUsers); // List disabledUsers
   router.post("/lockGroupMembers", userController.lockGroupMembers); // Lock users from groups
-  router.post("/userLockAction", userController.userLockAction); // Lock or Unlock user
+  router.post("/userLockAction", userController.userLockAction); // Lock or Unlock user (shadowExpire -> 0 or 1)
   router.get("/listLockedUsers", apiLimiter(10), userController.listLockedUsers); // List lockedUsers
   router.post("/listUpdatedUsers", userController.listUpdatedUsers); // List updatedUsers
 
