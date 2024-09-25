@@ -212,7 +212,7 @@ class UserService {
       changes.push({
         operation: "replace",
         modification: {
-          shadowLastChange: new Date().toISOString(),
+          shadowLastChange: Date.now(),
         },
       });
 
@@ -644,12 +644,24 @@ class UserService {
       console.log("Service: listUpdatedUsers - Started");
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
       const searchBase = `ou=users,${process.env.LDAP_BASE_DN}`;
-      const searchFilter = `(&(objectClass=inetOrgPerson)(shadowLastChange>=${
-        Date.now() - 1000 * 60 * 60 * 24 * 30
-      }))`;
+
+      // LDAP filter to get users present with shadowLastChange attribute
+      const searchFilter = `(shadowLastChange=*)`;
+
       const updatedUsers = await search(searchBase, searchFilter);
       console.log("Service: listUpdatedUsers - Completed");
-      return updatedUsers;
+
+      // Map the raw user data into a usable format
+      const users = updatedUsers.map((user) => ({
+        dn: user.dn,
+        firstName: user.cn,
+        lastName: user.sn,
+        email: user.mail,
+        phone: user.telephoneNumber,
+        lastChange: new Date(user.shadowLastChange * 1).toLocaleString(),
+      }));
+
+      return { count: users.length, users };
     } catch (error) {
       console.log("Service: listUpdatedUsers - Error", error);
       throw error;
