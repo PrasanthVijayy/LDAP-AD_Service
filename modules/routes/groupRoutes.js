@@ -7,12 +7,12 @@ const groupRoutes = (app) => {
   const router = express.Router();
   app.use("/LDAP/v1/groups", router);
 
-  router.post("/createGroup", groupController.createGroup);
-  router.get("/listGroups", groupController.listGroups); //additional
-  router.post("/addToGroup", groupController.addToGroup);
-  router.delete("/deleteFromGroup", groupController.deleteFromGroup);
-  router.get("/membersInGroup", groupController.membersInGroup); //additional
-  router.post("/addToAdminGroup", groupController.addToAdminGroup);
-  router.delete("/deleteFromAdminGroup", groupController.deleteFromAdminGroup);
+  router.post("/createGroup", groupController.createGroup); // Create group 
+  router.get("/listGroups", groupController.listGroups); // List groups - additional
+  router.post("/addToGroup", groupController.addToGroup); // Add user to group
+  router.delete("/deleteFromGroup", groupController.deleteFromGroup); // Delete user from group
+  router.get("/membersInGroup", groupController.membersInGroup); // List members in group - additional
+  router.post("/addToAdminGroup", groupController.addToAdminGroup); // Add user to admin group
+  router.delete("/deleteFromAdminGroup", groupController.deleteFromAdminGroup); // Delete user from admin group
 };
 export default groupRoutes;
