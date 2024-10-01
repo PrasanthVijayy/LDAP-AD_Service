@@ -1,0 +1,44 @@
+/* styles.css */
+
+body {
+  background-color: #277acd; /* Common background color */
+}
+
+.card {
+  border: none;
+  border-radius: 10px;
+  transition: transform 0.2s; /* Transition for the scaling effect */
+  cursor: pointer; /* Change cursor to pointer */
+}
+
+/* Scale down effect on click */
+.card:active {
+  transform: scale(0.95);
+}
+
+/* Disable pointer and transform for the card with the class no-pointer */
+.no-pointer {
+  cursor: default; /* Remove pointer cursor */
+  transition: none; /* Disable transition */
+}
+
+.no-pointer:active {
+  transform: none;
+}
+
+.no-pointer input {
+    cursor: pointer;
+}
+
+.card-title {
+  font-size: 24px;
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 10px 0;
+}
+
+.card-img-top {
+  max-width: 80%;
+  padding-left: 50px;
+  height: auto;
+}
