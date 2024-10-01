@@ -55,6 +55,7 @@ class UserService {
         // description: "enabled",
         shadowExpire: 0, // Set to accountLock
         shadowFlag: 0, // Set to
+        title: payload.title || "user",
       };
 
       console.log("Service: addUser - User Attributes", userAttributes);
@@ -105,6 +106,7 @@ class UserService {
 
         return {
           dn: user.dn,
+          userType: user.title,
           firstName: user.cn,
           lastName: user.sn,
           email: user.mail,
@@ -601,7 +603,7 @@ class UserService {
     }
   }
 
-  async login(username, password) {
+  async login(username, password, userType) {
     try {
       console.log("Service: login - Started");
 
@@ -622,8 +624,14 @@ class UserService {
 
       console.log("userDetials", searchResults);
 
-      //check account status
+      // Check if user type matches
+      const ldapUserType = searchResults[0].title;
+
+      if (ldapUserType === userType)
+        throw new BadRequestError("User not found.");
+
       if (searchResults[0].shadowInactive == 1) {
+        //check account status
         throw new UnauthorizedError("Account disabled, contact admin.");
       } else if (searchResults[0].shadowFlag == 1) {
         throw new UnauthorizedError("Account deleted, contact admin.");

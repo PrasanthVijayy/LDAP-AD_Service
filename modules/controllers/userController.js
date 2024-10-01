@@ -26,6 +26,7 @@ class UserController {
         registeredAddress: req.body.registeredAddress, // Correct the field
         postalCode: req.body.postalCode,
         description: req.body.description,
+        title: req.body.title || "user",
       };
 
       let missingFields = [];
@@ -40,6 +41,11 @@ class UserController {
         return next(
           new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
         );
+      }
+
+      // Validate title
+      if (!["user", "admin"].includes(payload.title)) {
+        throw new BadRequestError("Title should be either user or admin");
       }
 
       // Check for uniqueness
@@ -574,15 +580,20 @@ class UserController {
     try {
       console.log("Controller: login - Started");
 
-      const { username, password } = req.body;
+      const { username, password, userType } = req.body;
 
       let missingFields = [];
       if (!username) missingFields.push("username");
       if (!password) missingFields.push("password");
+      if (!userType) missingFields.push("userType");
       if (missingFields.length > 0) {
         return next(
           new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
         );
+      }
+
+      if (!["user", "admin"].includes(userType)) {
+        throw new BadRequestError("User type should be either user or admin");
       }
 
       // Check if user exists
@@ -597,7 +608,11 @@ class UserController {
         throw new NotFoundError(`User not found`);
       }
 
-      const message = await this.userService.login(username, password);
+      const message = await this.userService.login(
+        username,
+        password,
+        userType
+      );
       console.log("Controller: login - Completed");
 
       res.status(202).json(message);
