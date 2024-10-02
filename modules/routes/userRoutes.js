@@ -13,7 +13,7 @@ const userRoutes = (app) => {
   router.post("/addUser", userController.addUser); // Add user
   router.get("/listUsers", apiLimiter(50), userController.listUsers); // List user
   router.put("/resetPwd", userController.resetPassword); // Reset password
-  router.patch("/deleteUser", userController.deleteUser); // Delete user (shadowFlag -> 0 or 1)
+  router.put("/deleteUser", userController.deleteUser); // Delete user (shadowFlag -> 0 or 1)
   router.put("/updateUser", userController.updateUser); // Update user
   router.put("/updateContactDetails", userController.updateContactDetails) // Update contactDetails only
   router.post("/modifyUserAccess", userController.updateUserStatus); // Enable or Disable user (shadowInactive -> 0 or 1)

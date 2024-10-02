@@ -31,7 +31,7 @@ body {
 }
 
 .card-title {
-  font-size: 24px;
+  font-size: 19px;
   font-weight: 600;
   text-transform: capitalize;
   padding: 10px 0;
@@ -39,6 +39,7 @@ body {
 
 .card-img-top {
   max-width: 80%;
-  padding-left: 50px;
+  margin-left: 20px;
+  margin-top: 20px;
   height: auto;
 }
