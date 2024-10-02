@@ -8,17 +8,21 @@
       href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/UI/CSS/style.css" />
+    <link rel="stylesheet" href="/UI/CSS/styles.css" />
   </head>
   <body class="bg-light">
     <div class="container my-5">
       <h1 class="text-center mb-4">List of Users</h1>
 
-      <!-- Search Bar with Filter -->
+      <!-- Search Bar -->
       <div class="input-group mb-4">
         <div class="input-group-prepend">
-          <select class="custom-select" id="searchField">
-            <option value="firstName">First Name</option>
+          <select
+            class="custom-select form-control-sm"
+            id="searchCriteria"
+            style="background-color: #f8f9fa"
+          >
+            <option value="username">Username (Default)</option>
             <option value="email">Email</option>
             <option value="phone">Phone Number</option>
           </select>
@@ -35,11 +39,11 @@
           </button>
         </div>
       </div>
-
+      <!-- Filter by Status -->
       <!-- Filter by Status -->
       <div class="form-group">
         <label for="statusFilter">Filter by Status:</label>
-        <select class="form-control w-25" id="statusFilter">
+        <select class="form-control form-control-sm w-25" id="statusFilter">
           <option value="all">All Users (Default)</option>
           <option value="active">Active</option>
           <option value="locked">Locked</option>
@@ -52,11 +56,12 @@
       <table class="table table-bordered table-hover">
         <thead class="thead-dark">
           <tr>
-            <th scope="col">#</th>
+            <th scope="col">S.No</th>
             <th scope="col">First Name</th>
             <th scope="col">Email</th>
             <th scope="col">Phone Number</th>
-            <!-- No "Details" column, only the 3 dots button -->
+            <th scope="col">Status</th>
+            <th scope="col">Actions</th>
           </tr>
         </thead>
         <tbody id="userTableBody">
@@ -77,8 +82,17 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="userDetailsModalLabel">User Details</h5>
+            <button
+              type="button"
+              class="close"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
           </div>
           <div class="modal-body">
+            <p><strong>DN:</strong> <span id="modalDn"></span></p>
             <p><strong>Full Name:</strong> <span id="modalFullName"></span></p>
             <p><strong>Email:</strong> <span id="modalEmail"></span></p>
             <p><strong>Phone:</strong> <span id="modalPhone"></span></p>
@@ -88,7 +102,6 @@
             </p>
             <p><strong>Status:</strong> <span id="modalStatus"></span></p>
             <p><strong>User Type:</strong> <span id="modalUserType"></span></p>
-            <p><strong>DN:</strong> <span id="modalDN"></span></p>
           </div>
           <div class="modal-footer">
             <button
@@ -106,6 +119,5 @@
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="/UI/JS/script.js"></script>
-    <!-- Include script.js -->
   </body>
 </html>

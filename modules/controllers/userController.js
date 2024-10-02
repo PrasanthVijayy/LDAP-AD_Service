@@ -162,7 +162,7 @@ class UserController {
         `(cn=${username})`
       );
       if (userExists.length === 0) {
-        throw new NotFoundError(`User details not found.`);
+        throw new NotFoundError(`User not found.`);
       }
 
       if (userExists[0].shadowFlag == 1) {
