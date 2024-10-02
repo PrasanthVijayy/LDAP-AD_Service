@@ -81,19 +81,41 @@ function displayUsers(users) {
   const tableBody = document.getElementById("userTableBody");
   tableBody.innerHTML = ""; // Clear existing content
 
-  // Check if there are users to display
-  if (users.length === 0) {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td colspan="6" class="text-center">No users found</td>
-    `;
-    tableBody.appendChild(row); // Append the no users found message
-    return; // Exit the function
-  }
-
-  // Display each user in the table
   users.forEach((user, index) => {
     const row = document.createElement("tr");
+
+    // Determine the lock/unlock button logic
+    let lockUnlockButton = "";
+    if (user.status === "deleted") {
+      // If user is deleted, disable the buttons and show a hover message
+      lockUnlockButton = `
+        <button class="btn btn-link" disabled title="User is deleted and cannot be locked/unlocked">
+          <img src="/UI/images/lockUser.png" alt="Lock" style="width:24px;" />
+        </button>
+        <button class="btn btn-link" disabled title="User is deleted and cannot be locked/unlocked">
+          <img src="/UI/images/unlockUser.png" alt="Unlock" style="width:24px;" />
+        </button>
+      `;
+    } else if (user.status === "locked") {
+      lockUnlockButton = `
+        <button class="btn btn-link" onclick="toggleUserLock('${user.firstName}', 'unlock')" title="Unlock User">
+          <img src="/UI/images/unlockUser.png" alt="Unlock" style="width:24px;" />
+        </button>
+        <button class="btn btn-link" disabled title="User is active and can be locked">
+          <img src="/UI/images/lockUser.png" alt="Lock" style="width:24px;" />
+        </button>
+      `;
+    } else {
+      lockUnlockButton = `
+        <button class="btn btn-link" disabled title="User is active and cannot be unlocked">
+          <img src="/UI/images/unlockUser.png" alt="Unlock" style="width:24px;" />
+        </button>
+        <button class="btn btn-link" onclick="toggleUserLock('${user.firstName}', 'lock')" title="Lock User">
+          <img src="/UI/images/lockUser.png" alt="Lock" style="width:24px;" />
+        </button>
+      `;
+    }
+
     row.innerHTML = `
       <th scope="row">${index + 1}</th>
       <td>${user.firstName}</td>
@@ -101,27 +123,33 @@ function displayUsers(users) {
       <td>${user.phone}</td>
       <td>${user.status}</td>
       <td>
-        <button class="btn btn-link" onclick="showUserDetails(${index})">
+        <button class="btn btn-link" onclick="showUserDetails(${index})" title="View Details">
           <img src="/UI/images/user.png" alt="Profile" style="width:24px;" />
         </button>
-        <button class="btn btn-link" onclick="deleteUser('${user.firstName}')">
+        <button class="btn btn-link" onclick="deleteUser('${
+          user.firstName
+        }')" title="Delete User">
           <img src="/UI/images/deleteUser.png" alt="Delete" style="width:24px;" />
         </button>
+        ${lockUnlockButton}
       </td>
     `;
-    tableBody.appendChild(row); // Append each user row
-  });
-}
 
+    tableBody.appendChild(row);
+  });
+
+  // Store the users globally to access them in the modal
+  window.usersData = users;
+}
 
 // Function to filter users by status
 function filterUsers() {
   const statusFilter = document.getElementById("statusFilter").value; // Get selected value
-  const filteredUsers = window.usersData.filter(user => {
+  const filteredUsers = window.usersData.filter((user) => {
     if (statusFilter === "all") return true; // Show all users
     return user.status.toLowerCase() === statusFilter.toLowerCase(); // Filter by selected status
   });
-  
+
   displayUsers(filteredUsers); // Display filtered users
 }
 
@@ -187,3 +215,40 @@ window.onload = function () {
     fetchUsers(); // Fetch and display users on page load
   }
 };
+
+async function toggleUserLock(username, action) {
+  const apiUrl = `${baseApiUrl}/users/userLockActions`; // Construct the API URL
+
+  const requestBody = {
+    username: username,
+    action: action, // Action passed as parameter
+  };
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success) {
+        alert(`User ${action}ed successfully.`);
+        fetchUsers(); // Refresh user list after action
+      } else {
+        alert(`Failed to ${action} user: ${result.message}`);
+      }
+    } else {
+      console.error("Failed to toggle user lock:", response);
+      alert(
+        "An error occurred while trying to toggle user lock. Please try again later."
+      );
+    }
+  } catch (error) {
+    console.error("Error toggling user lock:", error);
+    alert("An error occurred. Please try again later.");
+  }
+}
