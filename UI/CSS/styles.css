@@ -16,10 +16,13 @@ body {
   transform: scale(0.95);
 }
 
-/* Disable pointer and transform for the card with the class no-pointer */
+.container{
+  overflow: hidden;
+}
+
 .no-pointer {
-  cursor: default; /* Remove pointer cursor */
-  transition: none; /* Disable transition */
+  cursor: default;
+  transition: none;
 }
 
 .no-pointer:active {
@@ -39,7 +42,11 @@ body {
 
 .card-img-top {
   max-width: 80%;
-  margin-left: 20px;
+  margin-left: 10%;
   margin-top: 20px;
   height: auto;
+}
+
+.row {
+  margin-top: 05%;
 }
