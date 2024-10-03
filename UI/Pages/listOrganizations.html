@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Organization Management</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/UI/CSS/styles.css" />
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h2 class="mb-4 text-center">Organization Management</h2>
+
+      <div class="row">
+        <div class="col-md-5 mb-6">
+          <div class="card no-pointer">
+            <div class="card-header">Create Organization</div>
+            <div class="card-body">
+              <form id="createOrganizationForm">
+                <div class="mb-3">
+                  <label for="organizationName" class="form-label"
+                    >Organization Name</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="organizationName"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="organizationDescription" class="form-label"
+                    >Description</label
+                  >
+                  <textarea
+                    class="form-control"
+                    id="organizationDescription"
+                    required
+                  ></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  Create Organization
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-7">
+          <div class="card no-pointer">
+            <div class="card-header">Organization List</div>
+            <div class="card-body">
+              <table class="table table-bordered table-hover">
+                <thead>
+                  <tr>
+                    <th>S.No</th>
+                    <th>OU Name</th>
+                    <th>DN</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody id="organizationTableBody">
+                  <!-- Dynamic rows will be inserted here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Organization Members Modal -->
+      <div
+        class="modal fade"
+        id="organizationMembersModal"
+        tabindex="-1"
+        aria-labelledby="organizationMembersModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="organizationMembersModalLabel">
+                Organization Members
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <ul class="list-group" id="membersList">
+                <!-- Dynamic members list will be inserted here -->
+              </ul>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/UI/JS/organizationScript.js"></script>
+  </body>
+</html>

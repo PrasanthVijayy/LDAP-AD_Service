@@ -10,7 +10,7 @@ class OrganizationService {
       const organizationAttributes = {
         ou: organizationName,
         objectClass: ["top", "organizationalUnit"],
-        description: attributes.description || "",
+        description: attributes.description || "Default organization",
         ...attributes,
       };
       await add(organizationDN, organizationAttributes);
@@ -37,6 +37,7 @@ class OrganizationService {
       const organizations = rawOrganizations.map((organization) => ({
         dn: organization.dn,
         organizationDN: organization.ou || null,
+        description: organization.description || null,
       }));
       if (organizations.length === 0) {
         throw new NotFoundError("No organizations found.");
