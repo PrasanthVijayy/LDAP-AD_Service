@@ -603,39 +603,63 @@ class UserService {
     }
   }
 
-  async login(username, password, userType) {
+  async login(username, password, userType, OU) {
     try {
       console.log("Service: login - Started");
 
-      const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
+      // Construct the base DN
+      const baseDN = process.env.LDAP_BASE_DN;
+      let userDN;
 
-      // Use the bind function to validate the password
-      try {
-        await bind(userDN, password);
-      } catch (error) {
-        throw new BadRequestError("Invalid credentials.");
+      // If OU is provided, create userDN with the specified OU
+      if (OU) {
+        userDN = `cn=${username},ou=${OU},${baseDN}`;
+        try {
+          await bind(userDN, password);
+        } catch (error) {
+          throw new BadRequestError("Invalid credentials.");
+        }
+      } else {
+        // If OU not provided, search for the user in all OUs
+        console.log(`Searching for user: ${username} in all OUs`);
+
+        // Correcting the filter
+        const searchResults = await search(
+          baseDN,
+          `(&(objectClass=*)(cn=${username}))`
+        );
+        if (searchResults.length === 0) {
+          throw new NotFoundError("User not found.");
+        }
+
+        userDN = searchResults[0].dn; // Extract the userDN from the search result
+
+        try {
+          await bind(userDN, password);
+        } catch (error) {
+          throw new BadRequestError("Invalid credentials.");
+        }
       }
 
-      // Fetch user details to get the stored hashed password
-      const searchResults = await search(userDN, "(objectClass=*)");
-      if (searchResults.length === 0) {
+      // Fetch user details to get the stored attributes
+      const userDetails = await search(userDN, "(objectClass=*)");
+      if (userDetails.length === 0) {
         throw new NotFoundError("User not found.");
       }
 
-      console.log("userDetials", searchResults);
-
       // Check if user type matches
-      const ldapUserType = searchResults[0].title;
+      const ldapUserType = userDetails[0].title;
+      if (ldapUserType !== userType) {
+        console.log("Error: userType not matched with the login user type");
+        throw new BadRequestError("Invalid credentials.");
+      }
 
-      if (ldapUserType === userType)
-        throw new BadRequestError("User not found.");
-
-      if (searchResults[0].shadowInactive == 1) {
-        //check account status
+      // Check account status based on priority
+      if (userDetails[0].shadowFlag == 1) {
+        throw new UnauthorizedError("Account delted, contact admin.");
+      } else if (userDetails[0].shadowInactive == 1) {
         throw new UnauthorizedError("Account disabled, contact admin.");
-      } else if (searchResults[0].shadowFlag == 1) {
-        throw new UnauthorizedError("Account deleted, contact admin.");
-      } else if (searchResults[0].shadowExpire == 1) {
+      } else if (userDetails[0].shadowExpire == 1) {
         throw new UnauthorizedError("Account locked, contact admin.");
       }
 

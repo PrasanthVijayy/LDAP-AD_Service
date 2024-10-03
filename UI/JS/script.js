@@ -1,6 +1,5 @@
 const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
 
-// Login form handler
 document
   .getElementById("loginForm")
   ?.addEventListener("submit", async function (e) {
@@ -9,15 +8,24 @@ document
     // Get form data
     const username = document.getElementById("username").value;
     const password = document.getElementById("password").value;
+    const ouName = document.getElementById("ouSelect").value.trim(); // Get the selected/entered OU
     const userType = document.querySelector(
       'input[name="userType"]:checked'
     ).value;
 
-    // Construct the API URL
+    // Log values to check what is being sent
+    console.log("Username:", username);
+    console.log("Password:", password);
+    console.log("OU Name:", ouName);
+    console.log("User Type:", userType);
+
+    // Construct the API URL for authentication
     const apiUrl = `${baseApiUrl}/users/authenticate`;
 
-    // Prepare request payload
-    const data = { username, password, userType };
+    // Prepare request payload (including OU)
+    const data = { username, password, userType, OU: ouName || undefined }; // Send OU only if provided
+
+    console.log("Data being sent to the API:", data); // Log the entire data object
 
     try {
       // Make API call to authenticate user
@@ -29,7 +37,7 @@ document
         body: JSON.stringify(data),
       });
 
-      const result = await response.json();
+      const result = await response.json(); // Always parse the response
 
       if (response.ok) {
         // Redirect to dashboard based on userType
@@ -45,7 +53,7 @@ document
     }
   });
 
-// Fetch users from the API and display them in the table
+  
 // Global variable to store users
 window.usersData = [];
 
