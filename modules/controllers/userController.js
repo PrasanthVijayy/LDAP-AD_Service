@@ -580,7 +580,7 @@ class UserController {
     try {
       console.log("Controller: login - Started");
 
-      const { username, password, userType } = req.body;
+      const { username, password, userType, OU } = req.body;
 
       let missingFields = [];
       if (!username) missingFields.push("username");
@@ -592,6 +592,21 @@ class UserController {
         );
       }
 
+      // Log if OU is not provided
+      if (!OU) {
+        console.log("Searching users in all OUs since OU is not provided");
+      } else {
+        // Validate the provided OU
+        const baseDN = process.env.LDAP_BASE_DN;
+        const filter = `(ou=${OU})`;
+
+        const validOU = await search(baseDN, filter);
+        if (validOU.length === 0) {
+          throw new NotFoundError(`Invalid Organizational Unit.`);
+        }
+      }
+
+      // Validate userType
       if (!["user", "admin"].includes(userType)) {
         throw new BadRequestError("User type should be either user or admin");
       }
@@ -608,10 +623,12 @@ class UserController {
         throw new NotFoundError(`User not found`);
       }
 
+      // Call the login service
       const message = await this.userService.login(
         username,
         password,
-        userType
+        userType,
+        OU
       );
       console.log("Controller: login - Completed");
 

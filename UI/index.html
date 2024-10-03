@@ -17,6 +17,7 @@
       <div class="card p-5 shadow-lg no-pointer">
         <h2 class="text-center mb-4">Login</h2>
         <form id="loginForm">
+          <!-- Username input -->
           <div class="form-group">
             <label for="username">Username</label>
             <input
@@ -27,6 +28,8 @@
               required
             />
           </div>
+
+          <!-- Password input -->
           <div class="form-group">
             <label for="password">Password</label>
             <input
@@ -37,9 +40,35 @@
               required
             />
           </div>
+
+          <!-- OU input field (optional) -->
+          <div class="form-group">
+            <label for="ouSelect">Organizational Unit (OU) (optional)</label>
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <span class="input-group-text">ou=</span>
+              </div>
+              <!-- Input for OU -->
+              <input
+                type="text"
+                class="form-control"
+                id="ouSelect"
+                placeholder="Select or enter OU"
+                list="ouOptions"
+              />
+              <datalist id="ouOptions">
+                <!-- Dynamic options will be added here from the API -->
+              </datalist>
+              <div class="input-group-append">
+                <span class="input-group-text">,dc=myLDAP,dc=com</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- User type (radio buttons aligned horizontally) -->
           <div class="form-group">
             <label>Type:</label>
-            <div class="form-check">
+            <div class="form-check form-check-inline">
               <input
                 class="form-check-input"
                 type="radio"
@@ -50,7 +79,7 @@
               />
               <label class="form-check-label" for="user">User</label>
             </div>
-            <div class="form-check">
+            <div class="form-check form-check-inline">
               <input
                 class="form-check-input"
                 type="radio"
@@ -61,6 +90,8 @@
               <label class="form-check-label" for="admin">Admin</label>
             </div>
           </div>
+
+          <!-- Submit button -->
           <button type="submit" class="btn btn-primary btn-block">Login</button>
         </form>
       </div>
