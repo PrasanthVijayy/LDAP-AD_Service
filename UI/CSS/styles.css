@@ -16,7 +16,7 @@ body {
   transform: scale(0.95);
 }
 
-.container{
+.container {
   overflow: hidden;
 }
 
@@ -30,7 +30,7 @@ body {
 }
 
 .no-pointer input {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .card-title {
