@@ -59,8 +59,21 @@
         <!-- List Groups Column -->
         <div class="col-md-6">
           <div class="card mb-4 no-pointer">
-            <div class="card-header">
+            <div
+              class="card-header d-flex justify-content-between align-items-center"
+            >
               <h4>List of Groups</h4>
+              <!-- Group Type Filter Dropdown -->
+              <div class="form-group mb-0">
+                <label for="groupTypeFilter" class="mr-2"
+                  >Filter by Group Type:</label
+                >
+                <select class="form-control-sm" id="groupTypeFilter">
+                  <option value="all">All Groups</option>
+                  <option value="general">General</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
             </div>
             <div class="card-body">
               <table class="table table-bordered table-hover bg-light">
@@ -68,6 +81,7 @@
                   <tr>
                     <th scope="col">S.No</th>
                     <th scope="col">Group Name</th>
+                    <th scope="col">Group Type</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
@@ -123,7 +137,7 @@
 
       <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
       <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-      <script src="/UI/JS/script.js"></script>
+      <script src="/UI/JS/groupScript.js"></script>
     </div>
   </body>
 </html>
