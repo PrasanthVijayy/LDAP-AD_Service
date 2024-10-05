@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Edit User Details</title>
+    <link rel="icon" href="/UI//images/faviconLogo.png" type="image/x-icon" />
     <link
       href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
       rel="stylesheet"
@@ -41,22 +42,32 @@
                 required
                 readonly
               />
+              <div class="invalid-feedback"></div>
+              <!-- Error message here -->
             </div>
             <div class="form-group">
               <label for="telephoneNumber">Phone Number</label>
               <input type="text" class="form-control" id="telephoneNumber" />
+              <div class="invalid-feedback"></div>
+              <!-- Error message here -->
             </div>
             <div class="form-group">
               <label for="mail">Email</label>
               <input type="email" class="form-control" id="mail" />
+              <div class="invalid-feedback"></div>
+              <!-- Error message here -->
             </div>
             <div class="form-group">
               <label for="registeredAddress">Address</label>
               <input type="text" class="form-control" id="registeredAddress" />
+              <div class="invalid-feedback"></div>
+              <!-- Error message here -->
             </div>
             <div class="form-group">
               <label for="postalCode">Postal Code</label>
               <input type="text" class="form-control" id="postalCode" />
+              <div class="invalid-feedback"></div>
+              <!-- Error message here -->
             </div>
             <button type="submit" class="btn btn-primary btn-block">
               Update User

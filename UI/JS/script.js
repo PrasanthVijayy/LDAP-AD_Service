@@ -103,7 +103,7 @@ function displayUsers(users) {
         </button>
         <button class="btn btn-link" disabled title="User is locked and cannot be locked again">
           <img src="/UI/images/lockUser.png" alt="Lock" style="width:24px;" />
-        </button>        </button>
+        </button>
         <button class="btn btn-link" onclick="editUser('${user.firstName}')" title="Edit User">
           <img src="/UI/images/editUser.png" alt="Edit" style="width:24px;" />
         </button>
@@ -116,7 +116,7 @@ function displayUsers(users) {
         <button class="btn btn-link" onclick="toggleUserLock('${user.firstName}', 'lock')" title="Lock User">
           <img src="/UI/images/lockUser.png" alt="Lock" style="width:24px;" />
         </button>
-                <button class="btn btn-link" onclick="editUser('${user.firstName}')" title="Edit User">
+        <button class="btn btn-link" onclick="editUser('${user.firstName}')" title="Edit User">
           <img src="/UI/images/editUser.png" alt="Edit" style="width:24px;" />
         </button>
       `;
@@ -257,4 +257,198 @@ window.onload = function () {
   }
 };
 
+// Function to redirect to edit user page with the username in the query
+function editUser(username) {
+  window.location.href = `editUser.html?username=${encodeURIComponent(
+    username
+  )}`;
+}
 
+document.addEventListener("DOMContentLoaded", function () {
+  const currentPage = window.location.pathname.split("/").pop(); // Get the current page name
+  if (currentPage === "listUsers.html") {
+    fetchUsers(); // Fetch and display users on page load
+  } else if (currentPage === "editUser.html") {
+    const urlParams = new URLSearchParams(window.location.search);
+    const username = urlParams.get("username");
+    if (username) {
+      getElementById("username").value = username; // Populate the username
+    }
+
+    handleEditTypeChange(); // Set the initial form state based on dropdown selection
+  }
+});
+
+// Function to get element by ID
+function getElementById(id) {
+  return document.getElementById(id);
+}
+
+// Validation function for the edit form
+function validateForm() {
+  let isValid = true;
+
+  // Username validation: only alphanumeric characters
+  const username = getElementById("username");
+  const usernameRegex = /^[a-zA-Z0-9]+$/;
+  if (!username.value.trim()) {
+    setInvalid(username, "Username is required.");
+    isValid = false;
+  } else if (!usernameRegex.test(username.value)) {
+    setInvalid(
+      username,
+      "Username should contain only alphanumeric characters."
+    );
+    isValid = false;
+  } else {
+    setValid(username);
+  }
+
+  // Phone validation: maximum 10 digits
+  const telephoneNumber = getElementById("telephoneNumber");
+  const phoneRegex = /^[0-9]{10}$/;
+  if (telephoneNumber.value.trim() && !phoneRegex.test(telephoneNumber.value)) {
+    setInvalid(telephoneNumber, "Phone number must be exactly 10 digits.");
+    isValid = false;
+  } else if (!telephoneNumber.value.trim()) {
+    setInvalid(telephoneNumber, "Phone number is required.");
+    isValid = false;
+  } else {
+    setValid(telephoneNumber);
+  }
+
+  // Email validation: use HTML5 email validation pattern
+  const mail = getElementById("mail");
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (mail.value.trim() && !emailRegex.test(mail.value)) {
+    setInvalid(mail, "Please enter a valid email address.");
+    isValid = false;
+  } else if (!mail.value.trim()) {
+    setInvalid(mail, "Email is required.");
+    isValid = false;
+  } else {
+    setValid(mail);
+  }
+
+  // Postal Code validation: exactly 6 digits
+  const postalCode = getElementById("postalCode");
+  const postalCodeRegex = /^[0-9]{6}$/;
+  if (postalCode.value.trim() && !postalCodeRegex.test(postalCode.value)) {
+    setInvalid(postalCode, "Postal code must be exactly 6 digits.");
+    isValid = false;
+  } else if (!postalCode.value.trim()) {
+    setInvalid(postalCode, "Postal code is required.");
+    isValid = false;
+  } else {
+    setValid(postalCode);
+  }
+
+  return isValid;
+}
+
+// Set the input field as valid with Bootstrap styling
+function setValid(input) {
+  input.classList.remove("is-invalid");
+  input.classList.add("is-valid");
+  input.nextElementSibling.textContent = ""; // Clear error message
+}
+
+// Set the input field as invalid with Bootstrap styling and show error message
+function setInvalid(input, message) {
+  input.classList.remove("is-valid");
+  input.classList.add("is-invalid");
+  input.nextElementSibling.textContent = message; // Show error message below the input
+}
+
+// Function to handle the toggle for showing/hiding fields based on edit type
+function handleEditTypeChange() {
+  const editType = getElementById("editType").value;
+
+  // Get all form fields
+  const generalFields = ["registeredAddress", "postalCode"];
+  const contactFields = ["telephoneNumber", "mail"];
+
+  if (editType === "general") {
+    // Show all fields
+    generalFields.forEach((fieldId) => {
+      getElementById(fieldId).closest(".form-group").style.display = "block";
+    });
+  } else {
+    // Hide general fields, show only contact fields
+    generalFields.forEach((fieldId) => {
+      getElementById(fieldId).closest(".form-group").style.display = "none";
+    });
+  }
+}
+
+// Add event listener for the edit type toggle
+getElementById("editType").addEventListener("change", handleEditTypeChange);
+
+// Add event listener for the edit user form
+getElementById("editUserForm").addEventListener("submit", async function (e) {
+  e.preventDefault(); // Prevent form submission
+
+  // Validate the form fields
+  if (!validateForm()) {
+    return; // Stop form submission if validation fails
+  }
+
+  // Get form data
+  const username = getElementById("username").value;
+  const telephoneNumber = getElementById("telephoneNumber").value;
+  const mail = getElementById("mail").value;
+  const registeredAddress = getElementById("registeredAddress").value;
+  const postalCode = getElementById("postalCode").value;
+  const editType = getElementById("editType").value; // Capture edit type
+
+  // Collect only changed or non-empty fields
+  const data = {
+    username: username,
+    attributes: {},
+  };
+
+  if (telephoneNumber) data.attributes.telephoneNumber = telephoneNumber;
+  if (mail) data.attributes.mail = mail;
+  if (editType === "general") {
+    if (registeredAddress)
+      data.attributes.registeredAddress = registeredAddress;
+    if (postalCode) data.attributes.postalCode = postalCode;
+  }
+
+  const apiUrl =
+    editType === "general"
+      ? `${baseApiUrl}/users/updateUser` // API to update user details
+      : `${baseApiUrl}/users/updateContactDetails`; // API to update contact details only
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (response.ok) {
+      alert("User details updated successfully.");
+      window.location.reload();
+      // Optionally reset the form or fetch updated data
+    } else {
+      const result = await response.json();
+      alert(
+        result.message || "Failed to update user details. Please try again."
+      );
+    }
+  } catch (error) {
+    console.error("Error updating user details:", error);
+    alert("An error occurred. Please try again later.");
+  }
+});
+
+// Helper function to reset the form and clear validation styles
+function resetForm() {
+  document.getElementById("editUserForm").reset();
+  document.querySelectorAll(".is-valid, .is-invalid").forEach((input) => {
+    input.classList.remove("is-valid", "is-invalid");
+  });
+}
