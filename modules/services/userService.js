@@ -130,7 +130,7 @@ class UserService {
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
       const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = createSSHAHash(password);
 
       const changes = [
         {

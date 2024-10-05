@@ -50,3 +50,9 @@ body {
 .row {
   margin-top: 05%;
 }
+
+.notAllowed {
+  pointer-events: none;
+  cursor: pointer;
+  opacity: 0.5;
+}
