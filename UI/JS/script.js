@@ -264,6 +264,7 @@ function editUser(username) {
   )}`;
 }
 
+// Function to handle edit type change
 document.addEventListener("DOMContentLoaded", function () {
   const currentPage = window.location.pathname.split("/").pop(); // Get the current page name
   if (currentPage === "listUsers.html") {
@@ -287,8 +288,9 @@ function getElementById(id) {
 // Validation function for the edit form
 function validateForm() {
   let isValid = true;
+  const editType = getElementById("editType").value;
 
-  // Username validation: only alphanumeric characters
+  // Username validation: only alphanumeric characters & required field
   const username = getElementById("username");
   const usernameRegex = /^[a-zA-Z0-9]+$/;
   if (!username.value.trim()) {
@@ -307,40 +309,66 @@ function validateForm() {
   // Phone validation: maximum 10 digits
   const telephoneNumber = getElementById("telephoneNumber");
   const phoneRegex = /^[0-9]{10}$/;
-  if (telephoneNumber.value.trim() && !phoneRegex.test(telephoneNumber.value)) {
-    setInvalid(telephoneNumber, "Phone number must be exactly 10 digits.");
-    isValid = false;
-  } else if (!telephoneNumber.value.trim()) {
+  if (telephoneNumber.value.trim()) {
+    // Only validate if the field is filled
+    if (!phoneRegex.test(telephoneNumber.value)) {
+      setInvalid(telephoneNumber, "Phone number must be exactly 10 digits.");
+      isValid = false;
+    } else {
+      setValid(telephoneNumber);
+    }
+  } else if (editType === "contact") {
+    // If in contact mode, phone is required
     setInvalid(telephoneNumber, "Phone number is required.");
     isValid = false;
   } else {
-    setValid(telephoneNumber);
+    // If empty and not required (in general mode), leave it unmarked
+    resetValidation(telephoneNumber);
   }
 
-  // Email validation: use HTML5 email validation pattern
+  // Email validation: only if field has a value.
   const mail = getElementById("mail");
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (mail.value.trim() && !emailRegex.test(mail.value)) {
-    setInvalid(mail, "Please enter a valid email address.");
-    isValid = false;
-  } else if (!mail.value.trim()) {
+  if (mail.value.trim()) {
+    // Only validate if the field is filled
+    if (!emailRegex.test(mail.value)) {
+      setInvalid(mail, "Please enter a valid email address.");
+      isValid = false;
+    } else {
+      setValid(mail);
+    }
+  } else if (editType === "contact") {
+    // If in contact mode, email is required
     setInvalid(mail, "Email is required.");
     isValid = false;
   } else {
-    setValid(mail);
+    // If empty and not required (in general mode), leave it unmarked
+    resetValidation(mail);
   }
 
-  // Postal Code validation: exactly 6 digits
+  // Postal Code validation: only if field has a value
   const postalCode = getElementById("postalCode");
   const postalCodeRegex = /^[0-9]{6}$/;
-  if (postalCode.value.trim() && !postalCodeRegex.test(postalCode.value)) {
-    setInvalid(postalCode, "Postal code must be exactly 6 digits.");
-    isValid = false;
-  } else if (!postalCode.value.trim()) {
-    setInvalid(postalCode, "Postal code is required.");
-    isValid = false;
+  if (postalCode.value.trim()) {
+    // Only validate if the field is filled
+    if (!postalCodeRegex.test(postalCode.value)) {
+      setInvalid(postalCode, "Postal code must be exactly 6 digits.");
+      isValid = false;
+    } else {
+      setValid(postalCode);
+    }
   } else {
-    setValid(postalCode);
+    // If empty, leave it unmarked
+    resetValidation(postalCode);
+  }
+
+  // Registered address validation: only if field has a value
+  const registeredAddress = getElementById("registeredAddress");
+  if (registeredAddress.value.trim()) {
+    setValid(registeredAddress);
+  } else {
+    // If empty, leave it unmarked
+    resetValidation(registeredAddress);
   }
 
   return isValid;
@@ -358,6 +386,12 @@ function setInvalid(input, message) {
   input.classList.remove("is-valid");
   input.classList.add("is-invalid");
   input.nextElementSibling.textContent = message; // Show error message below the input
+}
+
+// Reset validation, remove both valid and invalid classes
+function resetValidation(input) {
+  input.classList.remove("is-valid", "is-invalid");
+  input.nextElementSibling.textContent = ""; // Clear any previous error message
 }
 
 // Function to handle the toggle for showing/hiding fields based on edit type
@@ -429,21 +463,41 @@ getElementById("editUserForm").addEventListener("submit", async function (e) {
       body: JSON.stringify(data),
     });
 
+    const result = await response.json();
     if (response.ok) {
       alert("User details updated successfully.");
-      window.location.reload();
-      // Optionally reset the form or fetch updated data
+      window.location.href = "listUsers.html"; // Redirect to listUsers.html after success of updation
     } else {
-      const result = await response.json();
-      alert(
-        result.message || "Failed to update user details. Please try again."
-      );
+      handleApiErrors(result);
     }
   } catch (error) {
     console.error("Error updating user details:", error);
     alert("An error occurred. Please try again later.");
   }
 });
+
+// Handle API error messages and display them in the form
+function handleApiErrors(errors) {
+  if (errors.telephoneNumber) {
+    setInvalid(getElementById("telephoneNumber"), errors.telephoneNumber);
+  }
+
+  if (errors.mail) {
+    setInvalid(getElementById("mail"), errors.mail);
+  }
+
+  if (errors.registeredAddress) {
+    setInvalid(getElementById("registeredAddress"), errors.registeredAddress);
+  }
+
+  if (errors.postalCode) {
+    setInvalid(getElementById("postalCode"), errors.postalCode);
+  }
+
+  if (errors.username) {
+    setInvalid(getElementById("username"), errors.username);
+  }
+}
 
 // Helper function to reset the form and clear validation styles
 function resetForm() {
