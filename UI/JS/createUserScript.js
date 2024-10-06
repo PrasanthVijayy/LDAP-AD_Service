@@ -4,27 +4,39 @@ $(document).ready(function () {
   $("#createUserForm").on("submit", async function (event) {
     event.preventDefault(); // Prevent default form submission
 
-    // Clear previous error messages
-    $("#emailError").addClass("d-none");
-    $("#phoneError").addClass("d-none");
+    // Clear previous error/success messages and styles
+    clearValidation();
+
+    let isValid = true; // Track overall form validity
 
     // Validate Email
     const email = $("#mail").val();
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Basic email validation
     if (!emailPattern.test(email)) {
-      $("#emailError").removeClass("d-none");
-      return;
+      $("#mail").addClass("is-invalid");
+      $("#emailError").removeClass("d-none").text("Invalid email address.");
+      isValid = false;
+    } else {
+      $("#mail").addClass("is-valid");
     }
 
     // Validate Telephone Number
     const phoneNumber = $("#telephoneNumber").val();
     const phonePattern = /^\d{10}$/;
     if (!phonePattern.test(phoneNumber)) {
-      $("#phoneError").removeClass("d-none");
+      $("#telephoneNumber").addClass("is-invalid");
+      $("#phoneError").removeClass("d-none").text("Invalid phone number.");
+      isValid = false;
+    } else {
+      $("#telephoneNumber").addClass("is-valid");
+    }
+
+    // If form is not valid, stop form submission
+    if (!isValid) {
       return;
     }
 
-    // Gather form data
+    // Gather form data if validation passes
     const userData = {
       title: $("#title").val(),
       firstName: $("#firstName").val(),
@@ -50,9 +62,12 @@ $(document).ready(function () {
       const result = await response.json();
 
       if (response.ok) {
+        // Show success message and reset form
         alert("User created successfully.");
         $("#createUserForm")[0].reset(); // Clear the form fields
+        clearValidation(); // Clear validation feedback
       } else {
+        // Show error message from API
         alert(result.message || "Failed to create user.");
       }
     } catch (error) {
@@ -62,4 +77,10 @@ $(document).ready(function () {
       );
     }
   });
+
+  // Helper function to clear validation styles and messages
+  function clearValidation() {
+    $(".form-control").removeClass("is-valid is-invalid");
+    $(".text-danger, .text-success").addClass("d-none").text("");
+  }
 });

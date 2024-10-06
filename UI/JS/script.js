@@ -111,7 +111,7 @@ async function searchUsers() {
         "Content-Type": "application/json",
       },
     });
-    
+
     if (response.status === 429) {
       alert(
         "You have made too many requests. Please wait a few minutes before trying again."

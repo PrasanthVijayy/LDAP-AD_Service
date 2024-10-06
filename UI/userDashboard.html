@@ -14,8 +14,9 @@
   <body>
     <div class="container my-5">
       <h1 class="text-center mb-4">User Dashboard</h1>
-      <div class="row">
-        <div class="col-md-4 offset-md-4 mb-4">
+      <div class="row justify-content-center">
+        <!-- Card 1: Change Password -->
+        <div class="col-md-3 mb-4">
           <div
             class="card shadow-sm h-100"
             onclick="window.location.href='/UI/Pages/chpwd.html'"
@@ -27,6 +28,23 @@
             />
             <div class="card-body">
               <h5 class="card-title text-center">Change Password</h5>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Search User -->
+        <div class="col-md-3 mb-4">
+          <div
+            class="card shadow-sm h-100"
+            onclick="window.location.href='/UI/Pages/userSearch.html'"
+          >
+            <img
+              src="/UI/images/searchUser.png"
+              class="card-img-top"
+              alt="Search User"
+            />
+            <div class="card-body">
+              <h5 class="card-title text-center">Search User</h5>
             </div>
           </div>
         </div>
