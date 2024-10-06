@@ -51,6 +51,13 @@ async function fetchUsers() {
       headers: { "Content-Type": "application/json" },
     });
 
+    if (response.status === 429) {
+      alert(
+        "You have made too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
+
     if (response.ok) {
       const result = await response.json();
       const users = result.users;
@@ -67,6 +74,87 @@ async function fetchUsers() {
     alert("An error occurred. Please try again later.");
     return null;
   }
+}
+
+// Search users based on the selected criteria
+async function searchUsers() {
+  const searchInput = document.getElementById("searchInput").value.trim();
+  const searchCriteria = document.getElementById("searchCriteria").value; // Get the selected search criteria
+  const statusFilter = document.getElementById("statusFilter").value; // Get status filter
+
+  let filter;
+
+  // Build the filter based on the selected search criteria
+  if (searchCriteria === "username") {
+    filter = `cn=${searchInput}`; // Filter by username (cn)
+  } else if (searchCriteria === "email") {
+    filter = `mail=${searchInput}`; // Filter by email
+  } else if (searchCriteria === "phone") {
+    filter = `telephoneNumber=${searchInput}`; // Filter by phone number
+  }
+
+  // If status filter is selected, apply it as well
+  // if (statusFilter !== "all") {
+  //   if (filter) {
+  //     filter += `,status=${statusFilter}`; // Add status filter to existing filter
+  //   } else {
+  //     filter = `status=${statusFilter}`; // Apply status filter if no search input
+  //   }
+  // }
+  try {
+    const apiUrl = `${baseApiUrl}/users/listUsers?filter=${encodeURIComponent(
+      filter
+    )}`;
+    const response = await fetch(apiUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    
+    if (response.status === 429) {
+      alert(
+        "You have made too many requests. Please wait a few minutes before trying again."
+      );
+      return;
+    }
+    const result = await response.json();
+
+    // Call function to display users in the table
+    displayUsers(result.users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    alert("An error occurred while searching for users.");
+  }
+}
+
+// Display users in the table
+function displayUsers(users) {
+  const tableBody = document.getElementById("userTableBody");
+  tableBody.innerHTML = "";
+
+  if (users.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="6" class="text-center"><strong>No users found.</strong></td></tr>`;
+    return;
+  }
+
+  users.forEach((user, index) => {
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+      <th scope="row">${index + 1}</th>
+      <td>${user.firstName || ""} ${user.lastName || ""}</td>
+      <td>${user.email || "N/A"}</td>
+      <td>${user.phone || "N/A"}</td>
+      <td>${user.status || "N/A"}</td>
+      <td>
+        <button class="btn btn-link" onclick="showUserDetails(${index})" title="View Details">
+          <img src="/UI/images/user.png" alt="Profile" style="width:24px;" />
+        </button>
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
 }
 
 // Display users in the table
@@ -161,7 +249,6 @@ async function filterUsers() {
   }
 }
 
-// Change 1: Add event listener for status filter after DOM is fully loaded
 document.addEventListener("DOMContentLoaded", function () {
   const statusFilterElement = document.getElementById("statusFilter");
   if (statusFilterElement) {

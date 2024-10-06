@@ -132,7 +132,6 @@ async function fetchFilteredGroups(groupType) {
 // Lock group members
 async function lockGroupMembers(groupName) {
   try {
-    alert(`Locking group members for group "${groupName}".`);
 
     const response = await fetch(`${baseApiUrl}/users/lockGroupMembers`, {
       method: "POST",
@@ -145,13 +144,30 @@ async function lockGroupMembers(groupName) {
     });
 
     if (response.ok) {
-      alert(`Locked group members for group "${groupName}".`);
-      populateGroupsTable(groups);
+      // Get the JSON response if needed
+      const result = await response.json();
+
+      // Success alert
+      alert(`Success: ${result.message}` || `Locked group members for group "${groupName}".`);
+      
+
+      // Ensure 'groups' is properly defined
+      if (typeof groups !== "undefined") {
+        populateGroupsTable(groups); // Call only if 'groups' is defined
+      } else {
+        console.error(`'groups' is undefined. Cannot populate group table.`);
+      }
     } else {
-      alert(`Failed to lock group members for group "${groupName}".`);
+      const errorData = await response.json();
+      alert(
+        `Failed to lock group members: ${errorData.message || "Unknown error."}`
+      );
     }
-  } catch {
-    console.error(`Error locking group members for group "${groupName}".`);
+  } catch (error) {
+    console.error(
+      `Error locking group members for group "${groupName}":`,
+      error
+    );
     alert(`Failed to lock group members for group "${groupName}".`);
   }
 }
@@ -195,8 +211,13 @@ function displayGroupMembersModal(groupName, groupType, members) {
   </button>`;
   membersList.appendChild(addMemberLogo);
 
+  // Check if there are no members and show the message only if the group is empty
   if (members.length === 0) {
-    membersList.innerHTML += `<li class="list-group-item">No members found in this group.</li>`;
+    const noMembersMessage = document.createElement("li");
+    noMembersMessage.classList.add("list-group-item");
+    noMembersMessage.textContent = "No members found in this group.";
+    noMembersMessage.id = "noMembersMessage"; // Add an ID to reference this element later
+    membersList.appendChild(noMembersMessage);
   } else {
     members.forEach((member) => {
       const username = extractUsernameFromDN(member); // Extract username from DN
@@ -215,7 +236,7 @@ function displayGroupMembersModal(groupName, groupType, members) {
       deleteButton.classList.add("btn", "btn-link");
       deleteButton.innerHTML = `<img src="/UI/images/removeUser.png" alt="Delete" style="width:24px;">`;
       deleteButton.onclick = () =>
-        // Function calling api to delete member
+        // Function calling API to delete member
         removeMemberFromGroup(groupName, groupType, username);
 
       listItem.appendChild(deleteButton);
@@ -223,24 +244,51 @@ function displayGroupMembersModal(groupName, groupType, members) {
     });
   }
 
-  // Open the modal
   $("#groupMembersModal").modal("show");
 }
 
 // Open input field to add new member
 function openAddMemberInput(groupName, groupType) {
+  const membersList = document.getElementById("membersList");
+
+  // Remove any existing input fields and buttons before adding new ones
+  const existingInput = document.getElementById("addMemberInput");
+  const existingButton = document.getElementById("addMemberButton");
+  if (existingInput) existingInput.remove();
+  if (existingButton) existingButton.remove();
+
+  // Create a new input field for entering the member's username
   const addMemberInput = document.createElement("input");
   addMemberInput.type = "text";
+  addMemberInput.id = "addMemberInput";
   addMemberInput.placeholder = "Enter new member username";
   addMemberInput.classList.add("form-control", "mt-3");
 
+  // Create the "Add Member" button
   const addButton = document.createElement("button");
   addButton.textContent = "Add Member";
+  addButton.id = "addMemberButton"; // Assign an ID for easy reference
   addButton.classList.add("btn", "btn-success", "mt-2");
-  addButton.onclick = () =>
-    addMemberToGroup(groupName, groupType, addMemberInput.value);
 
-  const membersList = document.getElementById("membersList");
+  // Check if the input field is not empty before adding a member
+  addButton.onclick = () => {
+    const newMember = addMemberInput.value.trim();
+    if (!newMember) {
+      alert("Please enter a valid username before adding the member.");
+    } else {
+      // Remove the "No members found" message if it's present
+      const noMembersMessage = document.getElementById("noMembersMessage");
+      if (noMembersMessage) {
+        noMembersMessage.remove(); // Remove the empty members message
+      }
+
+      // Add the new member
+      addMemberToGroup(groupName, groupType, newMember);
+      addMemberInput.value = "";
+    }
+  };
+
+  // Append the input field and button to the members list container
   membersList.appendChild(addMemberInput);
   membersList.appendChild(addButton);
 }
@@ -274,7 +322,7 @@ async function removeMemberFromGroup(groupName, groupType, member) {
 
 // Add member to group
 async function addMemberToGroup(groupName, groupType, newMember) {
-  // Use groupType to determine correct endpoint
+  // Calls the endpoints based on groupType
   const apiEndpoint = groupType === "admin" ? "addToAdminGroup" : "addToGroup";
 
   try {
@@ -288,20 +336,21 @@ async function addMemberToGroup(groupName, groupType, newMember) {
 
     if (response.ok) {
       alert(`Member "${newMember}" added to group "${groupName}".`);
-      viewGroupDetails(groupName, groupType); // Refresh group members
+      viewGroupDetails(groupName, groupType);
     } else {
-      alert("Failed to add member.");
+      const errorData = await response.json();
+      alert(`Failed to add member: ${errorData.message}`);
     }
   } catch (error) {
     console.error("Error adding member:", error);
-    alert("An error occurred while adding the member.");
+    alert("An unexpected error occurred while adding the member.");
   }
 }
 
 // Helper function to extract username from DN
 function extractUsernameFromDN(dn) {
   const matches = dn.match(/^cn=([^,]+)/);
-  return matches ? matches[1] : dn; // Returning the username or the full DN if no match
+  return matches ? matches[1] : dn;
 }
 
 // Load groups on page load

@@ -122,11 +122,20 @@ class GroupService {
   async membersInGroup(groupName) {
     try {
       console.log("Service: membersInGroup - Started");
+
+      // Bind with LDAP admin credentials
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+
       const groupDN = `cn=${groupName},ou=groups,${process.env.LDAP_BASE_DN}`;
       const groupDetails = await search(groupDN, "(objectClass=groupOfNames)");
-      const members = groupDetails[0].member;
+
+      // Extract members from the group details
+      let members = groupDetails[0]?.member || [];
+
+      members = members.filter((member) => member && member.trim() !== "");
+
       console.log("Service: membersInGroup - Completed");
+
       return { count: members.length, members };
     } catch (error) {
       console.log("Service: membersInGroup - Error", error);

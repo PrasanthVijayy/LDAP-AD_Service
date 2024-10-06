@@ -85,8 +85,33 @@ class UserService {
     try {
       console.log("Service: listUsers - Started");
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+
       const baseDN = process.env.LDAP_BASE_DN || "ou=users,dc=example,dc=com";
-      const searchFilter = filter ? `(${filter})` : "(objectClass=person)";
+
+      // Default to search by objectClass=person if no filter provided
+      let searchFilter = "(objectClass=person)";
+
+      // Apply the filter based on the query parameter (username, email, phone, status)
+      if (filter) {
+        // Split the filter string to handle multiple conditions (e.g., cn=username,status=active)
+        const filterParts = filter.split(",");
+        const filterConditions = filterParts.map((part) => {
+          const [field, value] = part.split("="); // Split by field and value
+
+          // Determine which LDAP attribute to filter by
+          if (field === "cn") {
+            return `(cn=${value})`; // Username filter
+          } else if (field === "mail") {
+            return `(mail=${value})`; // Email filter
+          } else if (field === "telephoneNumber") {
+            return `(telephoneNumber=${value})`; // Phone number filter
+          } 
+        });
+
+        // Join all filter conditions with AND (&) operator for LDAP search
+        searchFilter = `(&${filterConditions.join("")})`;
+      }
+
       const scope = "sub";
       const rawUsers = await search(baseDN, searchFilter, scope);
       console.log("Service: listUsers - Completed");
@@ -366,18 +391,24 @@ class UserService {
       const groupSearchResults = await search(groupDN, searchFilter);
 
       // Extract members' DNs (Distinguished Names)
-      const groupMembers = groupSearchResults[0].member || [];
+      let groupMembers = groupSearchResults[0]?.member || [];
 
-      console.log("groupMembers", groupMembers);
+      // Filter out empty or invalid member DNs
+      groupMembers = groupMembers.filter(
+        (member) => member && member.trim() !== ""
+      );
 
+      // Check if there are no valid members to lock
       if (groupMembers.length === 0) {
-        throw new BadRequestError(`Group ${groupName} has no members.`);
+        throw new BadRequestError(
+          `Group ${groupName} has no valid members to lock.`
+        );
       }
 
       // Counter to track the number of successful locks
       let lockedCount = 0;
 
-      // Loop through each member and lock them
+      // Loop through each valid member and lock them
       for (const userDN of groupMembers) {
         try {
           // Verify the user exists and fetch their details
@@ -403,7 +434,7 @@ class UserService {
             {
               operation: "replace",
               modification: {
-                shadowExpire: 1, // Set to 1 to lock the users
+                shadowExpire: 1, // Set to 1 to lock the user
               },
             },
           ];
@@ -417,11 +448,10 @@ class UserService {
         }
       }
 
-      // if (lockedCount === 0) {
-      //   throw new BadRequestError(`No users were locked in group ${groupName}.`);
-      // }
-
+      // Log the completion of the lock operation
       console.log(`Service: lockGroupMembers - Completed`);
+
+      // Return the result message
       return {
         message: `Locked ${lockedCount} member(s) from group successfully.`,
       };
