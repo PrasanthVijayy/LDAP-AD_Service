@@ -56,7 +56,7 @@
                 type="text"
                 class="form-control"
                 id="givenName"
-                placeholder="Enter given name"
+                placeholder="Enter username"
                 required
                 autocomplete="off"
               />
@@ -69,8 +69,6 @@
                 id="telephoneNumber"
                 placeholder="Enter telephone number"
                 required
-                pattern="^\d{10}$"
-                title="Please enter a valid 10-digit phone number."
                 autocomplete="off"
               />
               <small id="phoneError" class="text-danger d-none"
@@ -98,15 +96,13 @@
                 id="postalCode"
                 placeholder="Enter postal code"
                 required
-                pattern="^\d{6}$"
-                title="Please enter a valid 6-digit postal code."
                 autocomplete="off"
               />
             </div>
           </div>
           <div class="form-row">
             <div class="form-group col-md-6">
-              <label for="mail">Mail</label>
+              <label for="mail">Email</label>
               <input
                 type="email"
                 class="form-control"
