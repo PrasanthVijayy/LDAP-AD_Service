@@ -2,25 +2,27 @@ const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
 
 // Add event listener for the reset password form
 document
-  .getElementById("resetPasswordForm")
+  .getElementById("changePasswordForm")
   .addEventListener("submit", async function (e) {
     e.preventDefault(); // Prevent form submission
 
     // Get form data
     const username = document.getElementById("username").value;
+    const currentPassword = document.getElementById("currentPassword").value;
     const newPassword = document.getElementById("newPassword").value;
 
-    const apiUrl = `${baseApiUrl}/users/resetPwd`;
+    const apiUrl = `${baseApiUrl}/users/chpwd`;
 
     // Prepare request payload
     const data = {
       username: username,
-      password: newPassword,
+      currentPassword: currentPassword,
+      newPassword: newPassword,
     };
 
     try {
       const response = await fetch(apiUrl, {
-        method: "PUT",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
@@ -33,7 +35,7 @@ document
         document.getElementById("message").innerHTML =
           '<div class="alert alert-success">Password reset successfully!</div>';
         // Clear form fields
-        document.getElementById("resetPasswordForm").reset();
+        document.getElementById("changePasswordForm").reset();
       } else {
         document.getElementById(
           "message"
@@ -47,3 +49,7 @@ document
         '<div class="alert alert-danger">An error occurred. Please try again later.</div>';
     }
   });
+
+// Password visibility toggle functionality for both fields
+const currentPasswordInput = document.getElementById("currentPassword");
+const newPasswordInput = document.getElementById("newPassword");
