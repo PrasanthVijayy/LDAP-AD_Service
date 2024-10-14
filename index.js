@@ -6,6 +6,7 @@ import cors from "cors";
 import morgan from "morgan";
 import helmet from "helmet";
 import hpp from "hpp";
+import compression from "compression";
 
 /* Import routes */
 import userRoutes from "./modules/routes/userRoutes.js";
@@ -25,9 +26,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(
   morgan(":method :url :status :res[content-length] - :response-time ms")
 );
-app.use(helmet());
-app.disable("x-powered-by");
-app.use(hpp());
+app.use(helmet());  //Helmet security
+app.disable("x-powered-by"); // Reduce Fingerprinting
+app.use(hpp()); // HTTP Parameter pollution
+app.use(compression()); // Enable compression for all API responses
 
 /* ROUTES */
 userRoutes(app);

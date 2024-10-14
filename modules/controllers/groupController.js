@@ -69,9 +69,9 @@ class GroupController {
       console.log("Filter", filter);
       const groups = await this.groupService.listGroups(filter);
       console.log("Controller: listGroups - Completed");
-      if (groups.count === 0) {
-        res.status(204).end();
-      }
+      // if (groups.count === 0) {
+      //   res.status(204).end();
+      // }
       res.status(200).json(groups);
     } catch (error) {
       console.log("Controller: listGroups - Error", error);

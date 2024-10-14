@@ -42,9 +42,9 @@ class GroupService {
         groupType: group.businessCategory || null,
       }));
 
-      if (groups.length === 0) {
-        throw new NotFoundError("No groups found.");
-      }
+      // if (groups.length === 0) {
+      //   throw new NotFoundError("No groups found.");
+      // }
       return { count: groups.length, groups };
     } catch (error) {
       console.log("Service: listGroups - Error", error);
