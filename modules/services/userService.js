@@ -17,9 +17,12 @@ import { createSSHAHash } from "../../utils/encryption.js";
 import { uid } from "uid";
 
 class UserService {
-  static encodePassword(password) {
-    return Buffer.from(password, "utf-8").toString("base64");
-  }
+  
+  //Commenting below function as it is not used anywhere (dt: 14/10)
+
+  // static encodePassword(password) {
+  //   return Buffer.from(password, "utf8").toString("base64");
+  // }
 
   async addUser(payload) {
     try {
