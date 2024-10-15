@@ -17,15 +17,15 @@ import errorHandling from "./middleware/errorMiddleware.js";
 import { connectToLDAP } from "./config/ldapconfig.js";
 
 dotenv.config();
-const app = express();
+const app = express(); // Create express app
 
 /* MIDDLEWARES */
-app.use(cors());
-app.use(bodyParser.json());
+app.use(cors()); // CORS middleware
+app.use(bodyParser.json()); // Body parser middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(
   morgan(":method :url :status :res[content-length] - :response-time ms")
-);
+); // Morgan middleware to log requests in mentioned format
 app.use(helmet());  //Helmet security
 app.disable("x-powered-by"); // Reduce Fingerprinting
 app.use(hpp()); // HTTP Parameter pollution
