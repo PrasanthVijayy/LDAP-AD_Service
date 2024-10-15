@@ -148,8 +148,10 @@ async function lockGroupMembers(groupName) {
       const result = await response.json();
 
       // Success alert
-      alert(`Success: ${result.message}` || `Locked group members for group "${groupName}".`);
-      
+      alert(
+        `Success: ${result.message}` ||
+          `Locked group members for group "${groupName}".`
+      );
 
       // Ensure 'groups' is properly defined
       if (typeof groups !== "undefined") {
