@@ -27,6 +27,7 @@ document
       const result = await response.json();
 
       if (response.ok) {
+        document.getElementById("loginForm").reset();
         window.location.href =
           userType === "admin" ? "adminDashboard.html" : "userDashboard.html";
       } else {
