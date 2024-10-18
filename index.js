@@ -1,4 +1,4 @@
-"use strict";
+"use strict"; // Using strict mode
 import express from "express";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
@@ -26,7 +26,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(
   morgan(":method :url :status :res[content-length] - :response-time ms")
 ); // Morgan middleware to log requests in mentioned format
-app.use(helmet());  //Helmet security
+app.use(helmet()); //Helmet security
 app.disable("x-powered-by"); // Reduce Fingerprinting
 app.use(hpp()); // HTTP Parameter pollution
 app.use(compression()); // Enable compression for all API responses
