@@ -12,6 +12,32 @@
     <link rel="stylesheet" href="/UI/CSS/styles.css" />
   </head>
   <body>
+    <!-- Navigation Buttons -->
+    <div class="left-fixed-buttons">
+      <div class="button-row">
+        <button class="btn btn-secondary" id="backButton">
+          <img src="/UI/images/backButton.png" alt="Back" style="width: 24px" />
+          Back
+        </button>
+        <button class="btn btn-primary" id="homeButton">
+          <img src="/UI/images/homeButton.png" alt="Home" style="width: 24px" />
+          Home
+        </button>
+      </div>
+    </div>
+
+    <div class="right-fixed-buttons">
+      <button class="btn btn-danger" id="signoutButton">
+        <img
+          src="/UI/images/logoutButton.png"
+          alt="Sign Out"
+          style="width: 24px"
+        />
+        Sign Out
+      </button>
+    </div>
+
+    <!-- Content -->
     <div
       class="container d-flex align-items-center justify-content-center vh-100"
     >
@@ -137,5 +163,6 @@
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="/UI/JS/createUserScript.js"></script>
+    <script src="/UI/JS/headerButtons.js"></script>
   </body>
 </html>
