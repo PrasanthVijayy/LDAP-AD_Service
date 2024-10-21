@@ -5,9 +5,11 @@ import {
   NotFoundError,
 } from "../../utils/error.js";
 import { search } from "../../utils/ldapUtils.js";
+import OrganizationService from "../services/orgainzationService.js";
 class UserController {
   constructor() {
     this.userService = new UserService();
+    this.organizationService = new OrganizationService();
   }
 
   // Add a new user to the LDAP directory
@@ -18,7 +20,7 @@ class UserController {
       const payload = {
         firstName: req.body.firstName,
         lastName: req.body.lastName,
-        givenName: req.body.givenName, // Username or CN
+        givenName: req.body.givenName, // Username
         userPassword: req.body.userPassword,
         telephoneNumber: req.body.telephoneNumber,
         // attributes: req.body.attributes || {},
@@ -27,6 +29,7 @@ class UserController {
         postalCode: req.body.postalCode,
         description: req.body.description,
         title: req.body.title || "user",
+        userOU: req.body.userOU,
       };
 
       let missingFields = [];
@@ -36,6 +39,9 @@ class UserController {
       if (!payload.userPassword) missingFields.push("userPassword");
       if (!payload.telephoneNumber) missingFields.push("telephoneNumber");
       if (!payload.mail) missingFields.push("mail");
+      if (!payload.userOU) missingFields.push("userOU");
+      if (!payload.registeredAddress) missingFields.push("address");
+      if (!payload.postalCode) missingFields.push("postalCode");
 
       if (missingFields.length > 0) {
         return next(
@@ -48,9 +54,12 @@ class UserController {
         throw new BadRequestError("Title should be either user or admin");
       }
 
+      // Checking if OU exists
+      await this.organizationService.listOrganizaitons(`ou=${payload.userOU}`);
+
       // Check for uniqueness
       const userExists = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
+        `ou=${payload.userOU},${process.env.LDAP_BASE_DN}`,
         `(cn=${payload.givenName})`
       );
 
@@ -60,7 +69,7 @@ class UserController {
 
       if (payload.telephoneNumber) {
         const phoneExist = await search(
-          `ou=users,${process.env.LDAP_BASE_DN}`,
+          `ou=${payload.userOU},${process.env.LDAP_BASE_DN}`,
           `(telephoneNumber=${payload.telephoneNumber})`
         );
         if (phoneExist.length > 0) {
@@ -75,7 +84,7 @@ class UserController {
 
       if (payload.mail) {
         const emailExist = await search(
-          `ou=users,${process.env.LDAP_BASE_DN}`,
+          `ou=${payload.userOU},${process.env.LDAP_BASE_DN}`,
           `(mail=${payload.mail})`
         );
         if (emailExist.length > 0) {
@@ -153,25 +162,31 @@ class UserController {
   deleteUser = async (req, res, next) => {
     try {
       console.log("Controller: deleteUser - Started");
-      const { username } = req.query;
-      if (!username) {
-        throw new BadRequestError("Missing username field.");
-      }
-      const userExists = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
-        `(cn=${username})`
-      );
-      if (userExists.length === 0) {
-        throw new NotFoundError(`User not found.`);
+      const { username, userOU } = req.body;
+
+      let missingFields = [];
+      if (!username) missingFields.push("username");
+      if (!userOU) missingFields.push("userOU");
+
+      if (missingFields.length > 0) {
+        throw new BadRequestError(`Missing ${missingFields.join(", ")}`);
       }
 
-      if (userExists[0].shadowFlag == 1) {
-        throw new BadRequestError(`User is already deleted`);
-      }
+      // const userExists = await search(
+      //   `ou=users,${process.env.LDAP_BASE_DN}`,
+      //   `(cn=${username})`
+      // );
+      // if (userExists.length === 0) {
+      //   throw new NotFoundError(`User not found.`);
+      // }
 
-      console.log("User exists", userExists[0]);
+      // if (userExists[0].shadowFlag == 1) {
+      //   throw new BadRequestError(`User is already deleted`);
+      // }
 
-      const message = await this.userService.deleteUser(username);
+      // console.log("User exists", userExists[0]);
+
+      const message = await this.userService.deleteUser(username, userOU);
       console.log("Controller: deleteUser - Completed");
       res.status(200).json(message);
     } catch (error) {
@@ -376,17 +391,21 @@ class UserController {
   updateUserStatus = async (req, res, next) => {
     try {
       console.log("Controller: updateUserStatus - Started");
-      const { username, action } = req.body;
+      const { username, action, OU } = req.body;
 
       // Validate required fields
       let missingFields = [];
       if (!username) missingFields.push("username");
       if (!action) missingFields.push("action");
+      if (!OU) missingFields.push("OU");
       if (missingFields.length > 0) {
         return next(
           new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
         );
       }
+
+      // Check if OU exists
+      await this.organizationService.listOrganizaitons(`ou=${OU}`);
 
       // Validate action
       if (!["enable", "disable"].includes(action)) {
@@ -396,13 +415,13 @@ class UserController {
       }
 
       // Check if user exists
-      const userExists = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
-        `(cn=${username})`
-      );
-      if (userExists.length === 0) {
-        throw new NotFoundError(`User not found.`);
-      }
+      // const userExists = await search(
+      //   `ou=users,${process.env.LDAP_BASE_DN}`,
+      //   `(cn=${username})`
+      // );
+      // if (userExists.length === 0) {
+      //   throw new NotFoundError(`User not found.`);
+      // }
 
       const message = await this.userService.modifyUserStatus(username, action);
       console.log("Controller: updateUserStatus - Completed");

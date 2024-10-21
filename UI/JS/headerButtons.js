@@ -1,26 +1,34 @@
 // Handle Sign Out button click
 document.getElementById("signoutButton").addEventListener("click", function () {
   localStorage.removeItem("userType"); // Remove the userType from localStorage
-  window.location.href = "index.html"; // Redirect to the login page
+  window.location.href = "/UI/index.html"; // Redirect to the login page
 });
 
 // Handle Back button click
 document.getElementById("backButton").addEventListener("click", function () {
-  window.history.back(); // Go back to the previous page
+  const userType = localStorage.getItem("userType");
+  if (userType === "admin" || userType === "user") {
+    window.history.back(); // Go back to the previous page
+  } else {
+    alert("Already logged out. Please Login to continue");
+    window.location.href = "/UI/index.html"; // Login page
+  }
 });
 
 // Handle Home button click
 document.getElementById("homeButton").addEventListener("click", function () {
-  // Get userType from localStorage and redirect to the appropriate dashboard
   const userType = localStorage.getItem("userType");
   if (userType === "admin") {
-    window.location.href = "adminDashboard.html"; // Admin dashboard
+    window.location.href = "/UI/adminDashboard.html"; // Admin dashboard
+  } else if (userType === "user") {
+    window.location.href = "/UI/userDashboard.html"; // Regular user dashboard
   } else {
-    window.location.href = "userDashboard.html"; // Regular user dashboard
+    alert("Already logged out. Please Login to continue");
+    window.location.href = "/UI/index.html"; // Login page
   }
 });
 
-// Hide Home and Back buttons on the dashboard page
+// Hide Home and Back buttons on the dashboard page, since not required
 document.addEventListener("DOMContentLoaded", function () {
   const currentPage = window.location.pathname.split("/").pop();
   if (

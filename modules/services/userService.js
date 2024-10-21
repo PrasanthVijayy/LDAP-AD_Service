@@ -5,19 +5,16 @@ import {
   modify,
   deleteEntry,
 } from "../../utils/ldapUtils.js";
-import bcrypt from "bcrypt";
 import {
   BadRequestError,
   ConflictError,
   NotFoundError,
   UnauthorizedError,
 } from "../../utils/error.js";
-import CryptoJS from "crypto-js";
 import { createSSHAHash } from "../../utils/encryption.js";
 import { uid } from "uid";
 
 class UserService {
-  
   //Commenting below function as it is not used anywhere (dt: 14/10)
 
   // static encodePassword(password) {
@@ -29,7 +26,7 @@ class UserService {
       console.log("Service: addUser - Started");
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
 
-      const userDN = `cn=${payload.givenName},ou=users,${process.env.LDAP_BASE_DN}`;
+      const userDN = `cn=${payload.givenName},ou=${payload.userOU},${process.env.LDAP_BASE_DN}`;
 
       const uniqueUid = uid(10); // Generate a unique UID
       if (!payload.userPassword) {
@@ -41,6 +38,7 @@ class UserService {
       const userAttributes = {
         uid: uniqueUid,
         cn: payload.givenName,
+        gn: payload.firstName,
         sn: payload.lastName,
         objectClass: [
           "top",
@@ -49,7 +47,7 @@ class UserService {
           "inetOrgPerson",
           "shadowAccount",
         ],
-        givenName: payload.givenName,
+        // givenName: payload.givenName,
         userPassword: hashedPassword,
         telephoneNumber: payload.telephoneNumber || "",
         mail: payload.mail || `${payload.givenName}@example.com`,
@@ -61,7 +59,7 @@ class UserService {
         title: payload.title || "user",
       };
 
-      console.log("Service: addUser - User Attributes", userAttributes);
+      console.log("Service: addUser - Completed");
 
       // if (payload.userPassword) {
       //   const hashedPassword = createSSHAHash(payload.userPassword);
@@ -108,7 +106,7 @@ class UserService {
             return `(mail=${value})`; // Email filter
           } else if (field === "telephoneNumber") {
             return `(telephoneNumber=${value})`; // Phone number filter
-          } 
+          }
         });
 
         // Join all filter conditions with AND (&) operator for LDAP search
@@ -135,8 +133,9 @@ class UserService {
         return {
           dn: user.dn,
           userType: user.title,
-          firstName: user.cn,
+          firstName: user.gn,
           lastName: user.sn,
+          userName: user.cn,
           email: user.mail,
           phone: user.telephoneNumber,
           address: user.registeredAddress,
@@ -178,24 +177,30 @@ class UserService {
     }
   }
 
-  async deleteUser(username) {
+  async deleteUser(username, userOU) {
     try {
       console.log("Service: deleteUser - Started");
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
-      const changes = [
-        {
-          operation: "replace",
-          modification: {
-            shadowFlag: 1,
-          },
-        },
-      ];
+      const userDN = `cn=${username},ou=${userOU},${process.env.LDAP_BASE_DN}`;
+      // const changes = [
+      //   {
+      //     operation: "delete",
+      //     modification: {
+      //       cn: username,
+      //     },
+      //   },
+      // ];
 
-      await modify(userDN, changes);
+      // await modify(userDN, changes);
+
+      await deleteEntry(userDN); // Delete user from LDAP (initally it was just flag within a attribute)
       console.log("Service: deleteUser - Completed");
+
       return { message: "User deleted successfully." };
     } catch (error) {
+      if (error.message.includes("No Such Object")) {
+        throw new NotFoundError("User not found");
+      }
       console.log("Service: deleteUser - Error", error);
       throw error;
     }
@@ -303,7 +308,7 @@ class UserService {
       );
 
       if (searchResults.length === 0) {
-        throw new Error(`User not found.`);
+        throw new NotFoundError(`User not found.`);
       }
 
       const currentStatus = searchResults[0].shadowInactive || 0; // Default to 'enabled' if no description is found
@@ -348,6 +353,9 @@ class UserService {
       return { message: `User ${action}d successfully.` };
     } catch (error) {
       console.log(`Service: modifyUserStatus - Error`, error);
+      if (error.message.includes("No Such Object")) {
+        throw new NotFoundError(`User '${username}' not found.`);
+      }
       throw error;
     }
   }
