@@ -28,8 +28,10 @@ document
 
       if (response.ok) {
         document.getElementById("loginForm").reset();
+        localStorage.setItem("userType", userType); // Stroring userType for redirection purpose
+
         window.location.href =
-          userType === "admin" ? "adminDashboard.html" : "userDashboard.html";
+          userType === "admin" ? "adminDashboard.html" : "userDashboard.html"; // Redirect to dashboard page
       } else {
         alert(result.message || "Login failed. Please try again.");
       }
