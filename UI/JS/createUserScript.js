@@ -1,6 +1,90 @@
 const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
 
 $(document).ready(function () {
+  // Fetch organizations and populate OU dropdown
+  async function fetchOrganizations() {
+    try {
+      const apiUrl = `${baseApiUrl}/organizations/listOrganizations`;
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const organizations = result.organizations;
+
+        const ouDropdown = $("#organizationDN");
+        ouDropdown.empty(); // Clear any existing options
+        ouDropdown.append(
+          `<option value="">Select Organizational Unit</option>`
+        );
+
+        // Populate the dropdown with organizationDN values
+        organizations.forEach((org) => {
+          ouDropdown.append(
+            `<option value="${org.organizationDN}">${org.organizationDN}</option>`
+          );
+        });
+      } else {
+        displayError("organizationDN", "Failed to load organizations.");
+      }
+    } catch (error) {
+      console.error("Error fetching organizations:", error);
+      displayError(
+        "organizationDN",
+        "An error occurred while loading organizations."
+      );
+    }
+  }
+
+  // Call the function to fetch organizations when the page loads
+  fetchOrganizations();
+
+  // Restrict input to alphabets for firstName, lastName, and username fields
+  $("#firstName, #lastName, #givenName").on("input", function () {
+    this.value = this.value.replace(/[^a-zA-Z]/g, ""); // Remove non-alphabetic characters
+    if (this.value.length > 0) {
+      displaySuccess(this.id);
+    } else {
+      displayError(this.id, "This field can only contain alphabets.");
+    }
+  });
+
+  // Restrict input to max 10 digits for phone number
+  $("#telephoneNumber").on("input", function () {
+    this.value = this.value.replace(/\D/g, "").slice(0, 10); // Allow only digits
+    const phonePattern = /^\d{10}$/;
+    if (phonePattern.test(this.value)) {
+      displaySuccess("telephoneNumber");
+    } else {
+      displayError("telephoneNumber", "Phone number must be 10 digits.");
+    }
+  });
+
+  // Restrict input to max 6 digits for postal code
+  $("#postalCode").on("input", function () {
+    this.value = this.value.replace(/\D/g, "").slice(0, 6); // Allow only digits
+    if (this.value.length === 6) {
+      displaySuccess("postalCode");
+    } else {
+      displayError("postalCode", "Postal code must be 6 digits.");
+    }
+  });
+
+  // Validate email while typing
+  $("#mail").on("input", function () {
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (emailPattern.test(this.value)) {
+      displaySuccess("mail");
+    } else {
+      displayError("mail", "Invalid email format.");
+    }
+  });
+
+  // Handle form submission
   $("#createUserForm").on("submit", async function (event) {
     event.preventDefault(); // Prevent default form submission
 
@@ -13,27 +97,26 @@ $(document).ready(function () {
     const email = $("#mail").val();
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Basic email validation
     if (!emailPattern.test(email)) {
-      $("#mail").addClass("is-invalid");
-      $("#emailError").removeClass("d-none").text("Invalid email address.");
+      displayError("mail", "Invalid email address.");
       isValid = false;
-    } else {
-      $("#mail").addClass("is-valid");
     }
 
-    // Validate Telephone Number
+    // Validate OU selection
+    const selectedOU = $("#organizationDN").val();
+    if (!selectedOU) {
+      displayError("organizationDN", "Please select an Organizational Unit.");
+      isValid = false;
+    }
+
+    // Validate required fields
     const phoneNumber = $("#telephoneNumber").val();
-    const phonePattern = /^\d{10}$/;
-    if (!phonePattern.test(phoneNumber)) {
-      $("#telephoneNumber").addClass("is-invalid");
-      $("#phoneError").removeClass("d-none").text("Invalid phone number.");
+    if (phoneNumber.length !== 10) {
+      displayError("telephoneNumber", "Phone number must be 10 digits.");
       isValid = false;
-    } else {
-      $("#telephoneNumber").addClass("is-valid");
     }
 
-    // If form is not valid, stop form submission
     if (!isValid) {
-      return;
+      return; // Stop submission if validation fails
     }
 
     // Gather form data if validation passes
@@ -47,6 +130,7 @@ $(document).ready(function () {
       postalCode: $("#postalCode").val(),
       mail: email,
       userPassword: $("#userPassword").val(),
+      userOU: selectedOU,
     };
 
     try {
@@ -63,12 +147,11 @@ $(document).ready(function () {
 
       if (response.ok) {
         // Show success message and reset form
-        alert("User created successfully.");
         $("#createUserForm")[0].reset(); // Clear the form fields
         clearValidation(); // Clear validation feedback
+        alert("User created successfully.");
       } else {
-        // Show error message from API
-        alert(result.message || "Failed to create user.");
+        handleApiErrors(result.message);
       }
     } catch (error) {
       console.error("Error creating user:", error);
@@ -77,6 +160,38 @@ $(document).ready(function () {
       );
     }
   });
+
+  // Handle specific API error messages
+  function handleApiErrors(errorMessage) {
+    if (errorMessage.includes("User already exists")) {
+      displayError("givenName", "Username already exists.");
+    }
+    if (errorMessage.includes("Phone number already exists")) {
+      displayError("telephoneNumber", "Phone number already exists.");
+    }
+    if (errorMessage.includes("Email already exists")) {
+      displayError("mail", "Email already exists.");
+    }
+  }
+
+  // Helper functions to display success or error feedback
+  function displayError(fieldId, message) {
+    $("#" + fieldId)
+      .addClass("is-invalid")
+      .removeClass("is-valid");
+    $("#" + fieldId + "Error")
+      .removeClass("d-none")
+      .text(message);
+  }
+
+  function displaySuccess(fieldId) {
+    $("#" + fieldId)
+      .addClass("is-valid")
+      .removeClass("is-invalid");
+    $("#" + fieldId + "Error")
+      .addClass("d-none")
+      .text("");
+  }
 
   // Helper function to clear validation styles and messages
   function clearValidation() {

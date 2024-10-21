@@ -10,7 +10,7 @@ class OrganizationController {
   createOrganization = async (req, res, next) => {
     try {
       console.log("Controller: createOrganization - Started");
-      const { organizationName, attributes } = req.body;
+      const { organizationName, description } = req.body;
       if (!organizationName) {
         throw new BadRequestError("Missing field: organizationName");
       }
@@ -19,14 +19,14 @@ class OrganizationController {
       const filter = `(ou=${organizationName})`;
 
       // Search for existing OU
-      const organizationExists = await search(baseDN, filter);
-      if (organizationExists.length > 0) {
-        throw new ConflictError(`Organization already exists.`);
-      }
+      // const organizationExists = await search(baseDN, filter);
+      // if (organizationExists.length > 0) {
+      //   throw new ConflictError(`Organization already exists.`);
+      // }
 
       const organization = await this.organizationService.createOrganization(
         organizationName,
-        attributes
+        description
       );
       console.log("Controller: createOrganization - Completed");
       res.status(201).json(organization);
