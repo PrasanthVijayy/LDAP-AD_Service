@@ -1,8 +1,8 @@
 // Inherit from Error class
-class ValidationError extends Error {
+class BadRequestError extends Error {
   constructor(message) {
     super(message);
-    this.name = "ValidationError";
+    this.name = "BadRequestError";
   }
 }
 
@@ -27,4 +27,18 @@ class ConflictError extends Error {
   }
 }
 
-export { ValidationError, UnauthorizedError, NotFoundError, ConflictError };
+class TooManyRequestsError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "TooManyRequestsError";
+  }
+}
+
+class InternalServerError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "InternalServerError";
+  }
+}
+
+export { BadRequestError, UnauthorizedError, NotFoundError, ConflictError, TooManyRequestsError, InternalServerError };

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edit User Details</title>
+    <link rel="icon" href="/UI//images/faviconLogo.png" type="image/x-icon" />
+    <link
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/UI/CSS/styles.css" />
+  </head>
+  <body>
+    <!-- Navigation Buttons -->
+    <div class="left-fixed-buttons">
+      <div class="button-row">
+        <button class="btn btn-secondary" id="backButton">
+          <img src="/UI/images/backButton.png" alt="Back" style="width: 24px" />
+          Back
+        </button>
+        <button class="btn btn-primary" id="homeButton">
+          <img src="/UI/images/homeButton.png" alt="Home" style="width: 24px" />
+          Home
+        </button>
+      </div>
+    </div>
+
+    <div class="right-fixed-buttons">
+      <button class="btn btn-danger" id="signoutButton">
+        <img
+          src="/UI/images/logoutButton.png"
+          alt="Sign Out"
+          style="width: 24px"
+        />
+        Sign Out
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div
+      class="container d-flex justify-content-center align-items-center min-vh-100"
+    >
+      <div class="card no-pointer" style="width: 400px">
+        <div class="card-body p-4">
+          <h5 class="card-title text-center">Edit User Details</h5>
+
+          <!-- Horizontal Toggle Option -->
+          <div class="form-row justify-content-center align-items-center mb-3">
+            <label for="editType" class="mr-2">Choose Edit Type:</label>
+            <select
+              class="form-control w-auto"
+              id="editType"
+              style="font-size: 14px"
+            >
+              <option value="general">General Edit</option>
+              <option value="contact">Edit Contact Details Only</option>
+            </select>
+          </div>
+
+          <form id="editUserForm">
+            <div class="form-group">
+              <label for="username">Username</label>
+              <input
+                type="text"
+                class="form-control"
+                id="username"
+                required
+                readonly
+              />
+              <div class="invalid-feedback"></div>
+              <!-- Error message here -->
+            </div>
+            <div class="form-group">
+              <label for="telephoneNumber">Phone Number</label>
+              <input type="text" class="form-control" id="telephoneNumber" />
+              <div class="invalid-feedback"></div>
+              <!-- Error message here -->
+            </div>
+            <div class="form-group">
+              <label for="mail">Email</label>
+              <input type="email" class="form-control" id="mail" />
+              <div class="invalid-feedback"></div>
+              <!-- Error message here -->
+            </div>
+            <div class="form-group">
+              <label for="registeredAddress">Address</label>
+              <input type="text" class="form-control" id="registeredAddress" />
+              <div class="invalid-feedback"></div>
+              <!-- Error message here -->
+            </div>
+            <div class="form-group">
+              <label for="postalCode">Postal Code</label>
+              <input type="text" class="form-control" id="postalCode" />
+              <div class="invalid-feedback"></div>
+              <!-- Error message here -->
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">
+              Update User
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="/UI/JS/script.js"></script>
+    <script src="/UI/JS/headerButtons.js"></script>
+  </body>
+</html>

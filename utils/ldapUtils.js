@@ -7,73 +7,119 @@ const ldapClient = ldap.createClient({
   url: process.env.LDAP_SERVER_URL,
 });
 
+// General Error Handler for LDAP Client
+ldapClient.on("error", (err) => {
+  console.error("LDAP Client Error:", err); // To track client-level issues
+});
+
+// Function to bind/connect to LDAP directory
 const bind = (dn, password) => {
   return new Promise((resolve, reject) => {
+    console.log(`Attempting to bind to DN: ${dn}`);
     ldapClient.bind(dn, password, (err) => {
       if (err) {
+        console.error(`LDAP bind error: ${err.message}`);
         reject(new Error("LDAP bind failed: " + err.message));
       } else {
+        console.log(`Successfully bound to ${dn}`);
         resolve();
       }
     });
   });
 };
 
+// Function to search attributes in LDAP directory
 const search = (baseDN, filter, scope = "sub") => {
   return new Promise((resolve, reject) => {
+    console.log(`Starting search in baseDN: ${baseDN} with filter: ${filter}`);
     ldapClient.search(baseDN, { filter, scope }, (err, res) => {
       if (err) {
+        console.error(`LDAP search error: ${err.message}`);
         reject(new Error("LDAP search failed: " + err.message));
         return;
       }
 
       const entries = [];
       res.on("searchEntry", (entry) => {
+        console.log(`Found entry: ${entry.objectName}`);
         entries.push(entry.object);
       });
 
       res.on("end", () => {
+        console.log(`Search completed with ${entries.length} entries found.`);
         resolve(entries);
+      });
+
+      res.on("error", (err) => {
+        console.error(`Search operation error: ${err.message}`);
+        reject(new Error("Search operation failed: " + err.message));
       });
     });
   });
 };
 
+// Function to add a new entry to LDAP directory
 const add = (dn, attributes) => {
+  console.log(`Attempting to add entry: ${dn}`);
   return new Promise((resolve, reject) => {
     ldapClient.add(dn, attributes, (err) => {
       if (err) {
+        console.error(`LDAP add error: ${err.message}`);
         reject(new Error("LDAP add failed: " + err.message));
       } else {
+        console.log(`Successfully added entry: ${dn}`);
         resolve();
       }
     });
   });
 };
 
+// Function to modify existing entry in LDAP directory
 const modify = (dn, changes) => {
+  console.log(`Attempting to modify entry: ${dn}`);
+
+  const ldapChanges = [];
+
+  for (const change of changes) {
+    if (change.operation && change.modification) {
+      ldapChanges.push({
+        operation: change.operation,
+        modification: change.modification,
+      });
+    } else {
+      throw new Error(
+        "Invalid change object: operation and modification required"
+      );
+    }
+  }
+
   return new Promise((resolve, reject) => {
-    ldapClient.modify(dn, changes, (err) => {
+    ldapClient.modify(dn, ldapChanges, (err) => {
       if (err) {
+        console.error(`LDAP modify error: ${err.message}`);
         reject(new Error("LDAP modify failed: " + err.message));
       } else {
+        console.log(`Successfully modified entry: ${dn}`);
         resolve();
       }
     });
   });
 };
 
+// Function to delete an entry from LDAP directory
 const deleteEntry = (dn) => {
+  console.log(`Attempting to delete entry: ${dn}`);
   return new Promise((resolve, reject) => {
-      ldapClient.del(dn, (err) => {
-          if (err) {
-              reject(new Error("LDAP delete operation failed: " + err.message));
-          } else {
-              resolve();
-          }
-      });
+    ldapClient.del(dn, (err) => {
+      if (err) {
+        console.error(`LDAP delete error: ${err.message}`);
+        reject(new Error("LDAP delete operation failed: " + err.message));
+      } else {
+        console.log(`Successfully deleted entry: ${dn}`);
+        resolve();
+      }
+    });
   });
 };
-
 
 export { ldapClient, bind, search, add, modify, deleteEntry };

@@ -1,0 +1,107 @@
+/* styles.css */
+
+body {
+  background-color: #277acd; /* Common background color */
+}
+
+.card {
+  border: none;
+  border-radius: 10px;
+  transition: transform 0.2s; /* Transition for the scaling effect */
+  cursor: pointer; /* Change cursor to pointer */
+}
+
+/* Scale down effect on click */
+.card:active {
+  transform: scale(0.95);
+}
+
+.container {
+  overflow: hidden;
+}
+.no-pointer {
+  cursor: default;
+  transition: none;
+}
+
+.no-pointer:active {
+  transform: none;
+}
+
+.no-pointer input {
+  cursor: pointer;
+}
+
+.card-title {
+  font-size: 19px;
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 10px 0;
+}
+
+.card-img-top {
+  max-width: 80%;
+  margin-left: 10%;
+  margin-top: 20px;
+  height: auto;
+}
+
+.row {
+  margin-top: 05%;
+}
+
+.notAllowed {
+  pointer-events: none;
+  cursor: pointer;
+  opacity: 0.5;
+}
+
+/* Fixed Button Styling */
+.left-fixed-buttons {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.left-fixed-buttons .button-row {
+  display: flex;
+  gap: 10px; /* Spacing between Home and Back buttons */
+}
+
+.left-fixed-buttons button {
+  width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.left-fixed-buttons img {
+  margin-right: 5px;
+}
+
+.right-fixed-buttons {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+}
+
+.right-fixed-buttons button {
+  width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.right-fixed-buttons img {
+  margin-right: 5px;
+}
+
+/* Asterisks in RED color*/
+.required::after {
+  content: "*";
+  color: red;
+  padding-left: 5px;
+}

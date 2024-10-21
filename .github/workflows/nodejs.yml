@@ -1,0 +1,38 @@
+name: Node.js CI
+
+# Trigger the workflow on pushes and pull requests to the main branch
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      # Check out the repository code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Set up Node.js (use the version in the package.json "engines" field if specified)
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20' # You can specify your preferred Node.js version here
+
+      # Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Run your app (commented the run script, since ldap server should be running in VM)
+      # - name: Run the app
+      #   run: npm start
+
+      # To be use later: Run tests 
+      # - name: Run tests
+      #   run: npm test

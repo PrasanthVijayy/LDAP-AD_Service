@@ -1,8 +1,14 @@
-import express from 'express';
-import { listDC } from '../controllers/domainController.js';
+import express from "express";
+import DomainController from "../controllers/domainController.js";
+import apiLimiter from "../../middleware/apiLimiter.js";
 
-const router = express.Router();
+const domainController = new DomainController();
 
-router.get('/listdc', listDC);
+const domainRoutes = (app) => {
+  const router = express.Router();
+  app.use("/LDAP/v1/dc", router);
 
-export default router;
+  router.get("/listDCs", apiLimiter(10), domainController.listDCs); // list DCs
+};
+
+export default domainRoutes;

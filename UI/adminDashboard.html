@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard</title>
+    <link rel="icon" href="/UI//images/faviconLogo.png" type="image/x-icon" />
+    <link
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/UI/CSS/styles.css" />
+  </head>
+  <body>
+    <!-- Navigation Buttons -->
+    <div class="left-fixed-buttons">
+      <div class="button-row">
+        <button class="btn btn-secondary" id="backButton">
+          <img src="/UI/images/backButton.png" alt="Back" style="width: 24px" />
+          Back
+        </button>
+        <button class="btn btn-primary" id="homeButton">
+          <img src="/UI/images/homeButton.png" alt="Home" style="width: 24px" />
+          Home
+        </button>
+      </div>
+    </div>
+
+    <div class="right-fixed-buttons">
+      <button class="btn btn-danger" id="signoutButton">
+        <img
+          src="/UI/images/logoutButton.png"
+          alt="Sign Out"
+          style="width: 24px"
+        />
+        Sign Out
+      </button>
+    </div>
+
+    <div class="container my-5">
+      <h1 class="text-center mb-4">Admin Dashboard</h1>
+      <div class="row">
+        <!-- Card 1 -->
+        <div class="col-md-2 mb-4">
+          <div
+            class="card shadow-sm h-100"
+            onclick="window.location.href='/UI/Pages/createUser.html'"
+          >
+            <img
+              src="/UI/images/createUser.png"
+              class="card-img-top"
+              alt="Create User"
+            />
+            <div class="card-body">
+              <h5 class="card-title text-center">Create User</h5>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="col-md-2 mb-4">
+          <div
+            class="card shadow-sm h-100"
+            onclick="window.location.href='/UI/Pages/listUsers.html'"
+          >
+            <img
+              src="/UI/images/user.png"
+              class="card-img-top"
+              alt="List Users"
+            />
+            <div class="card-body">
+              <h5 class="card-title text-center">Manage User Actions</h5>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="col-md-2 mb-4">
+          <div
+            class="card shadow-sm h-100"
+            onclick="window.location.href='/UI/Pages/listOrganizations.html'"
+          >
+            <img
+              src="/UI/images/Organizations.png"
+              class="card-img-top"
+              alt="List Organizations"
+            />
+            <div class="card-body">
+              <h5 class="card-title text-center">Manage Organizations</h5>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="col-md-2 mb-4">
+          <div
+            class="card shadow-sm h-100"
+            onclick="window.location.href='/UI/Pages/createGroup.html'"
+          >
+            <img
+              src="/UI/images/groups.png"
+              class="card-img-top"
+              alt="Create Group"
+            />
+            <div class="card-body">
+              <h5 class="card-title text-center">Manage Group</h5>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 8 -->
+        <div class="col-md-2 mb-4">
+          <div
+            class="card shadow-sm h-100"
+            onclick="window.location.href='/UI/Pages/resetPassword.html'"
+          >
+            <img
+              src="/UI/images/resetPassword.png"
+              class="card-img-top"
+              alt="Reset Password"
+            />
+            <div class="card-body">
+              <h5 class="card-title text-center">Reset User Password</h5>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="/UI/JS/headerButtons.js"></script>
+  </body>
+</html>
