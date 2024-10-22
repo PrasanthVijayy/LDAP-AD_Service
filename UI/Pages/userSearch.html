@@ -62,25 +62,27 @@
       </form>
 
       <!-- User Details Section -->
-      <div id="userDetailsTable" class="d-none card p-4 shadow-lg">
+      <div id="userDetailsTable" class="d-none card p-4 shadow-lg no-pointer">
         <h3>User Details</h3>
-        <table class="table table-bordered">
-          <thead>
-            <tr>
-              <th scope="col">Id</th>
-              <th scope="col">Username</th>
-              <th scope="col">First Name</th>
-              <th scope="col">Last Name</th>
-              <th scope="col">Email</th>
-              <th scope="col">Phone Number</th>
-              <th scope="col">Address</th>
-              <th scope="col">Postal Code</th>
-            </tr>
-          </thead>
-          <tbody id="userDetailsTableBody">
-            <!-- Dynamic rows will be added here -->
-          </tbody>
-        </table>
+        <div class="table-responsive">
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th scope="col">Id</th>
+                <th scope="col">Username</th>
+                <th scope="col">First Name</th>
+                <th scope="col">Last Name</th>
+                <th scope="col">Email</th>
+                <th scope="col">Phone Number</th>
+                <th scope="col">Address</th>
+                <th scope="col">Postal Code</th>
+              </tr>
+            </thead>
+            <tbody id="userDetailsTableBody">
+              <!-- Dynamic rows will be added here -->
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Error Message for No User Found -->

@@ -70,7 +70,7 @@
       <!-- Filter by Status -->
       <div class="form-group">
         <label for="statusFilter">Filter by Status:</label>
-        <select class="form-control form-control-sm w-25" id="statusFilter">
+        <select class="form-control form-control-sm w-auto" id="statusFilter">
           <option value="all">All Users (Default)</option>
           <option value="active">Active</option>
           <option value="locked">Locked</option>
@@ -80,21 +80,23 @@
       </div>
 
       <!-- Users Table -->
-      <table class="table table-bordered table-hover bg-light">
-        <thead class="thead-dark">
-          <tr>
-            <th scope="col">S.No</th>
-            <th scope="col">Username</th>
-            <th scope="col">Email</th>
-            <th scope="col">Phone Number</th>
-            <th scope="col">Status</th>
-            <th scope="col">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="userTableBody">
-          <!-- Dynamic rows will be inserted here from script file by calling the id name -->
-        </tbody>
-      </table>
+      <div class="table-responsive">
+        <table class="table table-bordered table-hover bg-light">
+          <thead class="thead-dark">
+            <tr>
+              <th scope="col">S.No</th>
+              <th scope="col">Username</th>
+              <th scope="col">Email</th>
+              <th scope="col">Phone Number</th>
+              <th scope="col">Status</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody">
+            <!-- Dynamic rows will be inserted here from script file by calling the id name -->
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- User Details Modal -->
