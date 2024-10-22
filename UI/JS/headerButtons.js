@@ -1,6 +1,10 @@
 // Handle Sign Out button click
 document.getElementById("signoutButton").addEventListener("click", function () {
-  localStorage.removeItem("userType"); // Remove the userType from localStorage
+  // Removing user data from local storage
+  localStorage.removeItem("userType");
+  localStorage.removeItem("username");
+  localStorage.removeItem("ouName");
+
   window.location.href = "/UI/index.html"; // Redirect to the login page
 });
 

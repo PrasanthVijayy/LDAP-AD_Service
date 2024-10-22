@@ -1,24 +1,66 @@
 const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
 
+// On page load, populate OU dropdown
+$(document).ready(function () {
+  fetchOrganizationalUnits(); // Fetch OU list and populate dropdown
+});
+
+// Fetch list of OUs from the API
+async function fetchOrganizationalUnits() {
+  try {
+    const apiUrl = `${baseApiUrl}/organizations/listOrganizations`;
+    const response = await fetch(apiUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const result = await response.json();
+    const ouDropdown = $("#ouDropdown");
+
+    // Check if the response is valid
+    if (
+      response.ok &&
+      result.organizations &&
+      result.organizations.length > 0
+    ) {
+      result.organizations.forEach((ou) => {
+        ouDropdown.append(
+          `<option value="${ou.organizationDN}">${ou.organizationDN}</option>`
+        );
+      });
+    } else {
+      console.error("Failed to load OUs");
+    }
+  } catch (error) {
+    console.error("Error fetching OUs:", error);
+  }
+}
+
+// Function to search user based on username and OU
 async function searchUser() {
-  // Clear any previous errors or user details
-  $("#userDetails").addClass("d-none");
+  // Clear previous errors or user details
+  $("#userDetailsTable").addClass("d-none");
   $("#errorMessage").addClass("d-none");
 
-  // Get the username from the input field
+  // Get the username and OU from the input fields
   const username = $("#usernameInput").val().trim();
+  const selectedOU = $("#ouDropdown").val().trim();
 
-  // Return if the input is empty
+  // Validate the form
   if (!username) {
     $("#errorMessage").removeClass("d-none").text("Please enter a username.");
     return;
   }
 
-  // Make API call to search for the user
   try {
-    const apiUrl = `${baseApiUrl}/users/search?username=${encodeURIComponent(
-      username
-    )}`;
+    // Construct API URL based on whether OU is provided
+    let apiUrl = `${baseApiUrl}/users/search?username=${username}`;
+    if (selectedOU) {
+      apiUrl += `&userOU=${selectedOU}`;
+    }
+
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
@@ -29,8 +71,8 @@ async function searchUser() {
     const result = await response.json();
 
     if (response.ok && result.users && result.users.length > 0) {
-      // Display user details
-      displayUserDetails(result.users[0]); // Display first user from the list
+      // Display user details in table format
+      displayUserDetails(result.users);
     } else {
       // Show error message if user is not found
       $("#errorMessage")
@@ -45,17 +87,28 @@ async function searchUser() {
   }
 }
 
-// Function to display user details in the UI
-function displayUserDetails(user) {
-  $("#userUsername").text(user.username);
-  $("#userFirstName").text(user.firstName);
-  $("#userLastName").text(user.lastName);
-  $("#userEmail").text(user.mail);
-  $("#userPhone").text(user.phoneNumber);
-  $("#userAddress").text(user.address);
-  $("#userPostalCode").text(user.postalCode);
-  $("#userStatus").text(user.status || "N/A"); // Status is not present, so default to "N/A"
+// Function to display user details in a table
+function displayUserDetails(users) {
+  const userDetailsTableBody = $("#userDetailsTableBody");
+  userDetailsTableBody.empty(); // Clear previous content
 
-  // Show the user details section
-  $("#userDetails").removeClass("d-none");
+  // Iterate over users and add rows to the table
+  users.forEach((user) => {
+    const row = `
+      <tr>
+        <td>${user.uid}</td>
+        <td>${user.username}</td>
+        <td>${user.firstName || "N/A"}</td>
+        <td>${user.lastName || "N/A"}</td>
+        <td>${user.mail || "N/A"}</td>
+        <td>${user.phoneNumber || "N/A"}</td>
+        <td>${user.address || "N/A"}</td>
+        <td>${user.postalCode || "N/A"}</td>
+      </tr>
+    `;
+    userDetailsTableBody.append(row); // Append each row
+  });
+
+  // Show the user details table
+  $("#userDetailsTable").removeClass("d-none");
 }

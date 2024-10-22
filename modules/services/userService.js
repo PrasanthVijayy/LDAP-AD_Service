@@ -556,14 +556,21 @@ class UserService {
     }
   }
 
-  async searchUser(username) {
+  async searchUser(username, userOU) {
     try {
       console.log("Service: searchUser - Started");
 
       // Bind using the LDAP admin or a service account
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
 
-      const searchBase = `ou=users,${process.env.LDAP_BASE_DN}`;
+      let searchBase;
+      if (userOU) {
+        // If userOU is provided, use it in the search base
+        searchBase = `ou=${userOU},${process.env.LDAP_BASE_DN}`;
+      } else {
+        searchBase = `${process.env.LDAP_BASE_DN}`; // Broad search base
+      }
+
       const searchFilter = `(cn=${username})`;
 
       // Search for the user in LDAP
@@ -582,25 +589,36 @@ class UserService {
         address: user.registeredAddress,
         postalCode: user.postalCode,
         phoneNumber: user.telephoneNumber,
-        accountStatus: user.description,
+        // accountStatus: user.description,
       }));
     } catch (error) {
-      console.log("Service: searchUser - Error", error);
-      throw error;
+      if (error.message.includes("Search operation failed: No Such Object")) {
+        throw new NotFoundError(`User not found.`);
+      } else {
+        console.log("Service: searchUser - Error", error);
+        throw error;
+      }
     }
   }
 
-  async chpwd(username, currentPassword, newPassword) {
+  async chpwd(username, currentPassword, newPassword, confirmPassword, userOU) {
     try {
       console.log("Service: chpwd - Started");
 
-      const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
+      const userDN = `cn=${username},ou=${userOU},${process.env.LDAP_BASE_DN}`;
 
       // Attempt to bind with the current password to verify it
       try {
         await bind(userDN, currentPassword);
       } catch (error) {
         throw new BadRequestError("Invalid credentials.");
+      }
+
+      // Validate that newPassword and confirmPassword match
+      if (newPassword !== confirmPassword) {
+        throw new BadRequestError(
+          "New password and confirmation do not match."
+        );
       }
 
       // Retrieve user information
@@ -639,6 +657,9 @@ class UserService {
         message: "Password changed successfully.",
       };
     } catch (error) {
+      if (error.message.includes("No Such Object")) {
+        throw new NotFoundError("User not found.");
+      }
       console.log("Service: chpwd - Error", error);
       throw error;
     }
@@ -658,6 +679,7 @@ class UserService {
         try {
           await bind(userDN, password);
         } catch (error) {
+          console.log("Error during bind with OU:", error);
           throw new BadRequestError("Invalid credentials.");
         }
       } else {
@@ -669,6 +691,7 @@ class UserService {
           baseDN,
           `(&(objectClass=*)(cn=${username}))`
         );
+        
         if (searchResults.length === 0) {
           throw new NotFoundError("User not found.");
         }
@@ -676,6 +699,7 @@ class UserService {
         userDN = searchResults[0].dn; // Extract the userDN from the search result
 
         try {
+          // Attempt to bind with the found DN and provided password
           await bind(userDN, password);
         } catch (error) {
           throw new BadRequestError("Invalid credentials.");
@@ -697,7 +721,7 @@ class UserService {
 
       // Check account status based on priority
       if (userDetails[0].shadowFlag == 1) {
-        throw new UnauthorizedError("Account delted, contact admin.");
+        throw new UnauthorizedError("Account deleted, contact admin.");
       } else if (userDetails[0].shadowInactive == 1) {
         throw new UnauthorizedError("Account disabled, contact admin.");
       } else if (userDetails[0].shadowExpire == 1) {

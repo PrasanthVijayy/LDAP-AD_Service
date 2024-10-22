@@ -11,9 +11,9 @@ const userRoutes = (app) => {
   app.use("/LDAP/v1/users", router);
 
   router.post("/addUser", userController.addUser); // Add user
-  router.get("/listUsers", apiLimiter(20), userController.listUsers); // List user
+  router.get("/listUsers", apiLimiter(30), userController.listUsers); // List user
   router.put("/resetPwd", userController.resetPassword); // Reset password
-  router.delete("/deleteUser", userController.deleteUser); // Delete user (shadowFlag -> 0 or 1)
+  router.delete("/deleteUser", userController.deleteUser); // Delete user
   router.put("/updateUser", userController.updateUser); // Update user
   router.put("/updateContactDetails", userController.updateContactDetails) // Update contactDetails only
   router.post("/modifyUserAccess", userController.updateUserStatus); // Enable or Disable user (shadowInactive -> 0 or 1)

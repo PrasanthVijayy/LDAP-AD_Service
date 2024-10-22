@@ -105,3 +105,14 @@ body {
   color: red;
   padding-left: 5px;
 }
+
+.left-fixed-buttons,
+.right-fixed-buttons {
+  position: fixed;
+  z-index: 1000;
+}
+
+.container {
+  position: relative;
+  z-index: 1;
+}
