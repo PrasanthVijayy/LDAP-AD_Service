@@ -42,7 +42,7 @@
       <h2 class="mb-4 text-center">Organization Management</h2>
 
       <div class="row">
-        <div class="col-md-5 mb-6">
+        <div class="col-md-5 mb-4">
           <div class="card no-pointer">
             <div class="card-header">Create Organization</div>
             <div class="card-body">
@@ -60,12 +60,12 @@
                 </div>
                 <div class="mb-3">
                   <label for="organizationDescription" class="form-label"
-                    >Description</label
+                    >Description (Optional)</label
                   >
                   <textarea
                     class="form-control"
                     id="organizationDescription"
-                    required
+                    rows="3"
                   ></textarea>
                 </div>
                 <button type="submit" class="btn btn-primary">
@@ -80,19 +80,23 @@
           <div class="card no-pointer">
             <div class="card-header">Organization List</div>
             <div class="card-body">
-              <table class="table table-bordered table-hover">
-                <thead>
-                  <tr>
-                    <th>S.No</th>
-                    <th>OU Name</th>
-                    <th>DN</th>
-                    <th>Description</th>
-                  </tr>
-                </thead>
-                <tbody id="organizationTableBody">
-                  <!-- Dynamic rows will be inserted here -->
-                </tbody>
-              </table>
+              <div class="table-responsive">
+                <!-- Added responsiveness -->
+                <table class="table table-bordered table-hover">
+                  <thead>
+                    <tr>
+                      <th>S.No</th>
+                      <th>OU Name</th>
+                      <th>DN</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody id="organizationTableBody">
+                    <!-- Dynamic rows will be inserted here -->
+                  </tbody>
+                </table>
+              </div>
+              <!-- End of table-responsive -->
             </div>
           </div>
         </div>
