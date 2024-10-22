@@ -27,9 +27,18 @@ document
       const result = await response.json();
 
       if (response.ok) {
+        // Reset the login form
         document.getElementById("loginForm").reset();
-        localStorage.setItem("userType", userType); // Stroring userType for redirection purpose
 
+        // Store userType and username in localStorage
+        localStorage.setItem("userType", userType);
+        localStorage.setItem("username", username);
+
+        // Store the fetched OU value from the response, or the provided OU if it was valid
+        const ouValue = result.OU || ouName;
+        localStorage.setItem("ouName", ouValue); // Store the OU value in localStorage
+
+        // Redirect to the appropriate dashboard
         window.location.href =
           userType === "admin" ? "adminDashboard.html" : "userDashboard.html"; // Redirect to dashboard page
       } else {
@@ -63,10 +72,9 @@ async function fetchUsers() {
 
     if (response.ok) {
       const result = await response.json();
-      const users = result.users;
-      window.usersData = users;
-      displayUsers(users); // Call function to display users in the table
-      return users; // Return users for filtering
+      window.usersData = result.users;
+      displayUsers(result.users); // Call function to display users in the table
+      return result.users; // Return users for filtering
     } else {
       console.error("Failed to fetch users");
       alert("Unable to load users.");
@@ -85,34 +93,26 @@ async function searchUsers() {
   const searchCriteria = document.getElementById("searchCriteria").value; // Get the selected search criteria
   const statusFilter = document.getElementById("statusFilter").value; // Get status filter
 
-  let filter;
+  let filter = "";
 
   // Build the filter based on the selected search criteria
-  if (searchCriteria === "username") {
-    filter = `cn=${searchInput}`; // Filter by username (cn)
-  } else if (searchCriteria === "email") {
-    filter = `mail=${searchInput}`; // Filter by email
-  } else if (searchCriteria === "phone") {
-    filter = `telephoneNumber=${searchInput}`; // Filter by phone number
+  if (searchInput) {
+    if (searchCriteria === "username") {
+      filter = `cn=${searchInput}`; // Filter by username (cn)
+    } else if (searchCriteria === "email") {
+      filter = `mail=${searchInput}`; // Filter by email
+    } else if (searchCriteria === "phone") {
+      filter = `telephoneNumber=${searchInput}`; // Filter by phone number
+    }
   }
 
-  // If status filter is selected, apply it as well
-  // if (statusFilter !== "all") {
-  //   if (filter) {
-  //     filter += `,status=${statusFilter}`; // Add status filter to existing filter
-  //   } else {
-  //     filter = `status=${statusFilter}`; // Apply status filter if no search input
-  //   }
-  // }
   try {
     const apiUrl = `${baseApiUrl}/users/listUsers?filter=${encodeURIComponent(
       filter
     )}`;
     const response = await fetch(apiUrl, {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
     });
 
     if (response.status === 429) {
@@ -121,9 +121,8 @@ async function searchUsers() {
       );
       return;
     }
-    const result = await response.json();
 
-    // Call function to display users in the table
+    const result = await response.json();
     displayUsers(result.users);
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -136,37 +135,8 @@ function displayUsers(users) {
   const tableBody = document.getElementById("userTableBody");
   tableBody.innerHTML = "";
 
-  if (users.length === 0) {
+  if (!users || users.length === 0) {
     tableBody.innerHTML = `<tr><td colspan="6" class="text-center"><strong>No users found.</strong></td></tr>`;
-    return;
-  }
-
-  users.forEach((user, index) => {
-    const row = document.createElement("tr");
-
-    row.innerHTML = `
-      <th scope="row">${index + 1}</th>
-      <td>${user.firstName || ""} ${user.lastName || ""}</td>
-      <td>${user.email || "N/A"}</td>
-      <td>${user.phone || "N/A"}</td>
-      <td>${user.status || "N/A"}</td>
-      <td>
-        <button class="btn btn-link" onclick="showUserDetails(${index})" title="View Details">
-          <img src="/UI/images/user.png" alt="Profile" style="width:24px;" />
-        </button>
-      </td>
-    `;
-    tableBody.appendChild(row);
-  });
-}
-
-// Display users in the table
-function displayUsers(users) {
-  const tableBody = document.getElementById("userTableBody");
-  tableBody.innerHTML = "";
-
-  if (users.length === 0) {
-    tableBody.innerHTML = `<tr><td colspan="6" class="text-center"><strong>No users found for the selected status.</strong></td></tr>`;
     return;
   }
 
@@ -183,7 +153,7 @@ function displayUsers(users) {
         <button class="btn btn-link" disabled title="User is deleted and cannot be locked/unlocked">
           <img src="/UI/images/lockUser.png" alt="Lock" style="width:24px;" />
         </button>
-                <button class="btn btn-link" disabled title="Deleted user cannot edit">
+        <button class="btn btn-link" disabled title="Deleted user cannot edit">
           <img src="/UI/images/editUser.png" alt="Edit" style="width:24px;" />
         </button>
       `;
@@ -216,10 +186,10 @@ function displayUsers(users) {
     // Constructing the table row
     row.innerHTML = `
       <th scope="row">${index + 1}</th>
-      <td>${user.firstName}</td>
-      <td>${user.email}</td>
-      <td>${user.phone}</td>
-      <td>${user.status}</td>
+      <td>${user.userName || "N/A"} </td>
+      <td>${user.email || "N/A"}</td>
+      <td>${user.phone || "N/A"}</td>
+      <td>${user.status || "N/A"}</td>
       <td>
         <button class="btn btn-link" onclick="showUserDetails(${index})" title="View Details">
           <img src="/UI/images/user.png" alt="Profile" style="width:24px;" />
@@ -259,13 +229,14 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
+// Initial user fetch
+fetchUsers();
+
 // Show user details in the modal
 function showUserDetails(index) {
   const user = window.usersData[index];
 
-  document.getElementById(
-    "modalFullName"
-  ).textContent = `${user.firstName} ${user.lastName}`;
+  document.getElementById("modalFullName").textContent = `${user.userName}`;
   document.getElementById("modalDn").textContent = user.dn;
   document.getElementById("modalEmail").textContent = user.email;
   document.getElementById("modalPhone").textContent = user.phone;
@@ -274,13 +245,26 @@ function showUserDetails(index) {
   document.getElementById("modalStatus").textContent = user.status;
   document.getElementById("modalUserType").textContent = user.userType;
 
+  // Store user DN in modal data for later use
+  window.modalData = {
+    userDN: user.dn, // Store the DN here
+  };
+
   $("#userDetailsModal").modal("show");
 }
 
 // Delete user function
-async function deleteUser(username) {
+async function deleteUser(buttonElement) {
+  // Get the parent row of the clicked button
+  const row = buttonElement.closest("tr");
+
+  // Retrieve username and OU from the row's cells (assuming they are in specific columns)
+  const username = row.cells[1].textContent; // Assuming username is in the second cell
+  const userOU = row.cells[4].textContent; // Assuming OU or additional identifier is in the fifth cell
+
+  // Check if the user to delete is found in usersData
   const userToDelete = window.usersData.find(
-    (user) => user.firstName === username
+    (user) => user.userName === username
   );
 
   if (userToDelete && userToDelete.status === "deleted") {
@@ -288,23 +272,32 @@ async function deleteUser(username) {
     return;
   }
 
-  const apiUrl = `${baseApiUrl}/users/deleteUser?username=${encodeURIComponent(
-    username
-  )}`;
+  const apiUrl = `${baseApiUrl}/users/deleteUser`;
 
+  // Prepare data to send in the API request
+  const data = {
+    username: username,
+    userOU: userOU, // Include the OU directly from the table
+  };
+
+  // Confirm deletion
   if (!confirm(`Are you sure you want to delete ${username}?`)) return;
 
   try {
     const response = await fetch(apiUrl, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data), // Include the data in the request body
     });
 
     if (response.ok) {
       alert(`${username} was deleted successfully.`);
       fetchUsers(); // Refresh the users list after deletion
     } else {
-      console.error("Failed to delete user");
+      const errorResponse = await response.text(); // Get the response text for debugging
+      console.error("Failed to delete user:", errorResponse);
       alert("Failed to delete user.");
     }
   } catch (error) {

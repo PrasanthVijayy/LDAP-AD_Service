@@ -40,14 +40,32 @@
     <div class="container my-5">
       <h1 class="text-center mb-4">Change Password</h1>
       <div class="card mx-auto no-pointer" style="width: 400px">
-        <!-- Set card width using inline style -->
         <div class="card-body p-4">
-          <!-- Use padding classes to control card body spacing -->
           <form id="changePasswordForm">
-            <div class="form-group">
-              <label for="username">Username</label>
-              <input type="text" class="form-control" id="username" required />
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label for="username">Username</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="username"
+                  readonly
+                  required
+                />
+              </div>
+              <div class="form-group col-md-6">
+                <label for="userOU">Organizational Unit (OU)</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="userOU"
+                  readonly
+                  required
+                />
+              </div>
             </div>
+
+            <!-- Password fields with toggle icons -->
             <div class="form-group">
               <label for="currentPassword">Current Password</label>
               <div class="input-group">
@@ -57,8 +75,23 @@
                   id="currentPassword"
                   required
                 />
+                <div class="input-group-append">
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    id="toggleCurrentPassword"
+                  >
+                    <img
+                      id="toggleCurrentPasswordIcon"
+                      src="/UI/images/hidden.png"
+                      alt="Show Password"
+                      style="width: 24px"
+                    />
+                  </button>
+                </div>
               </div>
             </div>
+
             <div class="form-group">
               <label for="newPassword">New Password</label>
               <div class="input-group">
@@ -68,8 +101,55 @@
                   id="newPassword"
                   required
                 />
+                <div class="input-group-append">
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    id="toggleNewPassword"
+                  >
+                    <img
+                      id="toggleNewPasswordIcon"
+                      src="/UI/images/hidden.png"
+                      alt="Show Password"
+                      style="width: 24px"
+                    />
+                  </button>
+                </div>
+                <div class="invalid-feedback">
+                  Passwords do not match. Please try again.
+                </div>
               </div>
             </div>
+
+            <div class="form-group">
+              <label for="confirmPassword">Confirm Password</label>
+              <div class="input-group">
+                <input
+                  type="password"
+                  class="form-control"
+                  id="confirmPassword"
+                  required
+                />
+                <div class="input-group-append">
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    id="toggleConfirmPassword"
+                  >
+                    <img
+                      id="toggleConfirmPasswordIcon"
+                      src="/UI/images/hidden.png"
+                      alt="Show Password"
+                      style="width: 24px"
+                    />
+                  </button>
+                </div>
+                <div class="invalid-feedback">
+                  Passwords do not match. Please try again.
+                </div>
+              </div>
+            </div>
+
             <button type="submit" class="btn btn-primary btn-block">
               Reset Password
             </button>

@@ -532,20 +532,26 @@ class UserController {
   searchUser = async (req, res, next) => {
     try {
       console.log("Controller: searchUser - Started");
-      const { username } = req.query;
-      if (!username) {
-        throw new BadRequestError("Missing username field.");
+      const { username, userOU } = req.query;
+
+      let missingFields = [];
+      if (!username) missingFields.push("username");
+      // if (!userOU) missingFields.push("userOU");
+      if (missingFields.length > 0) {
+        return next(
+          new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
+        );
       }
 
-      const userExists = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
-        `(cn=${username})`
-      );
-      if (userExists.length === 0) {
-        throw new NotFoundError(`User not found.`);
-      }
+      // const userExists = await search(
+      //   `ou=${userOU},${process.env.LDAP_BASE_DN}`,
+      //   `(cn=${username})`
+      // );
+      // if (userExists.length === 0) {
+      //   throw new NotFoundError(`User not found.`);
+      // }
       console.log("Controller: searchUser - Completed");
-      const users = await this.userService.searchUser(username);
+      const users = await this.userService.searchUser(username, userOU);
       res
         .status(200)
         .json({ message: "User fetched successfully.", users: users });
@@ -559,12 +565,20 @@ class UserController {
   chpwd = async (req, res, next) => {
     try {
       console.log("Controller: chpwd - Started");
-      const { username, currentPassword, newPassword } = req.body;
+      const {
+        username,
+        currentPassword,
+        newPassword,
+        confirmPassword,
+        userOU,
+      } = req.body;
 
       let missingFields = [];
       if (!username) missingFields.push("username");
       if (!currentPassword) missingFields.push("currentPassword");
       if (!newPassword) missingFields.push("newPassword");
+      if (!confirmPassword) missingFields.push("confirmPassword");
+      if (!userOU) missingFields.push("OU");
 
       if (missingFields.length > 0) {
         return next(
@@ -572,19 +586,21 @@ class UserController {
         );
       }
 
-      const userExists = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
-        `(cn=${username})`
-      );
+      // const userExists = await search(
+      //   `ou=users,${process.env.LDAP_BASE_DN}`,
+      //   `(cn=${username})`
+      // );
 
-      if (userExists.length === 0) {
-        throw new NotFoundError(`User not found.`);
-      }
+      // if (userExists.length === 0) {
+      //   throw new NotFoundError(`User not found.`);
+      // }
 
       const message = await this.userService.chpwd(
         username,
         currentPassword,
-        newPassword
+        newPassword,
+        confirmPassword,
+        userOU
       );
       console.log("Controller: chpwd - Completed");
       res.status(202).json(message);
@@ -611,20 +627,6 @@ class UserController {
         );
       }
 
-      // Log if OU is not provided
-      if (!OU) {
-        console.log("Searching users in all OUs since OU is not provided");
-      } else {
-        // Validate the provided OU
-        const baseDN = process.env.LDAP_BASE_DN;
-        const filter = `(ou=${OU})`;
-
-        const validOU = await search(baseDN, filter);
-        if (validOU.length === 0) {
-          throw new NotFoundError(`Invalid Organizational Unit.`);
-        }
-      }
-
       // Validate userType
       if (!["user", "admin"].includes(userType)) {
         throw new BadRequestError("User type should be either user or admin");
@@ -642,16 +644,46 @@ class UserController {
         throw new NotFoundError(`User not found`);
       }
 
-      // Call the login service
+      // Initialize fetchedOU
+      let fetchedOU;
+
+      // If OU is not provided, fetch it from the user's DN
+      if (!OU) {
+        console.log("OU not provided. Fetching from user details.");
+
+        // Extract OU from user's DN
+        const userDN = userExists[0].dn; // Get the user's distinguished name
+
+        // Get the OU part and extract just the value (e.g., "users")
+        const ouMatch = userDN.match(/ou=([^,]+)/);
+        fetchedOU = ouMatch ? ouMatch[1] : null; // Extract the OU value, or set it to null if not found
+      } else {
+        // Validate the provided OU
+        const baseDN = process.env.LDAP_BASE_DN;
+        const filter = `(ou=${OU})`;
+
+        const validOU = await search(baseDN, filter);
+        if (validOU.length === 0) {
+          throw new NotFoundError(`Invalid Organizational Unit.`);
+        }
+      }
+
+      // Call the login service only if OU is provided
       const message = await this.userService.login(
         username,
         password,
         userType,
-        OU
+        OU // Pass the OU only if provided
       );
+
       console.log("Controller: login - Completed");
 
-      res.status(202).json(message);
+      // Send a clearer response with the required data
+      res.status(202).json({
+        message: message.message, // Assuming message is an object with a message property
+        username: username,
+        OU: fetchedOU || OU, // Include the fetched OU or the provided OU
+      });
     } catch (error) {
       console.log("Controller: login - Error", error);
       next(error);
