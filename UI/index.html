@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login</title>
-    <link rel="icon" href="/UI//images/faviconLogo.png" type="image/x-icon" />
+    <link rel="icon" href="/UI/images/faviconLogo.png" type="image/x-icon" />
     <link
       href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
       rel="stylesheet"
@@ -30,16 +30,32 @@
             />
           </div>
 
-          <!-- Password input -->
+          <!-- Password input with toggle icon -->
           <div class="form-group">
             <label for="password">Password</label>
-            <input
-              type="password"
-              class="form-control"
-              id="password"
-              placeholder="Enter password"
-              required
-            />
+            <div class="input-group">
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                placeholder="Enter password"
+                required
+              />
+              <div class="input-group-append">
+                <button
+                  class="btn btn-outline-secondary"
+                  type="button"
+                  id="togglePassword"
+                >
+                  <img
+                    id="togglePasswordIcon"
+                    src="/UI/images/hidden.png"
+                    alt="Toggle Password"
+                    style="width: 20px; height: 20px"
+                  />
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- OU input field (optional) -->
@@ -49,7 +65,6 @@
               <div class="input-group-prepend">
                 <span class="input-group-text">ou=</span>
               </div>
-              <!-- Input for OU -->
               <input
                 type="text"
                 class="form-control"

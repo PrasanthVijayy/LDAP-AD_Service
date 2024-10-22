@@ -1,6 +1,25 @@
 const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
 
-// Login form handler
+// Function to toggle password visibility
+function togglePasswordVisibility() {
+  const passwordField = document.getElementById("password");
+  const toggleIcon = document.getElementById("togglePasswordIcon");
+
+  if (passwordField.type === "password") {
+    passwordField.type = "text";
+    toggleIcon.src = "/UI/images/eye.png"; // Change to the icon for "visible"
+  } else {
+    passwordField.type = "password";
+    toggleIcon.src = "/UI/images/hidden.png"; // Change to the icon for "hidden"
+  }
+}
+
+// Add event listener to the toggle password button
+document
+  .getElementById("togglePassword")
+  .addEventListener("click", togglePasswordVisibility);
+
+// Login form submission handler
 document
   .getElementById("loginForm")
   ?.addEventListener("submit", async function (e) {

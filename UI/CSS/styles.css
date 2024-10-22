@@ -116,3 +116,22 @@ body {
   position: relative;
   z-index: 1;
 }
+.input-group {
+  position: relative;
+}
+
+.password-icon {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.input-group .btn {
+  padding: 0;
+}
+
+.input-group .form-control {
+  padding-right: 2.5rem;
+}
