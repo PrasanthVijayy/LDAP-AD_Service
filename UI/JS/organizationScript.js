@@ -21,9 +21,7 @@ getElementById("createOrganizationForm")?.addEventListener(
 
     const data = {
       organizationName: organizationName,
-      attributes: {
-        description: organizationDescription,
-      },
+      description: organizationDescription,
     };
 
     try {

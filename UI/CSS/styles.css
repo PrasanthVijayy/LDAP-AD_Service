@@ -135,3 +135,15 @@ body {
 .input-group .form-control {
   padding-right: 2.5rem;
 }
+
+
+#ouDropdownMenu {
+  max-height: 200px; /* Adjust this value as needed */
+  overflow-y: auto; /* Enable vertical scrolling */
+  border: 1px solid #c3cbd4; /* Add border */
+  background-color: rgb(255, 244, 244); 
+  z-index: 1000; 
+}
+.dropdown-menu {
+  position: absolute;
+}
