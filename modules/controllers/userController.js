@@ -125,31 +125,44 @@ class UserController {
   resetPassword = async (req, res, next) => {
     try {
       console.log("Controller: resetPassword - Started");
-      const { username, password } = req.body;
-      if (!username || !password) {
-        throw new BadRequestError("Missing username or password fields.");
+      const { username, password, confirmPassword, userOU } = req.body;
+
+      let missingFields = [];
+      if (!username) missingFields.push("username");
+      if (!password) missingFields.push("password");
+      if (!confirmPassword) missingFields.push("confirmPassword");
+      if (!userOU) missingFields.push("userOU");
+
+      if (missingFields.length > 0) {
+        return next(
+          new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
+        );
       }
 
+      // Checking the OU is valid
+      await this.organizationService.listOrganizaitons(`ou=${userOU}`);
+
+
       const userExists = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
+        `ou=${userOU},${process.env.LDAP_BASE_DN}`,
         `(cn=${username})`
       );
 
       if (userExists.length === 0) {
-        throw new BadRequestError(`User with username ${username} not found.`);
+        throw new BadRequestError(`User not found.`);
       }
 
-      const passwordPattern =
-        /^(?=.*[0-9])(?=.*[!@#$%^&*()_+[\]{};':"\\|,.<>/?]).{6,}$/;
+      // const passwordPattern =
+      //   /^(?=.*[0-9])(?=.*[!@#$%^&*()_+[\]{};':"\\|,.<>/?]).{6,}$/;
 
-      // Validate password format
-      if (!passwordPattern.test(password)) {
-        throw new BadRequestError(
-          "Password must be atleast 6 characters with one number and one special character."
-        );
-      }
+      // // Validate password format
+      // if (!passwordPattern.test(password)) {
+      //   throw new BadRequestError(
+      //     "Password must be atleast 6 characters with one number and one special character."
+      //   );
+      // }
 
-      const message = await this.userService.resetPassword(username, password);
+      const message = await this.userService.resetPassword(username, password, confirmPassword, userOU);
       console.log("Controller: resetPassword - Completed");
       res.status(200).json(message);
     } catch (error) {

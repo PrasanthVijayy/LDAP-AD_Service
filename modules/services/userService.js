@@ -151,29 +151,38 @@ class UserService {
     }
   }
 
-  async resetPassword(username, password) {
+  async resetPassword(username, password, confirmPassword, userOU) {
     try {
       console.log("Service: resetPassword - Started");
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
+      const userDN = `cn=${username},ou=${userOU},${process.env.LDAP_BASE_DN}`;
 
-      const hashedPassword = createSSHAHash(password);
+      if (password !== confirmPassword) {
+        throw new BadRequestError("Passwords do not match");
+      } else {
+        const hashedPassword = createSSHAHash(password);
 
-      const changes = [
-        {
-          operation: "replace",
-          modification: {
-            userPassword: hashedPassword,
+        const changes = [
+          {
+            operation: "replace",
+            modification: {
+              userPassword: hashedPassword,
+            },
           },
-        },
-      ];
+        ];
 
-      await modify(userDN, changes);
+        await modify(userDN, changes);
+      }
+
       console.log("Service: resetPassword - Completed");
       return { message: "Password reset successfully." };
     } catch (error) {
       console.log("Service: resetPassword - Error", error);
-      throw error;
+      if (error.message.includes("No Such Object")) {
+        throw new NotFoundError("User not found");
+      } else {
+        throw error;
+      }
     }
   }
 
@@ -691,7 +700,7 @@ class UserService {
           baseDN,
           `(&(objectClass=*)(cn=${username}))`
         );
-        
+
         if (searchResults.length === 0) {
           throw new NotFoundError("User not found.");
         }

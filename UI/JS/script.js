@@ -15,59 +15,69 @@ function togglePasswordVisibility() {
 }
 
 // Add event listener to the toggle password button
-document
-  .getElementById("togglePassword")
-  .addEventListener("click", togglePasswordVisibility);
+document.addEventListener("DOMContentLoaded", function () {
+  const togglePassword = document.getElementById("togglePassword");
+  const loginForm = document.getElementById("loginForm");
+
+  if (togglePassword) {
+    togglePassword.addEventListener("click", togglePasswordVisibility);
+  }
+
+  if (loginForm) {
+    loginForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      await handleLogin();
+    });
+  }
+
+  // Fetch users when the page loads (without needing to search first)
+  fetchUsers();
+});
 
 // Login form submission handler
-document
-  .getElementById("loginForm")
-  ?.addEventListener("submit", async function (e) {
-    e.preventDefault();
+async function handleLogin() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+  const ouName = document.getElementById("ouSelect").value.trim(); // Get the selected/entered OU
+  const userType = document.querySelector(
+    'input[name="userType"]:checked'
+  ).value;
 
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
-    const ouName = document.getElementById("ouSelect").value.trim(); // Get the selected/entered OU
-    const userType = document.querySelector(
-      'input[name="userType"]:checked'
-    ).value;
+  const apiUrl = `${baseApiUrl}/users/authenticate`;
+  const data = { username, password, userType, OU: ouName || undefined };
 
-    const apiUrl = `${baseApiUrl}/users/authenticate`;
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
 
-    const data = { username, password, userType, OU: ouName || undefined };
+    const result = await response.json();
 
-    try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+    if (response.ok) {
+      // Reset the login form
+      document.getElementById("loginForm").reset();
 
-      const result = await response.json();
+      // Store userType and username in localStorage
+      localStorage.setItem("userType", userType);
+      localStorage.setItem("username", username);
 
-      if (response.ok) {
-        // Reset the login form
-        document.getElementById("loginForm").reset();
+      // Store the fetched OU value from the response, or the provided OU if it was valid
+      const ouValue = result.OU || ouName;
+      localStorage.setItem("ouName", ouValue); // Store the OU value in localStorage
 
-        // Store userType and username in localStorage
-        localStorage.setItem("userType", userType);
-        localStorage.setItem("username", username);
-
-        // Store the fetched OU value from the response, or the provided OU if it was valid
-        const ouValue = result.OU || ouName;
-        localStorage.setItem("ouName", ouValue); // Store the OU value in localStorage
-
-        // Redirect to the appropriate dashboard
-        window.location.href =
-          userType === "admin" ? "adminDashboard.html" : "userDashboard.html"; // Redirect to dashboard page
-      } else {
-        alert(result.message || "Login failed. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error during login:", error);
-      alert("An error occurred. Please try again later.");
+      // Redirect to the appropriate dashboard
+      window.location.href =
+        userType === "admin" ? "adminDashboard.html" : "userDashboard.html"; // Redirect to dashboard page
+    } else {
+      alert(result.message || "Login failed. Please try again.");
     }
-  });
+  } catch (error) {
+    console.error("Error during login:", error);
+    alert("An error occurred. Please try again later.");
+  }
+}
 
 // Global variable to store users
 window.usersData = [];
@@ -84,7 +94,7 @@ async function fetchUsers() {
 
     if (response.status === 429) {
       alert(
-        "You have made too many requests. Please wait a few minutes before trying again."
+        "Too many requests. Please wait a few minutes before trying again."
       );
       return; // Stop further execution
     }
@@ -93,16 +103,12 @@ async function fetchUsers() {
       const result = await response.json();
       window.usersData = result.users;
       displayUsers(result.users); // Call function to display users in the table
-      return result.users; // Return users for filtering
     } else {
-      console.error("Failed to fetch users");
       alert("Unable to load users.");
-      return null;
     }
   } catch (error) {
     console.error("Error fetching users:", error);
     alert("An error occurred. Please try again later.");
-    return null;
   }
 }
 
@@ -136,7 +142,7 @@ async function searchUsers() {
 
     if (response.status === 429) {
       alert(
-        "You have made too many requests. Please wait a few minutes before trying again."
+        "Too many requests. Please wait a few minutes before trying again."
       );
       return;
     }
@@ -152,6 +158,8 @@ async function searchUsers() {
 // Display users in the table
 function displayUsers(users) {
   const tableBody = document.getElementById("userTableBody");
+  if (!tableBody) return;
+
   tableBody.innerHTML = "";
 
   if (!users || users.length === 0) {
@@ -205,7 +213,7 @@ function displayUsers(users) {
     // Constructing the table row
     row.innerHTML = `
       <th scope="row">${index + 1}</th>
-      <td>${user.userName || "N/A"} </td>
+      <td>${user.userName || "N/A"}</td>
       <td>${user.email || "N/A"}</td>
       <td>${user.phone || "N/A"}</td>
       <td>${user.status || "N/A"}</td>
@@ -213,9 +221,7 @@ function displayUsers(users) {
         <button class="btn btn-link" onclick="showUserDetails(${index})" title="View Details">
           <img src="/UI/images/user.png" alt="Profile" style="width:24px;" />
         </button>
-        <button class="btn btn-link" onclick="deleteUser('${
-          user.firstName
-        }')" title="Delete User">
+        <button class="btn btn-link" onclick="deleteUser(${index})" title="Delete User">
           <img src="/UI/images/deleteUser.png" alt="Delete" style="width:24px;" />
         </button>
         ${lockUnlockButtons}
@@ -254,7 +260,6 @@ fetchUsers();
 // Show user details in the modal
 function showUserDetails(index) {
   const user = window.usersData[index];
-
   document.getElementById("modalFullName").textContent = `${user.userName}`;
   document.getElementById("modalDn").textContent = user.dn;
   document.getElementById("modalEmail").textContent = user.email;
@@ -264,30 +269,27 @@ function showUserDetails(index) {
   document.getElementById("modalStatus").textContent = user.status;
   document.getElementById("modalUserType").textContent = user.userType;
 
-  // Store user DN in modal data for later use
-  window.modalData = {
-    userDN: user.dn, // Store the DN here
-  };
-
   $("#userDetailsModal").modal("show");
 }
 
 // Delete user function
-async function deleteUser(buttonElement) {
-  // Get the parent row of the clicked button
-  const row = buttonElement.closest("tr");
+async function deleteUser(index) {
+  const userToDelete = window.usersData[index];
+  if (!userToDelete) return;
 
-  // Retrieve username and OU from the row's cells (assuming they are in specific columns)
-  const username = row.cells[1].textContent; // Assuming username is in the second cell
-  const userOU = row.cells[4].textContent; // Assuming OU or additional identifier is in the fifth cell
+  // If the user is already deleted, show an alert
+  if (userToDelete.status === "deleted") {
+    alert(`${userToDelete.userName} is already deleted.`);
+    return;
+  }
 
-  // Check if the user to delete is found in usersData
-  const userToDelete = window.usersData.find(
-    (user) => user.userName === username
-  );
+  // Extract userOU from the user's dn field
+  const dn = userToDelete.dn;
+  const ouMatch = dn.match(/ou=([^,]+)/i); // Match 'ou=...' in the dn string
+  const userOU = ouMatch ? ouMatch[1] : null; // Get the OU value from the match
 
-  if (userToDelete && userToDelete.status === "deleted") {
-    alert(`${username} is already deleted.`);
+  if (!userOU) {
+    alert("Failed to extract OU from user DN.");
     return;
   }
 
@@ -295,12 +297,13 @@ async function deleteUser(buttonElement) {
 
   // Prepare data to send in the API request
   const data = {
-    username: username,
-    userOU: userOU, // Include the OU directly from the table
+    username: userToDelete.userName,
+    userOU: userOU, // Include the sliced OU from the DN
   };
 
   // Confirm deletion
-  if (!confirm(`Are you sure you want to delete ${username}?`)) return;
+  if (!confirm(`Are you sure you want to delete ${userToDelete.userName}?`))
+    return;
 
   try {
     const response = await fetch(apiUrl, {
@@ -312,7 +315,7 @@ async function deleteUser(buttonElement) {
     });
 
     if (response.ok) {
-      alert(`${username} was deleted successfully.`);
+      alert(`${userToDelete.userName} was deleted successfully.`);
       fetchUsers(); // Refresh the users list after deletion
     } else {
       const errorResponse = await response.text(); // Get the response text for debugging
