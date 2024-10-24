@@ -492,29 +492,33 @@ class UserController {
   userLockAction = async (req, res, next) => {
     try {
       console.log("Controller: modifyUserLockStatus - Started");
-      const { username, action } = req.body;
+      const { username, action, userOU } = req.body;
 
       let missingFields = [];
       if (!username) missingFields.push("username");
       if (!action) missingFields.push("action");
+      if(!userOU) missingFields.push("userOU");
       if (missingFields.length > 0) {
         return next(
           new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
         );
       }
 
+      // Checking the requested OU is valid
+      await this.organizationService.listOrganizaitons(`ou=${userOU}`);
+
       if (!["unlock", "lock"].includes(action)) {
         throw new BadRequestError("Action should be either lock or unlock");
       }
-      const userExists = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
-        `(cn=${username})`
-      );
-      if (userExists.length === 0) {
-        throw new NotFoundError("User not found");
-      }
+      // const userExists = await search(
+      //   `ou=${userOU},${process.env.LDAP_BASE_DN}`,
+      //   `(cn=${username})`
+      // );
+      // if (userExists.length === 0) {
+      //   throw new NotFoundError("User not found");
+      // }
 
-      const message = await this.userService.userLockAction(username, action);
+      const message = await this.userService.userLockAction(username, action, userOU);
       console.log("Controller: modifyUserLockStatus - Completed");
       res.status(202).json(message);
     } catch (error) {
@@ -634,6 +638,7 @@ class UserController {
       if (!username) missingFields.push("username");
       if (!password) missingFields.push("password");
       if (!userType) missingFields.push("userType");
+      if(!OU) missingFields.push('OU');
       if (missingFields.length > 0) {
         return next(
           new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)

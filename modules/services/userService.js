@@ -87,12 +87,13 @@ class UserService {
       console.log("Service: listUsers - Started");
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
 
-      const baseDN = process.env.LDAP_BASE_DN || "ou=users,dc=example,dc=com";
+      const baseDN = process.env.LDAP_BASE_DN;
 
       // Default to search by objectClass=person if no filter provided
       let searchFilter = "(objectClass=person)";
+      let statusFilter = null;
 
-      // Apply the filter based on the query parameter (username, email, phone, status)
+      // Apply the filter based on the query parameter (username, email, phone, ou)
       if (filter) {
         // Split the filter string to handle multiple conditions (e.g., cn=username,status=active)
         const filterParts = filter.split(",");
@@ -106,43 +107,72 @@ class UserService {
             return `(mail=${value})`; // Email filter
           } else if (field === "telephoneNumber") {
             return `(telephoneNumber=${value})`; // Phone number filter
+          } else if (field === "status") {
+            statusFilter = value;
+            return null; // Status filter will be handled later
+          } else if (field === "ou") {
+            return null; // OU filtering handled below
           }
+          return null; // Return null for unsupported fields
         });
-
         // Join all filter conditions with AND (&) operator for LDAP search
-        searchFilter = `(&${filterConditions.join("")})`;
+        if (filterConditions.length > 0) {
+          searchFilter = `(&${searchFilter}${filterConditions.join("")})`;
+        }
       }
 
-      const scope = "sub";
+      console.log("Searching for users with filter:", searchFilter);
+      const scope = "sub"; // Scope to search within subordinates
       const rawUsers = await search(baseDN, searchFilter, scope);
       console.log("Service: listUsers - Completed");
 
-      const users = rawUsers.map((user) => {
-        // Determine the status based on priority
-        let status;
-        if (user.shadowFlag == 1) {
-          status = "deleted";
-        } else if (user.shadowInactive == 1) {
-          status = "disabled";
-        } else if (user.shadowExpire == 1) {
-          status = "locked";
-        } else {
-          status = "active";
-        }
+      // Filter out users based on the specified OU in the filter
+      const users = rawUsers
+        .filter((user) => {
+          if (!filter) return true; // If no filter, include all
+          const ouFilter = filter
+            .split(",")
+            .find((part) => part.startsWith("ou="));
+          if (ouFilter) {
+            const ouValue = ouFilter.split("=")[1]; // Get the OU value
+            return user.dn.includes(`ou=${ouValue}`); // Check if the DN contains the specified OU
+          }
+          return true; // Default to include if no OU filter is present
+        })
+        .map((user) => {
+          // Determine the status based on priority
+          let status;
+          if (user.shadowFlag == 1) {
+            status = "deleted";
+          } else if (user.shadowInactive == 1) {
+            status = "disabled";
+          } else if (user.shadowExpire == 1) {
+            status = "locked";
+          } else {
+            status = "active";
+          }
 
+          return {
+            dn: user.dn,
+            userType: user.title,
+            firstName: user.gn,
+            lastName: user.sn,
+            userName: user.cn,
+            email: user.mail,
+            phone: user.telephoneNumber,
+            address: user.registeredAddress,
+            postalCode: user.postalCode,
+            status, // List the status based on priority
+          };
+        });
+
+      //Status filter logic
+      if (statusFilter) {
         return {
-          dn: user.dn,
-          userType: user.title,
-          firstName: user.gn,
-          lastName: user.sn,
-          userName: user.cn,
-          email: user.mail,
-          phone: user.telephoneNumber,
-          address: user.registeredAddress,
-          postalCode: user.postalCode,
-          status, // List the status based on priority
+          count: users.filter((user) => user.status === statusFilter).length,
+          users: users.filter((user) => user.status === statusFilter),
         };
-      });
+      }
 
       return { count: users.length, users };
     } catch (error) {
@@ -481,11 +511,11 @@ class UserService {
     }
   }
 
-  async userLockAction(username, action) {
+  async userLockAction(username, action, userOU) {
     try {
       console.log(`Service: userLockAction - ${action} - Started`);
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
+      const userDN = `cn=${username},ou=${userOU},${process.env.LDAP_BASE_DN}`;
 
       // Verify the user exists and fetch their details
       const userSearchResults = await search(
@@ -536,6 +566,9 @@ class UserService {
       console.log(`Service: userLockAction - ${action} - Completed`);
       return { message: `User ${action}ed successfully` };
     } catch (error) {
+      if (error.message.includes("No Such Object")) {
+        throw new NotFoundError(`User not found.`);
+      }
       console.log("Service: userLockAction - Error", error);
       throw error;
     }

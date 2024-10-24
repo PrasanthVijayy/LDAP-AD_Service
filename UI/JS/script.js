@@ -112,9 +112,16 @@ async function fetchUsers() {
   }
 }
 
+// Function to extract the OU from the DN field
+function extractOU(dn) {
+  const ouMatch = dn.match(/ou=([^,]+)/i); // Match the value after 'ou=' in the dn string
+  return ouMatch ? ouMatch[1] : "N/A"; // Return the matched OU, or 'N/A' if not found
+}
+
 // Search users based on the selected criteria
 async function searchUsers() {
   const searchInput = document.getElementById("searchInput").value.trim();
+  console.log("searchInput", searchInput);
   const searchCriteria = document.getElementById("searchCriteria").value; // Get the selected search criteria
   const statusFilter = document.getElementById("statusFilter").value; // Get status filter
 
@@ -128,6 +135,8 @@ async function searchUsers() {
       filter = `mail=${searchInput}`; // Filter by email
     } else if (searchCriteria === "phone") {
       filter = `telephoneNumber=${searchInput}`; // Filter by phone number
+    } else if (searchCriteria === "organization") {
+      filter = `ou=${searchInput}`; // Filter by OU
     }
   }
 
@@ -155,6 +164,16 @@ async function searchUsers() {
   }
 }
 
+document.getElementById("searchInput").addEventListener("keypress", (event) => {
+  if (event.key === "Enter") {
+    searchUsers(); // Call searchUsers on Enter key press
+  }
+});
+
+// document.getElementById("searchInput").addEventListener("input", () => {
+//   searchUsers(); // Call searchUsers whenever the input value changes
+// });
+
 // Display users in the table
 function displayUsers(users) {
   const tableBody = document.getElementById("userTableBody");
@@ -169,6 +188,7 @@ function displayUsers(users) {
 
   users.forEach((user, index) => {
     const row = document.createElement("tr");
+    const userOU = extractOU(user.dn);
 
     // Lock/Unlock button logic
     let lockUnlockButtons = "";
@@ -186,13 +206,13 @@ function displayUsers(users) {
       `;
     } else if (user.status === "locked") {
       lockUnlockButtons = `
-        <button class="btn btn-link" onclick="toggleUserLock('${user.firstName}', 'unlock')" title="Unlock User">
+        <button class="btn btn-link" onclick="toggleUserLock('${index}', 'unlock')" title="Unlock User">
           <img src="/UI/images/unlockUser.png" alt="Unlock" style="width:24px;" />
         </button>
         <button class="btn btn-link" disabled title="User is locked and cannot be locked again">
           <img src="/UI/images/lockUser.png" alt="Lock" style="width:24px;" />
         </button>
-        <button class="btn btn-link" onclick="editUser('${user.firstName}')" title="Edit User">
+        <button class="btn btn-link" onclick="editUser('${index}')" title="Edit User">
           <img src="/UI/images/editUser.png" alt="Edit" style="width:24px;" />
         </button>
       `;
@@ -201,10 +221,10 @@ function displayUsers(users) {
         <button class="btn btn-link" disabled title="User is active and cannot be unlocked">
           <img src="/UI/images/unlockUser.png" alt="Unlock" style="width:24px;" />
         </button>
-        <button class="btn btn-link" onclick="toggleUserLock('${user.firstName}', 'lock')" title="Lock User">
+        <button class="btn btn-link" onclick="toggleUserLock('${index}', 'lock')" title="Lock User">
           <img src="/UI/images/lockUser.png" alt="Lock" style="width:24px;" />
         </button>
-        <button class="btn btn-link" onclick="editUser('${user.firstName}')" title="Edit User">
+        <button class="btn btn-link" onclick="editUser('${index}')" title="Edit User">
           <img src="/UI/images/editUser.png" alt="Edit" style="width:24px;" />
         </button>
       `;
@@ -214,6 +234,7 @@ function displayUsers(users) {
     row.innerHTML = `
       <th scope="row">${index + 1}</th>
       <td>${user.userName || "N/A"}</td>
+      <td>${userOU || "N/A"}</td>
       <td>${user.email || "N/A"}</td>
       <td>${user.phone || "N/A"}</td>
       <td>${user.status || "N/A"}</td>
@@ -329,10 +350,22 @@ async function deleteUser(index) {
 }
 
 // Toggle lock/unlock user
-async function toggleUserLock(username, action) {
-  const apiUrl = `${baseApiUrl}/users/userLockAction`;
-  const requestBody = { username, action };
 
+async function toggleUserLock(index, action) {
+  const userToLock = window.usersData[index];
+  if (!userToLock) return;
+
+  // Extract user data from index
+  const username = userToLock.userName;
+  const indexOU = extractOU(userToLock.dn);
+
+  if (!indexOU) {
+    alert("Failed to extract OU from user DN.");
+    return;
+  }
+
+  const apiUrl = `${baseApiUrl}/users/userLockAction`;
+  const requestBody = { username: username, userOU: indexOU, action };
   try {
     const response = await fetch(apiUrl, {
       method: "POST",
@@ -520,94 +553,103 @@ function handleEditTypeChange() {
   }
 }
 
-// Add event listener for the edit type toggle
-getElementById("editType").addEventListener("change", handleEditTypeChange);
+document.addEventListener("DOMContentLoaded", function () {
+  // Add event listener for the edit type toggle
+  document
+    .getElementById("editType")
+    .addEventListener("change", handleEditTypeChange);
 
-// Add event listener for the edit user form
-getElementById("editUserForm").addEventListener("submit", async function (e) {
-  e.preventDefault(); // Prevent form submission
+  // Add event listener for the edit user form
+  document
+    .getElementById("editUserForm")
+    .addEventListener("submit", async function (e) {
+      e.preventDefault(); // Prevent form submission
 
-  // Validate the form fields
-  if (!validateForm()) {
-    return; // Stop form submission if validation fails
-  }
+      // Validate the form fields
+      if (!validateForm()) {
+        return; // Stop form submission if validation fails
+      }
 
-  // Get form data
-  const username = getElementById("username").value;
-  const telephoneNumber = getElementById("telephoneNumber").value;
-  const mail = getElementById("mail").value;
-  const registeredAddress = getElementById("registeredAddress").value;
-  const postalCode = getElementById("postalCode").value;
-  const editType = getElementById("editType").value; // Capture edit type
+      // Get form data
+      const username = getElementById("username").value;
+      const telephoneNumber = getElementById("telephoneNumber").value;
+      const mail = getElementById("mail").value;
+      const registeredAddress = getElementById("registeredAddress").value;
+      const postalCode = getElementById("postalCode").value;
+      const editType = getElementById("editType").value; // Capture edit type
 
-  // Collect only changed or non-empty fields
-  const data = {
-    username: username,
-    attributes: {},
-  };
+      // Collect only changed or non-empty fields
+      const data = {
+        username: username,
+        attributes: {},
+      };
 
-  if (telephoneNumber) data.attributes.telephoneNumber = telephoneNumber;
-  if (mail) data.attributes.mail = mail;
-  if (editType === "general") {
-    if (registeredAddress)
-      data.attributes.registeredAddress = registeredAddress;
-    if (postalCode) data.attributes.postalCode = postalCode;
-  }
+      if (telephoneNumber) data.attributes.telephoneNumber = telephoneNumber;
+      if (mail) data.attributes.mail = mail;
+      if (editType === "general") {
+        if (registeredAddress)
+          data.attributes.registeredAddress = registeredAddress;
+        if (postalCode) data.attributes.postalCode = postalCode;
+      }
 
-  const apiUrl =
-    editType === "general"
-      ? `${baseApiUrl}/users/updateUser` // API to update user details
-      : `${baseApiUrl}/users/updateContactDetails`; // API to update contact details only
+      const apiUrl =
+        editType === "general"
+          ? `${baseApiUrl}/users/updateUser` // API to update user details
+          : `${baseApiUrl}/users/updateContactDetails`; // API to update contact details only
 
-  try {
-    const response = await fetch(apiUrl, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
+      try {
+        const response = await fetch(apiUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          alert("User details updated successfully.");
+          window.location.href = "listUsers.html"; // Redirect to listUsers.html after success of updation
+        } else {
+          handleApiErrors(result);
+        }
+      } catch (error) {
+        console.error("Error updating user details:", error);
+        alert("An error occurred. Please try again later.");
+      }
+
+      // Handle API error messages and display them in the form
+      function handleApiErrors(errors) {
+        if (errors.telephoneNumber) {
+          setInvalid(getElementById("telephoneNumber"), errors.telephoneNumber);
+        }
+
+        if (errors.mail) {
+          setInvalid(getElementById("mail"), errors.mail);
+        }
+
+        if (errors.registeredAddress) {
+          setInvalid(
+            getElementById("registeredAddress"),
+            errors.registeredAddress
+          );
+        }
+
+        if (errors.postalCode) {
+          setInvalid(getElementById("postalCode"), errors.postalCode);
+        }
+
+        if (errors.username) {
+          setInvalid(getElementById("username"), errors.username);
+        }
+      }
+
+      // Helper function to reset the form and clear validation styles
+      function resetForm() {
+        document.getElementById("editUserForm").reset();
+        document.querySelectorAll(".is-valid, .is-invalid").forEach((input) => {
+          input.classList.remove("is-valid", "is-invalid");
+        });
+      }
     });
-
-    const result = await response.json();
-    if (response.ok) {
-      alert("User details updated successfully.");
-      window.location.href = "listUsers.html"; // Redirect to listUsers.html after success of updation
-    } else {
-      handleApiErrors(result);
-    }
-  } catch (error) {
-    console.error("Error updating user details:", error);
-    alert("An error occurred. Please try again later.");
-  }
 });
-
-// Handle API error messages and display them in the form
-function handleApiErrors(errors) {
-  if (errors.telephoneNumber) {
-    setInvalid(getElementById("telephoneNumber"), errors.telephoneNumber);
-  }
-
-  if (errors.mail) {
-    setInvalid(getElementById("mail"), errors.mail);
-  }
-
-  if (errors.registeredAddress) {
-    setInvalid(getElementById("registeredAddress"), errors.registeredAddress);
-  }
-
-  if (errors.postalCode) {
-    setInvalid(getElementById("postalCode"), errors.postalCode);
-  }
-
-  if (errors.username) {
-    setInvalid(getElementById("username"), errors.username);
-  }
-}
-
-// Helper function to reset the form and clear validation styles
-function resetForm() {
-  document.getElementById("editUserForm").reset();
-  document.querySelectorAll(".is-valid, .is-invalid").forEach((input) => {
-    input.classList.remove("is-valid", "is-invalid");
-  });
-}
