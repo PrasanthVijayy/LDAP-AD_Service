@@ -20,7 +20,7 @@
         <form id="loginForm">
           <!-- Username input -->
           <div class="form-group">
-            <label for="username">Username</label>
+            <label for="username" class="required">Username</label>
             <input
               type="text"
               class="form-control"
@@ -32,7 +32,7 @@
 
           <!-- Password input with toggle icon -->
           <div class="form-group">
-            <label for="password">Password</label>
+            <label for="password" class="required">Password</label>
             <div class="input-group">
               <input
                 type="password"
@@ -58,9 +58,11 @@
             </div>
           </div>
 
-          <!-- OU input field (optional) -->
+          <!-- OU input field (required) -->
           <div class="form-group">
-            <label for="ouSelect">Organizational Unit (OU) (optional)</label>
+            <label for="ouSelect" class="required"
+              >Organizational Unit (OU)</label
+            >
             <div class="input-group">
               <div class="input-group-prepend">
                 <span class="input-group-text">ou=</span>
@@ -71,8 +73,9 @@
                 id="ouSelect"
                 placeholder="Select or enter OU"
                 list="ouOptions"
+                required
               />
-              <datalist id="ouOptions">
+              <datalist talist id="ouOptions">
                 <!-- Dynamic options will be added here from the API -->
               </datalist>
               <div class="input-group-append">
