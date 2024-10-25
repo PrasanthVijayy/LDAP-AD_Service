@@ -142,7 +142,6 @@ class UserController {
       // Checking the OU is valid
       await this.organizationService.listOrganizaitons(`ou=${userOU}`);
 
-
       const userExists = await search(
         `ou=${userOU},${process.env.LDAP_BASE_DN}`,
         `(cn=${username})`
@@ -162,7 +161,12 @@ class UserController {
       //   );
       // }
 
-      const message = await this.userService.resetPassword(username, password, confirmPassword, userOU);
+      const message = await this.userService.resetPassword(
+        username,
+        password,
+        confirmPassword,
+        userOU
+      );
       console.log("Controller: resetPassword - Completed");
       res.status(200).json(message);
     } catch (error) {
@@ -467,19 +471,26 @@ class UserController {
   lockGroupMembers = async (req, res, next) => {
     try {
       console.log("Controller: modifyUserLockStatus - Started");
-      const { groupName } = req.body;
+      const { groupName, groupOU } = req.body;
 
       if (!groupName) throw new BadRequestError("Group name is required");
+      if (!groupOU) throw new BadRequestError("Group OU is required");
 
-      const groupExists = await search(
-        `ou=groups,${process.env.LDAP_BASE_DN}`,
-        `(cn=${groupName})`
+      // Check if given OU is valid
+      await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
+
+      // const groupExists = await search(
+      //   `ou=groups,${process.env.LDAP_BASE_DN}`,
+      //   `(cn=${groupName})`
+      // );
+      // if (groupExists.length === 0) {
+      //   throw new NotFoundError("Group not found");
+      // }
+
+      const message = await this.userService.lockGroupMembers(
+        groupName,
+        groupOU
       );
-      if (groupExists.length === 0) {
-        throw new NotFoundError("Group not found");
-      }
-
-      const message = await this.userService.lockGroupMembers(groupName);
       console.log("Controller: lockUser - Completed");
       res.status(202).json(message);
     } catch (error) {
@@ -497,7 +508,7 @@ class UserController {
       let missingFields = [];
       if (!username) missingFields.push("username");
       if (!action) missingFields.push("action");
-      if(!userOU) missingFields.push("userOU");
+      if (!userOU) missingFields.push("userOU");
       if (missingFields.length > 0) {
         return next(
           new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
@@ -518,7 +529,11 @@ class UserController {
       //   throw new NotFoundError("User not found");
       // }
 
-      const message = await this.userService.userLockAction(username, action, userOU);
+      const message = await this.userService.userLockAction(
+        username,
+        action,
+        userOU
+      );
       console.log("Controller: modifyUserLockStatus - Completed");
       res.status(202).json(message);
     } catch (error) {
@@ -638,7 +653,7 @@ class UserController {
       if (!username) missingFields.push("username");
       if (!password) missingFields.push("password");
       if (!userType) missingFields.push("userType");
-      if(!OU) missingFields.push('OU');
+      if (!OU) missingFields.push("OU");
       if (missingFields.length > 0) {
         return next(
           new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
