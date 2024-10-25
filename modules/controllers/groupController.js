@@ -15,11 +15,12 @@ class GroupController {
   createGroup = async (req, res, next) => {
     try {
       console.log("Controller: createGroup - Started");
-      const { groupName, description, groupType, OU } = req.body;
+      const { groupName, description, groupType, groupOU } = req.body;
 
       let missingFields = [];
       if (!groupName) missingFields.push("groupName");
       if (!groupType) missingFields.push("groupType");
+      if (!groupOU) missingFields.push("groupOU");
 
       if (missingFields.length > 0) {
         return next(
@@ -34,7 +35,7 @@ class GroupController {
         );
       }
 
-      const baseDN = `ou=groups,${process.env.LDAP_BASE_DN}`;
+      // const baseDN = `ou=${groupOU},${process.env.LDAP_BASE_DN}`;
       // const groupExists = await search(baseDN, `(cn=${groupName})`);
 
       // if (groupExists.length > 0) {
@@ -54,7 +55,7 @@ class GroupController {
         groupName,
         description,
         groupType,
-        OU
+        groupOU
       );
       console.log("Controller: createGroup - Completed");
       res.status(201).json(group);
@@ -127,7 +128,7 @@ class GroupController {
       }
 
       if (userExists[0].shadowExpire == 1) {
-        throw new NotFoundError(`User ${member} is disabled`);
+        throw new NotFoundError(`User ${member} is locked`);
       }
       console.warn("User data:", userExists[0]);
       const group = await this.groupService.addToGroup(
@@ -350,6 +351,37 @@ class GroupController {
       res.status(200).json(group);
     } catch (error) {
       console.log("Controller: deleteFromAdminGroup - Error", error);
+      next(error);
+    }
+  };
+
+  deleteUserFromGroups = async (req, res, next) => {
+    try {
+      console.log("Controller: deleteUserFromGroups - Started");
+      const { member, memberOU } = req.body;
+
+      // Check for missing fields
+      let missingFields = [];
+      if (!member) missingFields.push("member");
+      if (!memberOU) missingFields.push("memberOU");
+
+      if (missingFields.length > 0) {
+        return next(
+          new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
+        );
+      }
+
+      await this.organizationService.listOrganizaitons(`ou=${memberOU}`); // Validate the provided OU
+
+      const result = await this.groupService.deleteUserFromGroups(
+        member,
+        memberOU
+      );
+      console.log("Controller: deleteUserFromGroups - Completed");
+
+      res.status(200).json(result);
+    } catch (error) {
+      console.log("Controller: deleteUserFromGroups - Error", error);
       next(error);
     }
   };

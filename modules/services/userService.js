@@ -92,30 +92,30 @@ class UserService {
       // Default to search by objectClass=person if no filter provided
       let searchFilter = "(objectClass=person)";
       let statusFilter = null;
+      let ouFilter = null; // Capture the OU filter for LDAP search
 
       // Apply the filter based on the query parameter (username, email, phone, ou)
       if (filter) {
-        // Split the filter string to handle multiple conditions (e.g., cn=username,status=active)
         const filterParts = filter.split(",");
-        const filterConditions = filterParts.map((part) => {
-          const [field, value] = part.split("="); // Split by field and value
+        let filterConditions = [];
 
-          // Determine which LDAP attribute to filter by
+        filterParts.forEach((part) => {
+          const [field, value] = part.split("=");
+
           if (field === "cn") {
-            return `(cn=${value})`; // Username filter
+            filterConditions.push(`(cn=${value})`); // Username filter
           } else if (field === "mail") {
-            return `(mail=${value})`; // Email filter
+            filterConditions.push(`(mail=${value})`); // Email filter
           } else if (field === "telephoneNumber") {
-            return `(telephoneNumber=${value})`; // Phone number filter
+            filterConditions.push(`(telephoneNumber=${value})`); // Phone number filter
           } else if (field === "status") {
-            statusFilter = value;
-            return null; // Status filter will be handled later
+            filterConditions.push(`(status=${value})`); // Status filter
           } else if (field === "ou") {
-            return null; // OU filtering handled below
+            ouFilter = value; // Store OU for filtering later
           }
-          return null; // Return null for unsupported fields
         });
-        // Join all filter conditions with AND (&) operator for LDAP search
+
+        // If valid filters exist, combine them with the AND operator (&)
         if (filterConditions.length > 0) {
           searchFilter = `(&${searchFilter}${filterConditions.join("")})`;
         }
@@ -126,52 +126,46 @@ class UserService {
       const rawUsers = await search(baseDN, searchFilter, scope);
       console.log("Service: listUsers - Completed");
 
-      // Filter out users based on the specified OU in the filter
-      const users = rawUsers
-        .filter((user) => {
-          if (!filter) return true; // If no filter, include all
-          const ouFilter = filter
-            .split(",")
-            .find((part) => part.startsWith("ou="));
-          if (ouFilter) {
-            const ouValue = ouFilter.split("=")[1]; // Get the OU value
-            return user.dn.includes(`ou=${ouValue}`); // Check if the DN contains the specified OU
-          }
-          return true; // Default to include if no OU filter is present
-        })
-        .map((user) => {
-          // Determine the status based on priority
-          let status;
-          if (user.shadowFlag == 1) {
-            status = "deleted";
-          } else if (user.shadowInactive == 1) {
-            status = "disabled";
-          } else if (user.shadowExpire == 1) {
-            status = "locked";
-          } else {
-            status = "active";
-          }
+      // Map and process user data
+      let users = rawUsers.map((user) => {
+        let status;
+        if (user.shadowFlag == 1) {
+          status = "deleted";
+        } else if (user.shadowInactive == 1) {
+          status = "disabled";
+        } else if (user.shadowExpire == 1) {
+          status = "locked";
+        } else {
+          status = "active";
+        }
 
-          return {
-            dn: user.dn,
-            userType: user.title,
-            firstName: user.gn,
-            lastName: user.sn,
-            userName: user.cn,
-            email: user.mail,
-            phone: user.telephoneNumber,
-            address: user.registeredAddress,
-            postalCode: user.postalCode,
-            status, // List the status based on priority
-          };
-        });
+        // Extract the OU from the DN (distinguished name)
+        const ouMatch = user.dn.match(/ou=([^,]+)/i);
+        const ou = ouMatch ? ouMatch[1] : "Unknown"; // Extract OU from DN
 
-      //Status filter logic
-      if (statusFilter) {
         return {
-          count: users.filter((user) => user.status === statusFilter).length,
-          users: users.filter((user) => user.status === statusFilter),
+          dn: user.dn,
+          ou, // Store OU separately for easy filtering
+          userType: user.title,
+          firstName: user.gn,
+          lastName: user.sn,
+          userName: user.cn,
+          email: user.mail,
+          phone: user.telephoneNumber,
+          address: user.registeredAddress,
+          postalCode: user.postalCode,
+          status, // Determine user status
         };
+      });
+
+      // Apply the OU filter if present
+      if (ouFilter) {
+        users = users.filter((user) => user.ou === ouFilter);
+      }
+
+      // Apply status filter if provided
+      if (statusFilter) {
+        users = users.filter((user) => user.status === statusFilter);
       }
 
       return { count: users.length, users };
@@ -424,7 +418,7 @@ class UserService {
     }
   }
 
-  async lockGroupMembers(groupName) {
+  async lockGroupMembers(groupName, groupOU) {
     try {
       console.log(
         `Service: lockGroupMembers - Locking members of group ${groupName} Started`
@@ -434,7 +428,7 @@ class UserService {
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
 
       // Define the group's distinguished name (DN)
-      const groupDN = `cn=${groupName},ou=groups,${process.env.LDAP_BASE_DN}`;
+      const groupDN = `cn=${groupName},ou=${groupOU},${process.env.LDAP_BASE_DN}`;
 
       // Search for all members (users) in the group
       const searchFilter = `(member=*)`; // Searches for the "member" attribute in the group
@@ -507,6 +501,9 @@ class UserService {
       };
     } catch (error) {
       console.log(`Service: lockGroupMembers - Error`, error);
+      if (error.message.includes("No Such Object")) {
+        throw new NotFoundError(`Group '${groupName}' not found.`);
+      }
       throw error;
     }
   }

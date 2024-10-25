@@ -14,5 +14,6 @@ const groupRoutes = (app) => {
   router.get("/membersInGroup", groupController.membersInGroup); // List members in group - additional
   router.post("/addToAdminGroup", groupController.addToAdminGroup); // Add user to admin group
   router.delete("/deleteFromAdminGroup", groupController.deleteFromAdminGroup); // Delete user from admin group
+  router.delete("/deleteMemberFromGroups", groupController.deleteUserFromGroups); // Delete member from all groups
 };
 export default groupRoutes;
