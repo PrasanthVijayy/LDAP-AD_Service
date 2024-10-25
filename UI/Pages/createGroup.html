@@ -50,14 +50,39 @@
             </div>
             <div class="card-body">
               <form id="createGroupForm">
-                <div class="form-group">
-                  <label for="groupName" class="required">Group Name:</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="groupName"
-                    required
-                  />
+                <div class="form-row">
+                  <div class="form-group col-md-8">
+                    <label for="groupName" class="required">Group Name:</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="groupName"
+                      required
+                    />
+                  </div>
+                  <div class="form-group col-4 position-relative">
+                    <label for="groupOU" class="required">Group OU:</label>
+                    <div class="dropdown">
+                      <button
+                        class="btn btn-secondary dropdown-toggle w-100"
+                        type="button"
+                        id="ouDropdownButton"
+                        data-toggle="dropdown"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                      >
+                        Select OU
+                      </button>
+                      <div
+                        class="dropdown-menu"
+                        id="ouDropdownMenu"
+                        aria-labelledby="ouDropdownButton"
+                      >
+                        <!-- Options will be populated dynamically -->
+                      </div>
+                    </div>
+                    <input type="hidden" id="groupOU" />
+                  </div>
                 </div>
                 <div class="form-group">
                   <label for="groupType" class="required">Group Type:</label>
@@ -103,19 +128,23 @@
               </div>
             </div>
             <div class="card-body">
-              <table class="table table-bordered table-hover bg-light">
-                <thead class="thead-dark">
-                  <tr>
-                    <th scope="col">S.No</th>
-                    <th scope="col">Group Name</th>
-                    <th scope="col">Group Type</th>
-                    <th scope="col">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="groupTableBody">
-                  <!-- Dynamic Group Rows Will Be Inserted Here -->
-                </tbody>
-              </table>
+              <div class="table-responsive">
+                <!-- Make table responsive -->
+                <table class="table table-bordered table-hover bg-light">
+                  <thead class="thead-dark">
+                    <tr>
+                      <th scope="col">S.No</th>
+                      <th scope="col">Group Name</th>
+                      <th scope="col">Group Type</th>
+                      <th scope="col">OU</th>
+                      <th scope="col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="groupTableBody">
+                    <!-- Dynamic Group Rows Will Be Inserted Here -->
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -162,6 +191,7 @@
         </div>
       </div>
 
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
       <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
       <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
       <script src="/UI/JS/groupScript.js"></script>
