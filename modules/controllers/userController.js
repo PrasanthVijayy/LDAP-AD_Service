@@ -6,10 +6,12 @@ import {
 } from "../../utils/error.js";
 import { search } from "../../utils/ldapUtils.js";
 import OrganizationService from "../services/orgainzationService.js";
+import GroupService from "../services/groupService.js";
 class UserController {
   constructor() {
     this.userService = new UserService();
     this.organizationService = new OrganizationService();
+    this.groupService = new GroupService();
   }
 
   // Add a new user to the LDAP directory
@@ -204,8 +206,14 @@ class UserController {
       // console.log("User exists", userExists[0]);
 
       const message = await this.userService.deleteUser(username, userOU);
+
+      // Deleting users from all users (if present)
+      const removeFromGroups = await this.groupService.deleteUserFromGroups(
+        username,
+        userOU
+      );
       console.log("Controller: deleteUser - Completed");
-      res.status(200).json(message);
+      res.status(200).json({ message, removeFromGroups });
     } catch (error) {
       console.log("Controller: deleteUser - Error", error);
       next(error);
