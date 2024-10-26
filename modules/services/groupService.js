@@ -140,7 +140,7 @@ class GroupService {
     } catch (error) {
       console.log("Service: deleteFromGroup - Error", error);
       if (error.message.includes("No Such Object")) {
-        throw new NotFoundError(`Group ${groupName} does errgnot exist.`);
+        throw new NotFoundError(`Group ${groupName} does not exist.`);
       }
       //Error to inform member is not in group
       if (error.message.includes("modify/delete: member: no such value")) {
@@ -199,7 +199,7 @@ class GroupService {
       console.log("groupDetails", groupDetails);
       const existingMember = groupDetails[0]?.member;
 
-      console.log("existingMember", existingMember);
+      console.warn("existingMember", existingMember);
 
       // Check if the user is already a member of the group
       if (existingMember.includes(userDN)) {

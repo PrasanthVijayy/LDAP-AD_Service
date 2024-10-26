@@ -10,15 +10,6 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/UI/CSS/styles.css" />
-    <style>
-      /* Additional custom styles */
-      .no-pointer {
-        pointer-events: none; /* Disable pointer events on the card */
-      }
-      .password-icon {
-        width: 20px; /* Size of the password toggle icon */
-      }
-    </style>
   </head>
   <body>
     <!-- Navigation Buttons -->
@@ -52,7 +43,7 @@
         <div class="card-body p-4">
           <form id="changePasswordForm">
             <div class="form-row">
-              <div class="form-group col-12">
+              <div class="form-group col-md-8">
                 <label for="username">Username</label>
                 <input
                   type="text"
@@ -62,8 +53,8 @@
                   required
                 />
               </div>
-              <div class="form-group col-12">
-                <label for="userOU">Organizational Unit (OU)</label>
+              <div class="form-group col-md-4">
+                <label for="userOU">OU</label>
                 <input
                   type="text"
                   class="form-control"
