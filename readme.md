@@ -2,7 +2,7 @@
 
 ## Project Description
 
-The LDAP Management API is a comprehensive backend solution designed to handle various LDAP-related operations. This API provides endpoints for managing users, groups, domain controllers, and organizational units within an LDAP directory. It also includes functionalities for multi-factor authentication (MFA) and custom error handling.
+The LDAP Management API is a comprehensive backend solution designed to handle various LDAP-related operations. This API provides endpoints for managing users, groups, domain controllers, and organizational units within an LDAP directory.
 
 ### Key Features
 
