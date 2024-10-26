@@ -25,6 +25,7 @@ class UserService {
     try {
       console.log("Service: addUser - Started");
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+      const organizationalUnitName = payload.userOU;
 
       const userDN = `cn=${payload.givenName},ou=${payload.userOU},${process.env.LDAP_BASE_DN}`;
 
@@ -57,6 +58,7 @@ class UserService {
         shadowExpire: 0, // Set to accountLock
         shadowFlag: 0, // Set to
         title: payload.title || "user",
+        ou: organizationalUnitName, // Storing the OU for easy retrieval
       };
 
       console.log("Service: addUser - Completed");
@@ -92,7 +94,6 @@ class UserService {
       // Default to search by objectClass=person if no filter provided
       let searchFilter = "(objectClass=person)";
       let statusFilter = null;
-      let ouFilter = null; // Capture the OU filter for LDAP search
 
       // Apply the filter based on the query parameter (username, email, phone, ou)
       if (filter) {
@@ -111,7 +112,7 @@ class UserService {
           } else if (field === "status") {
             filterConditions.push(`(status=${value})`); // Status filter
           } else if (field === "ou") {
-            ouFilter = value; // Store OU for filtering later
+            filterConditions.push(`(ou=${value})`); // OU based filter
           }
         });
 
@@ -140,12 +141,12 @@ class UserService {
         }
 
         // Extract the OU from the DN (distinguished name)
-        const ouMatch = user.dn.match(/ou=([^,]+)/i);
-        const ou = ouMatch ? ouMatch[1] : "Unknown"; // Extract OU from DN
+        // const ouMatch = user.dn.match(/ou=([^,]+)/i);
+        // const ou = ouMatch ? ouMatch[1] : "Unknown"; // Extract OU from DN
 
         return {
           dn: user.dn,
-          ou, // Store OU separately for easy filtering
+          userOU: user.ou,
           userType: user.title,
           firstName: user.gn,
           lastName: user.sn,
@@ -159,9 +160,9 @@ class UserService {
       });
 
       // Apply the OU filter if present
-      if (ouFilter) {
-        users = users.filter((user) => user.ou === ouFilter);
-      }
+      // if (ouFilter) {
+      //   users = users.filter((user) => user.ou === ouFilter);
+      // }
 
       // Apply status filter if provided
       if (statusFilter) {

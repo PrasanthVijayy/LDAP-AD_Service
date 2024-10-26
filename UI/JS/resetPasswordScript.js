@@ -62,14 +62,16 @@ function togglePasswordVisibility(fieldId, iconId) {
 }
 
 // Add event listeners for password visibility toggles
+// Toggle password visibility for New Password
 document
-  .getElementById("toggleNewPasswordIcon")
+  .getElementById("toggleNewPassword")
   .addEventListener("click", function () {
     togglePasswordVisibility("newPassword", "toggleNewPasswordIcon");
   });
 
+// Toggle password visibility for Confirm Password
 document
-  .getElementById("toggleConfirmPasswordIcon")
+  .getElementById("toggleConfirmPassword")
   .addEventListener("click", function () {
     togglePasswordVisibility("confirmPassword", "toggleConfirmPasswordIcon");
   });

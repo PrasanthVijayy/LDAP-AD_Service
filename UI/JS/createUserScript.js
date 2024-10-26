@@ -95,7 +95,7 @@ $(document).ready(function () {
 
     // Validate Email
     const email = $("#mail").val();
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Basic email validation
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/; // Basic email validation
     if (!emailPattern.test(email)) {
       displayError("mail", "Invalid email address.");
       isValid = false;

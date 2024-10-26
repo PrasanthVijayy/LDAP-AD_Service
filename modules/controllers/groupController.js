@@ -148,12 +148,13 @@ class GroupController {
   deleteFromGroup = async (req, res, next) => {
     try {
       console.log("Controller: deleteFromGroup - Started");
-      const { groupName, member, OU } = req.body;
+      const { groupName, member, groupOU, memberOU } = req.body;
 
       let missingFields = [];
       if (!groupName) missingFields.push("groupName");
       if (!member) missingFields.push("member");
-      if (!OU) missingFields.push("OU");
+      if (!groupOU) missingFields.push("groupOU");
+      if (!memberOU) missingFields.push("memberOU");
 
       if (missingFields.length > 0) {
         return next(
@@ -161,11 +162,14 @@ class GroupController {
         );
       }
 
-      // Checks the provided OU is valid
-      await this.organizationService.listOrganizaitons(`ou=${OU}`);
+      // Checks the provided groupOU is valid
+      await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
+
+      // Checks the provided memberOU is valid
+      await this.organizationService.listOrganizaitons(`ou=${memberOU}`);
 
       //Checking if group exists
-      const baseDN = `ou=${OU},${process.env.LDAP_BASE_DN}`;
+      const baseDN = `ou=${groupOU},${process.env.LDAP_BASE_DN}`;
       const groupExists = await search(baseDN, `(cn=${groupName})`);
       console.log("groupdetails", groupExists);
       if (groupExists.length === 0) {
@@ -179,7 +183,7 @@ class GroupController {
       }
 
       //Checking if user exists
-      const userDN = `ou=users,${process.env.LDAP_BASE_DN}`;
+      const userDN = `ou=${memberOU},${process.env.LDAP_BASE_DN}`;
       const userExists = await search(userDN, `cn=${member}`);
       console.log("userdetails", userExists);
       if (userExists.length == 0) {
@@ -188,8 +192,9 @@ class GroupController {
 
       const group = await this.groupService.deleteFromGroup(
         groupName,
+        groupOU,
         member,
-        OU
+        memberOU
       );
       console.log("Controller: deleteFromGroup - Completed");
       res.status(200).json(group);
@@ -259,6 +264,11 @@ class GroupController {
       if (groupOUValue) {
         console.warn("Checking OU for admin group");
         await this.organizationService.listOrganizaitons(`ou=${groupOUValue}`);
+      }
+
+      if (memberOUValue) {
+        console.warn("Checking OU for admin group");
+        await this.organizationService.listOrganizaitons(`ou=${memberOUValue}`);
       }
 
       //Checking if group exists
@@ -333,8 +343,10 @@ class GroupController {
         throw new NotFoundError(`Group ${groupName} is not a Admin group`);
       }
 
+      // Checks the memeberOU is valid
+      await this.organizationService.listOrganizaitons(`ou=${memberOUValue}`);
       //Checking if user exists
-      const userDN = `ou=users,${process.env.LDAP_BASE_DN}`;
+      const userDN = `ou=${memberOUValue},${process.env.LDAP_BASE_DN}`;
       const userExists = await search(userDN, `cn=${member}`);
       console.log("userdetails", userExists);
       if (userExists.length === 0) {
