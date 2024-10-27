@@ -59,18 +59,31 @@
           </div>
 
           <form id="editUserForm">
-            <div class="form-group">
-              <label for="username">Username</label>
-              <input
-                type="text"
-                class="form-control"
-                id="username"
-                required
-                readonly
-              />
-              <div class="invalid-feedback"></div>
-              <!-- Error message here -->
+            <div class="form-row">
+              <div class="form-group col-md-8">
+                <label for="username">Username</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="username"
+                  required
+                  readonly
+                />
+              </div>
+              <div class="form-group col-md-4">
+                <label for="userOU">OU</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="userOU"
+                  required
+                  readonly
+                />
+              </div>
             </div>
+            <div class="invalid-feedback"></div>
+            <!-- Error message here -->
+
             <div class="form-group">
               <label for="telephoneNumber">Phone Number</label>
               <input type="text" class="form-control" id="telephoneNumber" />

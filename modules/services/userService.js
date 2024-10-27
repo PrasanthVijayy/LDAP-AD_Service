@@ -240,11 +240,11 @@ class UserService {
     }
   }
 
-  async updateUser(username, attributes) {
+  async updateUser(username, userOU, attributes) {
     try {
       console.log("Service: updateUser - Started");
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
+      const userDN = `cn=${username},ou=${userOU},${process.env.LDAP_BASE_DN}`;
 
       let changes = [];
 
@@ -294,12 +294,12 @@ class UserService {
     }
   }
 
-  async updateContactDetails(username, attributes) {
+  async updateContactDetails(username, userOU, attributes) {
     try {
       console.log("Service: updateContactDetails - Started");
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
 
-      const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
+      const userDN = `cn=${username},ou=${userOU},${process.env.LDAP_BASE_DN}`;
 
       let changes = [];
 
