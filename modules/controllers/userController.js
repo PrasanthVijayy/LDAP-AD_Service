@@ -224,10 +224,11 @@ class UserController {
   updateUser = async (req, res, next) => {
     try {
       console.log("Controller: updateUser - Started");
-      const { username, attributes } = req.body;
+      const { username, userOU, attributes } = req.body;
 
       let missingFields = [];
       if (!username) missingFields.push("username");
+      if (!userOU) missingFields.push("userOU");
       if (!attributes) missingFields.push("attributes");
       if (missingFields.length > 0) {
         return next(
@@ -260,15 +261,15 @@ class UserController {
 
       // Validate and check if email is different
       if (attributes.mail) {
-        const validEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        if (!validEmail.test(attributes.mail)) {
-          throw new BadRequestError("Invalid email address");
-        }
+        // const validEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        // if (!validEmail.test(attributes.mail)) {
+        //   throw new BadRequestError("Invalid email address");
+        // }
 
-        // Check if email is the same as the current one
-        if (attributes.mail === currentUser.mail) {
-          throw new BadRequestError("Update with new mail ID");
-        }
+        // // Check if email is the same as the current one
+        // if (attributes.mail === currentUser.mail) {
+        //   throw new BadRequestError("Update with new mail ID");
+        // }
 
         // Check if email is already in use by another user
         const emailInUse = await search(
@@ -283,15 +284,15 @@ class UserController {
 
       // Validate and check if phone number is different
       if (attributes.telephoneNumber) {
-        const validPhoneNumber = /^\d{10}$/;
-        if (!validPhoneNumber.test(attributes.telephoneNumber)) {
-          throw new BadRequestError("Invalid phone number");
-        }
+        // const validPhoneNumber = /^\d{10}$/;
+        // if (!validPhoneNumber.test(attributes.telephoneNumber)) {
+        //   throw new BadRequestError("Invalid phone number");
+        // }
 
-        // Check if phone number is the same as the current one
-        if (attributes.telephoneNumber === currentUser.telephoneNumber) {
-          throw new BadRequestError("Update with new phone number");
-        }
+        // // Check if phone number is the same as the current one
+        // if (attributes.telephoneNumber === currentUser.telephoneNumber) {
+        //   throw new BadRequestError("Update with new phone number");
+        // }
 
         // Check if phone number is already in use by another user
         const phoneInUse = await search(
@@ -306,7 +307,7 @@ class UserController {
         }
       }
 
-      const data = await this.userService.updateUser(username, attributes);
+      const data = await this.userService.updateUser(username, userOU, attributes);
       console.log("Controller: updateUser - Completed");
       res.status(202).json(data);
     } catch (error) {
@@ -319,10 +320,11 @@ class UserController {
   updateContactDetails = async (req, res, next) => {
     try {
       console.log("Controller: changeEmailPhone - Started");
-      const { username, attributes } = req.body;
+      const { username, userOU, attributes } = req.body;
 
       let missingFields = [];
       if (!username) missingFields.push("username");
+      if (!userOU) missingFields.push("userOU");
       if (!attributes.mail || !attributes.telephoneNumber)
         missingFields.push("email or phone number");
 
@@ -354,15 +356,15 @@ class UserController {
 
       // Validate and check if email is different
       if (attributes.mail) {
-        const validEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        if (!validEmail.test(attributes.mail)) {
-          throw new BadRequestError("Invalid email address");
-        }
+        // const validEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        // if (!validEmail.test(attributes.mail)) {
+        //   throw new BadRequestError("Invalid email address");
+        // }
 
-        // Check if email is the same as the current one
-        if (attributes.mail === currentUser.mail) {
-          throw new BadRequestError("Update with new mail ID");
-        }
+        // // Check if email is the same as the current one
+        // if (attributes.mail === currentUser.mail) {
+        //   throw new BadRequestError("Update with new mail ID");
+        // }
 
         // Check if email is already in use by another user
         const emailInUse = await search(
@@ -377,15 +379,15 @@ class UserController {
 
       // Validate and check if phone number is different
       if (attributes.telephoneNumber) {
-        const validPhoneNumber = /^\d{10}$/;
-        if (!validPhoneNumber.test(attributes.telephoneNumber)) {
-          throw new BadRequestError("Invalid phone number");
-        }
+        // const validPhoneNumber = /^\d{10}$/;
+        // if (!validPhoneNumber.test(attributes.telephoneNumber)) {
+        //   throw new BadRequestError("Invalid phone number");
+        // }
 
-        // Check if phone number is the same as the current one
-        if (attributes.telephoneNumber === currentUser.telephoneNumber) {
-          throw new BadRequestError("Update with new phone number");
-        }
+        // // Check if phone number is the same as the current one
+        // if (attributes.telephoneNumber === currentUser.telephoneNumber) {
+        //   throw new BadRequestError("Update with new phone number");
+        // }
 
         // Check if phone number is already in use by another user
         const phoneInUse = await search(
@@ -402,6 +404,7 @@ class UserController {
 
       const details = await this.userService.updateContactDetails(
         username,
+        userOU,
         attributes
       );
       console.log("Controller: changeEmailPhone - Completed");

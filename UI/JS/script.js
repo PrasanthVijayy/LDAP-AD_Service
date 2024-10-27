@@ -164,11 +164,11 @@ async function searchUsers() {
   }
 }
 
-document.getElementById("searchInput").addEventListener("keypress", (event) => {
-  if (event.key === "Enter") {
-    searchUsers(); // Call searchUsers on Enter key press
-  }
-});
+// document.getElementById("searchInput").addEventListener("keypress", (event) => {
+//   if (event.key === "Enter") {
+//     searchUsers(); // Call searchUsers on Enter key press
+//   }
+// });
 
 // document.getElementById("searchInput").addEventListener("input", () => {
 //   searchUsers(); // Call searchUsers whenever the input value changes
@@ -395,11 +395,14 @@ window.onload = function () {
   }
 };
 
-// Function to redirect to edit user page with the username in the query
-function editUser(username) {
+// Function to initiate user edit and pass necessary parameters
+function editUser(index) {
+  const editUser = window.usersData[index];
+  const username = editUser.userName;
+  const userOU = extractOU(editUser.dn); // Extract OU correctly
   window.location.href = `editUser.html?username=${encodeURIComponent(
     username
-  )}`;
+  )}&ou=${encodeURIComponent(userOU)}`;
 }
 
 // Function to handle edit type change
@@ -411,7 +414,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const urlParams = new URLSearchParams(window.location.search);
     const username = urlParams.get("username");
     if (username) {
-      getElementById("username").value = username; // Populate the username
+      getElementById("username").value = editUser.userName; // Populate the username
     }
 
     handleEditTypeChange(); // Set the initial form state based on dropdown selection
@@ -423,90 +426,134 @@ function getElementById(id) {
   return document.getElementById(id);
 }
 
+// Populate form fields with user data
+function populateUserFields(userData) {
+  getElementById("username").value = userData.userName || "";
+  getElementById("userOU").value = userData.userOU || "";
+  getElementById("telephoneNumber").value = userData.phone || "";
+  getElementById("mail").value = userData.email || "";
+  getElementById("registeredAddress").value = userData.address || "";
+  getElementById("postalCode").value = userData.postalCode || "";
+}
+
+// Toggle fields based on selected edit type
+function handleEditTypeChange() {
+  const editType = getElementById("editType").value;
+  const generalFields = ["registeredAddress", "postalCode"];
+  const contactFields = ["telephoneNumber", "mail"];
+  const ouField = "userOU";
+
+  // Ensure OU and Username are always displayed
+  getElementById(ouField).closest(".form-group").style.display = "block";
+
+  // Display fields based on selected edit type
+  if (editType === "general") {
+    generalFields.concat(contactFields).forEach((fieldId) => {
+      getElementById(fieldId).closest(".form-group").style.display = "block";
+    });
+  } else if (editType === "contact") {
+    generalFields.forEach((fieldId) => {
+      getElementById(fieldId).closest(".form-group").style.display = "none";
+    });
+    contactFields.forEach((fieldId) => {
+      getElementById(fieldId).closest(".form-group").style.display = "block";
+    });
+  }
+}
+
+// On page load, fetch user details and set initial form state
+document.addEventListener("DOMContentLoaded", function () {
+  const urlParams = new URLSearchParams(window.location.search);
+  const username = urlParams.get("username");
+  const userOU = urlParams.get("ou");
+
+  // Ensure username and OU fields are filled from URL params
+  if (username && userOU) {
+    getElementById("username").value = username;
+    getElementById("userOU").value = userOU;
+    fetchUserDetails(username, userOU); // Fetch and populate user details
+  }
+
+  handleEditTypeChange();
+  getElementById("editType").addEventListener("change", handleEditTypeChange);
+});
+
+// Function to fetch user details and handle response data
+async function fetchUserDetails(username, userOU) {
+  try {
+    const apiUrl = `${baseApiUrl}/users/listUsers?filter=cn%3D${encodeURIComponent(
+      username
+    )}&filter=ou%3D${encodeURIComponent(userOU)}`;
+
+    const response = await fetch(apiUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.ok) {
+      const { users } = await response.json();
+      const userData = users[0];
+
+      if (userData) {
+        populateUserFields(userData);
+      } else {
+        console.error("User data is empty or undefined");
+      }
+    } else {
+      console.error("Failed to fetch user data.");
+    }
+  } catch (error) {
+    console.error("Error fetching user details:", error);
+  }
+}
+
 // Validation function for the edit form
 function validateForm() {
   let isValid = true;
   const editType = getElementById("editType").value;
 
-  // Username validation: only alphanumeric characters & required field
+  const validateField = (input, regex, message) => {
+    if (input.value.trim() && !regex.test(input.value)) {
+      setInvalid(input, message);
+      isValid = false;
+    } else {
+      setValid(input);
+    }
+  };
+
   const username = getElementById("username");
-  const usernameRegex = /^[a-zA-Z0-9]+$/;
-  if (!username.value.trim()) {
-    setInvalid(username, "Username is required.");
-    isValid = false;
-  } else if (!usernameRegex.test(username.value)) {
-    setInvalid(
-      username,
-      "Username should contain only alphanumeric characters."
+  validateField(
+    username,
+    /^[a-zA-Z0-9]+$/,
+    "Username should contain only alphanumeric characters."
+  );
+
+  if (editType === "general") {
+    const registeredAddress = getElementById("registeredAddress");
+    const postalCode = getElementById("postalCode");
+    validateField(registeredAddress, /.+/, "Address is required.");
+    validateField(
+      postalCode,
+      /^[0-9]{6}$/,
+      "Postal code must be exactly 6 digits."
     );
-    isValid = false;
-  } else {
-    setValid(username);
   }
 
-  // Phone validation: maximum 10 digits
-  const telephoneNumber = getElementById("telephoneNumber");
-  const phoneRegex = /^[0-9]{10}$/;
-  if (telephoneNumber.value.trim()) {
-    // Only validate if the field is filled
-    if (!phoneRegex.test(telephoneNumber.value)) {
-      setInvalid(telephoneNumber, "Phone number must be exactly 10 digits.");
-      isValid = false;
-    } else {
-      setValid(telephoneNumber);
-    }
-  } else if (editType === "contact") {
-    // If in contact mode, phone is required
-    setInvalid(telephoneNumber, "Phone number is required.");
-    isValid = false;
-  } else {
-    // If empty and not required (in general mode), leave it unmarked
-    resetValidation(telephoneNumber);
-  }
-
-  // Email validation: only if field has a value.
-  const mail = getElementById("mail");
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (mail.value.trim()) {
-    // Only validate if the field is filled
-    if (!emailRegex.test(mail.value)) {
-      setInvalid(mail, "Please enter a valid email address.");
-      isValid = false;
-    } else {
-      setValid(mail);
-    }
-  } else if (editType === "contact") {
-    // If in contact mode, email is required
-    setInvalid(mail, "Email is required.");
-    isValid = false;
-  } else {
-    // If empty and not required (in general mode), leave it unmarked
-    resetValidation(mail);
-  }
-
-  // Postal Code validation: only if field has a value
-  const postalCode = getElementById("postalCode");
-  const postalCodeRegex = /^[0-9]{6}$/;
-  if (postalCode.value.trim()) {
-    // Only validate if the field is filled
-    if (!postalCodeRegex.test(postalCode.value)) {
-      setInvalid(postalCode, "Postal code must be exactly 6 digits.");
-      isValid = false;
-    } else {
-      setValid(postalCode);
-    }
-  } else {
-    // If empty, leave it unmarked
-    resetValidation(postalCode);
-  }
-
-  // Registered address validation: only if field has a value
-  const registeredAddress = getElementById("registeredAddress");
-  if (registeredAddress.value.trim()) {
-    setValid(registeredAddress);
-  } else {
-    // If empty, leave it unmarked
-    resetValidation(registeredAddress);
+  if (editType === "contact" || editType === "general") {
+    const telephoneNumber = getElementById("telephoneNumber");
+    const mail = getElementById("mail");
+    validateField(
+      telephoneNumber,
+      /^[0-9]{10}$/,
+      "Phone number must be exactly 10 digits."
+    );
+    validateField(
+      mail,
+      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+      "Please enter a valid email address."
+    );
   }
 
   return isValid;
@@ -516,7 +563,7 @@ function validateForm() {
 function setValid(input) {
   input.classList.remove("is-invalid");
   input.classList.add("is-valid");
-  input.nextElementSibling.textContent = ""; // Clear error message
+  // input.nextElementSibling.textContent = ""; // Clear error message
 }
 
 // Set the input field as invalid with Bootstrap styling and show error message
@@ -535,20 +582,21 @@ function resetValidation(input) {
 // Function to handle the toggle for showing/hiding fields based on edit type
 function handleEditTypeChange() {
   const editType = getElementById("editType").value;
-
-  // Get all form fields
-  const generalFields = ["registeredAddress", "postalCode"];
+  const generalFields = ["registeredAddress", "postalCode", "userOU"];
   const contactFields = ["telephoneNumber", "mail"];
 
   if (editType === "general") {
-    // Show all fields
-    generalFields.forEach((fieldId) => {
+    // Show all fields for general editing, including userOU
+    generalFields.concat(contactFields).forEach((fieldId) => {
       getElementById(fieldId).closest(".form-group").style.display = "block";
     });
-  } else {
-    // Hide general fields, show only contact fields
+  } else if (editType === "contact") {
+    // Only show contact fields for contact edit, hide userOU and general fields
     generalFields.forEach((fieldId) => {
       getElementById(fieldId).closest(".form-group").style.display = "none";
+    });
+    contactFields.forEach((fieldId) => {
+      getElementById(fieldId).closest(".form-group").style.display = "block";
     });
   }
 }
@@ -572,6 +620,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Get form data
       const username = getElementById("username").value;
+      const userOU = getElementById("userOU").value;
       const telephoneNumber = getElementById("telephoneNumber").value;
       const mail = getElementById("mail").value;
       const registeredAddress = getElementById("registeredAddress").value;
@@ -581,6 +630,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // Collect only changed or non-empty fields
       const data = {
         username: username,
+        userOU: userOU,
         attributes: {},
       };
 
@@ -594,8 +644,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const apiUrl =
         editType === "general"
-          ? `${baseApiUrl}/users/updateUser` // API to update user details
-          : `${baseApiUrl}/users/updateContactDetails`; // API to update contact details only
+          ? `${baseApiUrl}/users/updateUser`
+          : `${baseApiUrl}/users/updateContactDetails`;
 
       try {
         const response = await fetch(apiUrl, {
@@ -609,7 +659,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const result = await response.json();
         if (response.ok) {
           alert("User details updated successfully.");
-          window.location.href = "listUsers.html"; // Redirect to listUsers.html after success of updation
+          window.location.href = "listUsers.html";
         } else {
           handleApiErrors(result);
         }
@@ -620,12 +670,39 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Handle API error messages and display them in the form
       function handleApiErrors(errors) {
+        // Check for LDAP the phone number is already in use by another user
+        if (
+          errors.message === "Phone number is already in use by another user"
+        ) {
+          setInvalid(
+            getElementById("telephoneNumber"),
+            "Phone number is already in use"
+          );
+        }
+        // Check for LDAP the mail is already in use by another user
+        if (errors.message === "Mail is already in use by another user") {
+          setInvalid(getElementById("mail"), "Mail is already in use");
+        }
+
         if (errors.telephoneNumber) {
-          setInvalid(getElementById("telephoneNumber"), errors.telephoneNumber);
+          const telephoneError = errors.telephoneNumber;
+          if (telephoneError.includes("already in use by another user")) {
+            setInvalid(
+              getElementById("telephoneNumber"),
+              "number already in use"
+            );
+          } else {
+            setInvalid(getElementById("telephoneNumber"), telephoneError);
+          }
         }
 
         if (errors.mail) {
-          setInvalid(getElementById("mail"), errors.mail);
+          const mailError = errors.mail;
+          if (mailError.includes("already in use by another user")) {
+            setInvalid(getElementById("mail"), "email already in use");
+          } else {
+            setInvalid(getElementById("mail"), mailError);
+          }
         }
 
         if (errors.registeredAddress) {
@@ -643,7 +720,6 @@ document.addEventListener("DOMContentLoaded", function () {
           setInvalid(getElementById("username"), errors.username);
         }
       }
-
       // Helper function to reset the form and clear validation styles
       function resetForm() {
         document.getElementById("editUserForm").reset();
@@ -653,3 +729,4 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 });
+
