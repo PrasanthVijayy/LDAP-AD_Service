@@ -441,10 +441,12 @@ function handleEditTypeChange() {
   const editType = getElementById("editType").value;
   const generalFields = ["registeredAddress", "postalCode"];
   const contactFields = ["telephoneNumber", "mail"];
-  const ouField = "userOU";
+  const alwaysVisibleFields = ["userOU", "username"]; // Fields that should always be displayed
 
-  // Ensure OU and Username are always displayed
-  getElementById(ouField).closest(".form-group").style.display = "block";
+  // Ensure always-visible fields are displayed
+  alwaysVisibleFields.forEach((fieldId) => {
+    getElementById(fieldId).closest(".form-group").style.display = "block";
+  });
 
   // Display fields based on selected edit type
   if (editType === "general") {
@@ -583,7 +585,7 @@ function resetValidation(input) {
 function handleEditTypeChange() {
   const editType = getElementById("editType").value;
   const generalFields = ["registeredAddress", "postalCode", "userOU"];
-  const contactFields = ["telephoneNumber", "mail"];
+  const contactFields = ["telephoneNumber", "mail", "userOU"];
 
   if (editType === "general") {
     // Show all fields for general editing, including userOU
