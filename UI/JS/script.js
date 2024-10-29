@@ -164,11 +164,11 @@ async function searchUsers() {
   }
 }
 
-// document.getElementById("searchInput").addEventListener("keypress", (event) => {
-//   if (event.key === "Enter") {
-//     searchUsers(); // Call searchUsers on Enter key press
-//   }
-// });
+document.getElementById("searchInput").addEventListener("keypress", (event) => {
+  if (event.key === "Enter") {
+    searchUsers(); // Call searchUsers on Enter key press
+  }
+});
 
 // document.getElementById("searchInput").addEventListener("input", () => {
 //   searchUsers(); // Call searchUsers whenever the input value changes
