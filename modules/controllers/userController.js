@@ -7,6 +7,7 @@ import {
 import { search } from "../../utils/ldapUtils.js";
 import OrganizationService from "../services/orgainzationService.js";
 import GroupService from "../services/groupService.js";
+import { createSession } from "../../middleware/sessionMiddleware.js";
 class UserController {
   constructor() {
     this.userService = new UserService();
@@ -307,7 +308,11 @@ class UserController {
         }
       }
 
-      const data = await this.userService.updateUser(username, userOU, attributes);
+      const data = await this.userService.updateUser(
+        username,
+        userOU,
+        attributes
+      );
       console.log("Controller: updateUser - Completed");
       res.status(202).json(data);
     } catch (error) {
@@ -678,7 +683,7 @@ class UserController {
 
       // Check if user exists
       const userExists = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
+        `ou=${OU},${process.env.LDAP_BASE_DN}`,
         `(cn=${username})`
       );
 
@@ -698,7 +703,6 @@ class UserController {
         // Extract OU from user's DN
         const userDN = userExists[0].dn; // Get the user's distinguished name
 
-        // Get the OU part and extract just the value (e.g., "users")
         const ouMatch = userDN.match(/ou=([^,]+)/);
         fetchedOU = ouMatch ? ouMatch[1] : null; // Extract the OU value, or set it to null if not found
       } else {
@@ -720,11 +724,21 @@ class UserController {
         OU // Pass the OU only if provided
       );
 
+      // Create a session for the user
+      const sessionId = createSession(username, userType, OU || fetchedOU);
+      res.cookie("sessionId", sessionId, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "Strict",
+        maxAge: 10 * 60 * 1000, // Cookie expire in 10 minute
+      }); // Set the cookie
+
       console.log("Controller: login - Completed");
 
       // Send a clearer response with the required data
       res.status(202).json({
         message: message.message, // Assuming message is an object with a message property
+        sessionId: sessionId,
         username: username,
         OU: fetchedOU || OU, // Include the fetched OU or the provided OU
       });

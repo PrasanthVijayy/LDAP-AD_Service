@@ -7,12 +7,14 @@ import morgan from "morgan";
 import helmet from "helmet";
 import hpp from "hpp";
 import compression from "compression";
+import cookieParser from "cookie-parser";
 
 /* Import routes */
 import userRoutes from "./modules/routes/userRoutes.js";
 import groupRoutes from "./modules/routes/groupRoutes.js";
 import organizationRoutes from "./modules/routes/organizationRoutes.js";
 import domainRoutes from "./modules/routes/domainRoutes.js";
+import sessionRoute from "./modules/routes/sessionRoute.js";
 import errorHandling from "./middleware/errorMiddleware.js";
 import { connectToLDAP } from "./config/ldapconfig.js";
 
@@ -30,12 +32,14 @@ app.use(helmet()); //Helmet security
 app.disable("x-powered-by"); // Reduce Fingerprinting
 app.use(hpp()); // HTTP Parameter pollution
 app.use(compression()); // Enable compression for all API responses
+app.use(cookieParser()); // Cookie parser middleware
 
 /* ROUTES */
 userRoutes(app);
 groupRoutes(app);
 organizationRoutes(app);
 domainRoutes(app);
+sessionRoute(app);
 
 /* ERROR HANDLING */
 app.use(errorHandling);
