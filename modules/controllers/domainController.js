@@ -1,3 +1,5 @@
+"use strict"; // Using strict mode
+
 import DomainService from "../services/domainService.js";
 
 class DomainController {

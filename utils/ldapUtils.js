@@ -1,3 +1,5 @@
+"use strict"; // Using strict mode
+
 import ldap from "ldapjs";
 import dotenv from "dotenv";
 

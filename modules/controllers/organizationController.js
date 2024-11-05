@@ -1,3 +1,5 @@
+"use strict"; // Using strict mode
+
 import OrganizationService from "../services/orgainzationService.js";
 import { BadRequestError, ConflictError } from "../../utils/error.js";
 import { search } from "../../utils/ldapUtils.js";

@@ -1,3 +1,5 @@
+"use strict"; // Using strict mode
+
 import GroupService from "../services/groupService.js";
 import {
   BadRequestError,

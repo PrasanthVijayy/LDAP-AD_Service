@@ -1,3 +1,5 @@
+"use strict"; // Using strict mode
+
 // middlewares/errorMiddleware.js
 const errorMiddleware = (err, req, res, next) => {
   console.error(err.stack);
