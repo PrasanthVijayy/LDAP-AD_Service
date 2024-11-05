@@ -28,9 +28,6 @@ The LDAP Management API is a comprehensive backend solution designed to handle v
 4. **Domain Controller Management**
    - **List Domain Controllers**: Retrieve details of domain controllers.
 
-<!-- 5. **Multi-Factor Authentication (MFA)**
-   - **Verify MFA Offline**: Perform offline authentication for users. -->
-
 5. **Error Handling**
    - Custom error handling with meaningful HTTP responses for various types of errors.
 

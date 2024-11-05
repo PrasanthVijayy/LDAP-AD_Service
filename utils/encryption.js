@@ -1,3 +1,5 @@
+"use strict"; // Using strict mode
+
 import crypto from "crypto";
 
 function createSSHAHash(password) {

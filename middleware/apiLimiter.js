@@ -1,3 +1,5 @@
+"use strict"; // Using strict mode
+
 //API Rate Limiter to stop BRUTE FORCE ATTACKS.
 
 import rateLimit from "express-rate-limit";
