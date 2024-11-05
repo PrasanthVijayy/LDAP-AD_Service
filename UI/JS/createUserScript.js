@@ -10,6 +10,7 @@ $(document).ready(function () {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -140,6 +141,7 @@ $(document).ready(function () {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify(userData),
       });
 

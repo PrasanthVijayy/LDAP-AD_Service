@@ -31,6 +31,7 @@ getElementById("createOrganizationForm")?.addEventListener(
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -65,11 +66,13 @@ async function fetchOrganizations() {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
     });
 
     if (response.ok) {
       const result = await response.json();
       const organizations = result.organizations;
+      console.warn("result data", result);
       window.organizationsData = organizations;
       displayOrganizations(organizations);
     } else {

@@ -1,3 +1,5 @@
+"use strict"; // Using strict mode
+
 import UserService from "../services/userService.js";
 import {
   BadRequestError,
@@ -7,7 +9,6 @@ import {
 import { search } from "../../utils/ldapUtils.js";
 import OrganizationService from "../services/orgainzationService.js";
 import GroupService from "../services/groupService.js";
-import { createSession } from "../../middleware/sessionMiddleware.js";
 class UserController {
   constructor() {
     this.userService = new UserService();
@@ -725,20 +726,19 @@ class UserController {
       );
 
       // Create a session for the user
-      const sessionId = createSession(username, userType, OU || fetchedOU);
-      res.cookie("sessionId", sessionId, {
-        httpOnly: true,
-        secure: false,
-        sameSite: "Strict",
-        maxAge: 10 * 60 * 1000, // Cookie expire in 10 minute
-      }); // Set the cookie
 
+      req.session.user = {
+        username,
+        userType,
+        OU: OU || fetchedOU,
+      };
+      console.warn("Data passed to session:", req.session.user);
       console.log("Controller: login - Completed");
 
       // Send a clearer response with the required data
       res.status(202).json({
-        message: message.message, // Assuming message is an object with a message property
-        sessionId: sessionId,
+        message: message.message,
+        sessionId: req.session.id,
         username: username,
         OU: fetchedOU || OU, // Include the fetched OU or the provided OU
       });

@@ -1,45 +1,49 @@
-// sessionMiddleware.js
-import { v4 as uuidv4 } from "uuid";
-import { UnauthorizedError } from "../utils/error.js"; // Adjust the import path as necessary
+"use strict"; // Using strict mode
 
-const sessions = {};
+import { UnauthorizedError } from "../utils/error.js";
+
+// const sessions = {};
 
 // Function to create a new session
-export const createSession = (username, userType, OU) => {
-  const sessionId = uuidv4(); // Generate a new unique session ID
-  sessions[sessionId] = {
-    username,
-    userType,
-    OU,
-    expiry: Date.now() + 10 * 60 * 1000, // Set expiry time (10 minutes)
-  };
-  console.warn(`Session Created: ${sessionId}`);
-  const expiryDateTime = new Date(sessions[sessionId].expiry).toLocaleString();
-  console.warn(`Session Data: ${JSON.stringify({...sessions[sessionId], expiry: expiryDateTime})}`);
-  return sessionId; // Return the session ID
-};
+// export const createSession = (username, userType, OU) => {
+//   const sessionId = uuidv4(); // Generate a new unique session ID
+//   const expiryTime = Date.now() + 10 * 60 * 1000; // Set expiry time (10 minutes)
 
-// Middleware to manage sessions
+//   sessions[sessionId] = {
+//     username,
+//     userType,
+//     OU,
+//     expiry: expiryTime,
+//   };
+
+//   console.info(`Session Created: ${sessionId}`);
+//   console.info(
+//     `Session Data: ${JSON.stringify({
+//       ...sessions[sessionId],
+//       expiry: new Date(expiryTime).toLocaleString(),
+//     })}`
+//   );
+
+//   return sessionId;
+// };
+
+// Helper function to check if a session is expired
+// const isSessionExpired = (session) => Date.now() > session.expiry;
+
+// sessionMiddleware.js
 export const sessionMiddleware = (req, res, next) => {
-  try {
-    const sessionId = req.cookies.sessionId;
+  console.log("Session Middleware: Checking session...");
+  console.log("Session data:", req.session);
 
-    // Check if a session ID is present and valid
-    if (sessionId && sessions[sessionId]) {
-      const sessionData = sessions[sessionId];
-
-      // Check if the session is still valid (not expired)
-      if (Date.now() < sessionData.expiry) {
-        req.user = sessionData; // Attach user data to the request object for later use
-        return next(); // Proceed to the next middleware/route
-      }
-    }
-
-    // Throwing the error if the session is not valid
+  if (!req.session || !req.session.user) {
+    console.error("No active session or session user data found.");
     throw new UnauthorizedError(
-      "Session expired or invalid. Please log in again."
+      "Session expired or invalid. Please login again."
     );
-  } catch (error) {
-    next(error);
   }
+
+  // Attach session user data to `req.user`
+  req.user = req.session.user;
+  console.log("Session Middleware: User authenticated:", req.user);
+  next();
 };

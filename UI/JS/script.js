@@ -31,45 +31,40 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // Fetch users when the page loads (without needing to search first)
-  fetchUsers();
+  // fetchUsers();
 });
 
 // Login form submission handler
 async function handleLogin() {
   const username = document.getElementById("username").value;
   const password = document.getElementById("password").value;
-  const ouName = document.getElementById("ouSelect").value.trim(); // Get the selected/entered OU
+  const ouName = document.getElementById("ouSelect").value.trim();
   const userType = document.querySelector(
     'input[name="userType"]:checked'
   ).value;
 
   const apiUrl = `${baseApiUrl}/users/authenticate`;
-  const data = { username, password, userType, OU: ouName || undefined };
+  const data = { username, password, userType, OU: ouName };
 
   try {
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include", // This includes the session cookie
       body: JSON.stringify(data),
     });
-
-    const result = await response.json();
 
     if (response.ok) {
       // Reset the login form
       document.getElementById("loginForm").reset();
-
-      // Store userType and username in localStorage
+      const result = await response.json();
       localStorage.setItem("userType", userType);
       localStorage.setItem("username", username);
-
-      // Store the fetched OU value from the response, or the provided OU if it was valid
-      const ouValue = result.OU || ouName;
-      localStorage.setItem("ouName", ouValue); // Store the OU value in localStorage
+      localStorage.setItem("ouName", result.OU || ouName);
 
       // Redirect to the appropriate dashboard
       window.location.href =
-        userType === "admin" ? "adminDashboard.html" : "userDashboard.html"; // Redirect to dashboard page
+        userType === "admin" ? "adminDashboard.html" : "userDashboard.html";
     } else {
       alert(result.message || "Login failed. Please try again.");
     }
@@ -731,4 +726,3 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
 });
-

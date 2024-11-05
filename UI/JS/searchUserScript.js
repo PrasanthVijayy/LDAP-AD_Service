@@ -14,6 +14,7 @@ async function fetchOrganizationalUnits() {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
     });
 
     const result = await response.json();
@@ -66,6 +67,7 @@ async function searchUser() {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
     });
 
     const result = await response.json();
