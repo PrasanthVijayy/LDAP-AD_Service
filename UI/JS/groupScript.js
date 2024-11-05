@@ -14,6 +14,7 @@ async function fetchOrganizationalUnits() {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
     });
 
     const result = await response.json();
@@ -76,6 +77,8 @@ document
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
+
         body: JSON.stringify(groupPayload),
       });
 
@@ -100,6 +103,7 @@ async function fetchGroups() {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
     });
 
     if (response.ok) {
@@ -168,6 +172,7 @@ async function fetchFilteredGroups(groupType) {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
     });
 
     if (response.ok) {
@@ -207,6 +212,8 @@ async function lockGroupMembers(index) {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
+
       body: JSON.stringify(requestBody),
     });
 
@@ -251,6 +258,7 @@ async function viewGroupDetails(groupName, groupType, groupOU) {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
       }
     );
 
@@ -474,6 +482,8 @@ async function addMemberToGroup(
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
+
       body: JSON.stringify(payload),
     });
 
@@ -503,7 +513,6 @@ async function addMemberToGroup(
     alert("An unexpected error occurred while adding the member.");
   }
 }
-
 
 // Helper to reset validation styles for all fields
 function resetValidationFields() {
@@ -562,6 +571,7 @@ async function removeMemberFromGroup(groupName, groupType, groupOU, member) {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({
         groupName: groupName,
         groupOU: groupOU,

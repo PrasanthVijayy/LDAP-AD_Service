@@ -8,6 +8,8 @@ import helmet from "helmet";
 import hpp from "hpp";
 import compression from "compression";
 import cookieParser from "cookie-parser";
+import session from "express-session";
+import CryptoJS from "crypto-js";
 
 /* Import routes */
 import userRoutes from "./modules/routes/userRoutes.js";
@@ -21,8 +23,38 @@ import { connectToLDAP } from "./config/ldapconfig.js";
 dotenv.config();
 const app = express(); // Create express app
 
-/* MIDDLEWARES */
-app.use(cors()); // CORS middleware
+/* --------- CORS SETUP --------- */
+const corsOptions = {
+  origin: process.env.ALLOWED_ORIGIN,
+  methods: process.env.ALLOWED_METHODS,
+  allowedHeaders: process.env.ALLOWED_HEADERS,
+  credentials: true,
+};
+
+app.use(cors(corsOptions)); // Enabling CORS with specified options
+
+/* --------- SESSION SETUP --------- */
+
+const sessionSecret = CryptoJS.lib.WordArray.random(64).toString(
+  CryptoJS.enc.Hex
+);
+
+app.use(
+  session({
+    name: "sessionID",
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+      httpOnly: true,
+      secure: false,
+      sameSite: "Lax",
+      maxAge: 1 * 60 * 1000,
+    },
+  })
+);
+
+/* ---------- MIDDLEWARE SETUP ---------- */
 app.use(bodyParser.json()); // Body parser middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(
@@ -34,17 +66,17 @@ app.use(hpp()); // HTTP Parameter pollution
 app.use(compression()); // Enable compression for all API responses
 app.use(cookieParser()); // Cookie parser middleware
 
-/* ROUTES */
+/* ---------- ROUTES SETUP  ----------*/
 userRoutes(app);
 groupRoutes(app);
 organizationRoutes(app);
 domainRoutes(app);
 sessionRoute(app);
 
-/* ERROR HANDLING */
+/* ------------ ERROR HANDLING ------------ */
 app.use(errorHandling);
 
-// Waiting for LDAP connection before starting the server
+// Expecting LDAP to start before server starts
 connectToLDAP()
   .then(() => {
     const server = app.listen(process.env.PORT || 3001, () => {

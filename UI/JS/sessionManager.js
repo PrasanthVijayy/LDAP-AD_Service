@@ -1,55 +1,30 @@
-// sessionManager.js
-const baseApiUrl = "http://localhost:4001/LDAP/v1"; // Your base API URL
+"use strict"; // Using strict mode
 
-// Check if the user has a valid session on each page load
+const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
+
+// Validate session on each page load
 async function validateSession() {
   try {
-    console.warn("Validating session...");
-    const sessionId = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("sessionId="))
-      .split("=")[1];
-    if (!sessionId) {
-      redirectToLogin();
-      return;
-    }
-
-
     const response = await fetch(`${baseApiUrl}/session/check`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
-      credentials: "include", // This is crucial
+      credentials: "include",
     });
-
-    console.warn("response from session API", response);
 
     if (response.ok) {
       const data = await response.json();
+      console.log("Session data:", data);
       if (data.status === "success") {
-        // Redirect to the appropriate dashboard if on the login page
-        if (window.location.pathname.includes("/UI/index.html")) {
-          const userType = localStorage.getItem("userType");
-          redirectToDashboard(userType);
-        }
-      } else {
-        // Handle invalid or expired session
-        handleSessionExpiry(data.message);
+        const userType = data.user.userType;
+        redirectToDashboard(userType);
       }
     } else {
-      // Redirect to login if API responds with an error
-      handleSessionExpiry("Session expired or invalid - Session Manager.");
+      handleSessionExpiry("Session expired or invalid.");
     }
   } catch (error) {
     console.error("Error validating session:", error);
     redirectToLogin();
   }
-}
-
-// Function to handle session expiry
-function handleSessionExpiry(message) {
-  alert(message); // Show alert with the provided message
-  clearSession();
-  redirectToLogin();
 }
 
 // Redirect to login page
@@ -64,14 +39,11 @@ function redirectToDashboard(userType) {
   window.location.href = dashboard;
 }
 
-// Clear session data from storage
-function clearSession() {
-  localStorage.removeItem("sessionId");
-  localStorage.removeItem("userType");
-  localStorage.removeItem("username");
-  localStorage.removeItem("ouName");
+// Handle session expiry
+function handleSessionExpiry(message) {
+  alert(message);
+  redirectToLogin();
 }
 
-// Automatically validate session on page load
-console.warn("Session Manager loaded.");
+// Run session validation on page load
 document.addEventListener("DOMContentLoaded", validateSession);

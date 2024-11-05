@@ -14,6 +14,7 @@ async function fetchOrganizationalUnits() {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
     });
 
     const result = await response.json();
@@ -110,6 +111,7 @@ document
       const response = await fetch(`${baseApiUrl}/users/resetPwd`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(data),
       });
 
