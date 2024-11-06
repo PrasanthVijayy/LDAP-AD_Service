@@ -682,6 +682,9 @@ class UserController {
         throw new BadRequestError("User type should be either user or admin");
       }
 
+      // Checking the requested OU is valid
+      await this.organizationService.listOrganizaitons(`ou=${OU}`);
+
       // Check if user exists
       const userExists = await search(
         `ou=${OU},${process.env.LDAP_BASE_DN}`,

@@ -772,6 +772,9 @@ class UserService {
       return { message: "Login successful." };
     } catch (error) {
       console.log("Service: login - Error", error);
+      if (error.message.includes("Search operation failed: No Such Object")) {
+        throw new NotFoundError("User not found.");
+      }
       throw error;
     }
   }

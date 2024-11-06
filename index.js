@@ -23,6 +23,18 @@ import { connectToLDAP } from "./config/ldapconfig.js";
 dotenv.config();
 const app = express(); // Create express app
 
+/* ---------- MIDDLEWARE SETUP ---------- */
+app.use(bodyParser.json()); // Body parser middleware
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(
+  morgan(":method :url :status :res[content-length] - :response-time ms")
+); // Morgan middleware to log requests in mentioned format
+app.use(helmet()); //Helmet security
+app.disable("x-powered-by"); // Reduce Fingerprinting
+app.use(hpp()); // HTTP Parameter pollution
+app.use(compression()); // Enable compression for all API responses
+app.use(cookieParser()); // Cookie parser middleware
+
 /* --------- CORS SETUP --------- */
 const corsOptions = {
   origin: process.env.ALLOWED_ORIGIN,
@@ -42,30 +54,20 @@ const sessionSecret = CryptoJS.lib.WordArray.random(64).toString(
 app.use(
   session({
     name: "sessionID",
-    secret: sessionSecret,
+    secret: process.env.SESSION_SECRET || sessionSecret,
     resave: false,
     saveUninitialized: true,
     cookie: {
       httpOnly: true,
       secure: false,
       sameSite: "Lax",
-      maxAge: 1 * 60 * 1000,
+      path: "/",
+      maxAge: 10 * 60 * 1000, // 10 minutes
     },
   })
 );
 
-/* ---------- MIDDLEWARE SETUP ---------- */
-app.use(bodyParser.json()); // Body parser middleware
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(
-  morgan(":method :url :status :res[content-length] - :response-time ms")
-); // Morgan middleware to log requests in mentioned format
-app.use(helmet()); //Helmet security
-app.disable("x-powered-by"); // Reduce Fingerprinting
-app.use(hpp()); // HTTP Parameter pollution
-app.use(compression()); // Enable compression for all API responses
-app.use(cookieParser()); // Cookie parser middleware
-
+console.warn("Session Secret key:", JSON.stringify(process.env.SESSION_SECRET));
 /* ---------- ROUTES SETUP  ----------*/
 userRoutes(app);
 groupRoutes(app);
@@ -79,8 +81,9 @@ app.use(errorHandling);
 // Expecting LDAP to start before server starts
 connectToLDAP()
   .then(() => {
-    const server = app.listen(process.env.PORT || 3001, () => {
-      console.log("Listening on port " + server.address().port);
+    const PORT = process.env.PORT || 3001;
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server started and listening on http://localhost:${PORT}`);
     });
   })
   .catch((err) => {
