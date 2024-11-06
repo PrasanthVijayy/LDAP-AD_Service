@@ -44,7 +44,12 @@ async function handleLogin() {
   ).value;
 
   const apiUrl = `${baseApiUrl}/users/authenticate`;
-  const data = { username, password, userType, OU: ouName };
+  const data = {
+    username: username,
+    password: password,
+    userType: userType,
+    OU: ouName,
+  };
 
   try {
     const response = await fetch(apiUrl, {
@@ -53,11 +58,11 @@ async function handleLogin() {
       credentials: "include", // This includes the session cookie
       body: JSON.stringify(data),
     });
+    const result = await response.json();
 
     if (response.ok) {
       // Reset the login form
       document.getElementById("loginForm").reset();
-      const result = await response.json();
       localStorage.setItem("userType", userType);
       localStorage.setItem("username", username);
       localStorage.setItem("ouName", result.OU || ouName);

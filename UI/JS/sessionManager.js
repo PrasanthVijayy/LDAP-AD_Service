@@ -1,10 +1,13 @@
-"use strict"; // Using strict mode
+"use strict";
 
 const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
 
 // Validate session on each page load
 async function validateSession() {
+  console.log("Validating session...");
+
   try {
+    // Fetch the session check endpoint with credentials included
     const response = await fetch(`${baseApiUrl}/session/check`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
@@ -13,12 +16,16 @@ async function validateSession() {
 
     if (response.ok) {
       const data = await response.json();
-      console.log("Session data:", data);
-      if (data.status === "success") {
-        const userType = data.user.userType;
-        redirectToDashboard(userType);
+      console.log("Session check success:", data);
+
+      // Check if session is active and redirect to dashboard if valid
+      if (data.status === "success" && data.user) {
+        redirectToDashboard(data.user.userType);
+      } else {
+        handleSessionExpiry("Session expired or invalid.");
       }
     } else {
+      console.warn("Session check failed with status:", response.status);
       handleSessionExpiry("Session expired or invalid.");
     }
   } catch (error) {
@@ -27,13 +34,15 @@ async function validateSession() {
   }
 }
 
-// Redirect to login page
+// Redirect to the login page
 function redirectToLogin() {
+  console.log("Redirecting to login page...");
   window.location.href = "/UI/index.html";
 }
 
 // Redirect to dashboard based on userType
 function redirectToDashboard(userType) {
+  console.log(`Redirecting to ${userType} dashboard...`);
   const dashboard =
     userType === "admin" ? "adminDashboard.html" : "userDashboard.html";
   window.location.href = dashboard;
@@ -42,7 +51,16 @@ function redirectToDashboard(userType) {
 // Handle session expiry
 function handleSessionExpiry(message) {
   alert(message);
+  clearSession(); // Clear local storage data if needed
   redirectToLogin();
+}
+
+// Clear session data from storage (optional if you are using cookies only)
+function clearSession() {
+  localStorage.removeItem("sessionId");
+  localStorage.removeItem("userType");
+  localStorage.removeItem("username");
+  localStorage.removeItem("ouName");
 }
 
 // Run session validation on page load

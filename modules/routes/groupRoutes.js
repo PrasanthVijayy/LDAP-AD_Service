@@ -9,11 +9,6 @@ const groupRoutes = (app) => {
   const router = express.Router();
   app.use("/LDAP/v1/groups", router);
 
-    // SESSION CHECK ROUTE
-    router.get("/session/check", sessionMiddleware, (res) => {
-      res.status(200).json({ status: "success", message: "Session is active" });
-    });
-
   router.post("/createGroup", sessionMiddleware, groupController.createGroup); // Create group 
   router.get("/listGroups", sessionMiddleware, apiLimiter(30), groupController.listGroups); // List groups - additional
   router.post("/addToGroup", sessionMiddleware, groupController.addToGroup); // Add user to group
