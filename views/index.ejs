@@ -17,7 +17,8 @@
     >
       <div class="card p-5 shadow-lg no-pointer">
         <h2 class="text-center mb-4">Login</h2>
-        <form id="loginForm">
+        <!-- Updated form to post to the /login route -->
+        <form id="loginForm" action="/LDAP/v1/users/authenticate" method="POST">
           <!-- Username input -->
           <div class="form-group">
             <label for="username" class="required">Username</label>
@@ -25,6 +26,7 @@
               type="text"
               class="form-control"
               id="username"
+              name="username"
               placeholder="Enter username"
               required
             />
@@ -38,6 +40,7 @@
                 type="password"
                 class="form-control"
                 id="password"
+                name="password"
                 placeholder="Enter password"
                 required
               />
@@ -49,7 +52,7 @@
                 >
                   <img
                     id="togglePasswordIcon"
-                    src="/UI/images/hidden.png"
+                    src="/images/hidden.png"
                     alt="Toggle Password"
                     style="width: 20px; height: 20px"
                   />
@@ -71,13 +74,12 @@
                 type="text"
                 class="form-control"
                 id="ouSelect"
+                name="ouSelect"
                 placeholder="Select or enter OU"
                 list="ouOptions"
                 required
               />
-              <datalist talist id="ouOptions">
-                <!-- Dynamic options will be added here from the API -->
-              </datalist>
+           
               <div class="input-group-append">
                 <span class="input-group-text">,dc=myLDAP,dc=com</span>
               </div>
