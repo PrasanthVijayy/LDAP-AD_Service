@@ -9,7 +9,6 @@ const userRoutes = (app) => {
   const router = express.Router();
   app.use("/LDAP/v1/users", router);
 
-  // Apply sessionMiddleware to routes that require authentication
   router.post("/addUser", sessionMiddleware, userController.addUser); // Add user
   router.get("/listUsers", sessionMiddleware,  apiLimiter(30), userController.listUsers); // List user
   router.put("/resetPwd", sessionMiddleware, userController.resetPassword); // Reset password

@@ -1,4 +1,4 @@
-"use strict"; // Using strict mode
+"use strict";
 import express from "express";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
@@ -10,6 +10,8 @@ import compression from "compression";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import CryptoJS from "crypto-js";
+import path from "path";
+import { fileURLToPath } from "url";
 
 /* Import routes */
 import userRoutes from "./modules/routes/userRoutes.js";
@@ -22,6 +24,10 @@ import { connectToLDAP } from "./config/ldapconfig.js";
 
 dotenv.config();
 const app = express(); // Create express app
+
+// Setup __dirname for ES module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /* ---------- MIDDLEWARE SETUP ---------- */
 app.use(bodyParser.json()); // Body parser middleware
@@ -38,9 +44,9 @@ app.use(cookieParser()); // Cookie parser middleware
 /* --------- CORS SETUP --------- */
 const corsOptions = {
   origin: process.env.ALLOWED_ORIGIN,
-  methods: process.env.ALLOWED_METHODS,
-  allowedHeaders: process.env.ALLOWED_HEADERS,
-  credentials: true,
+  methods: process.env.ALLOWED_METHODS.split(","),
+  allowedHeaders: process.env.ALLOWED_HEADERS.split(","),
+  credentials: process.env.ALLOWED_CREDENTIALS === "true",
 };
 
 app.use(cors(corsOptions)); // Enabling CORS with specified options
@@ -67,7 +73,18 @@ app.use(
   })
 );
 
-console.warn("Session Secret key:", JSON.stringify(process.env.SESSION_SECRET));
+/* --------- EJS ENGINE SETUP --------- */
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+
+app.get('/', (req, res) => {
+  res.render('index');
+});
+
+
+/* --------- STATIC FILES --------- */
+app.use(express.static(path.join(__dirname, "UI")));
+
 /* ---------- ROUTES SETUP  ----------*/
 userRoutes(app);
 groupRoutes(app);
