@@ -7,10 +7,10 @@ function togglePasswordVisibility() {
 
   if (passwordField.type === "password") {
     passwordField.type = "text";
-    toggleIcon.src = "/UI/images/eye.png"; // Change to the icon for "visible"
+    toggleIcon.src = "/images/eye.png"; // Change to the icon for "visible"
   } else {
     passwordField.type = "password";
-    toggleIcon.src = "/UI/images/hidden.png"; // Change to the icon for "hidden"
+    toggleIcon.src = "/images/hidden.png"; // Change to the icon for "hidden"
   }
 }
 
@@ -69,7 +69,7 @@ async function handleLogin() {
 
       // Redirect to the appropriate dashboard
       window.location.href =
-        userType === "admin" ? "adminDashboard.html" : "userDashboard.html";
+        userType === "admin" ? "/adminDashboard" : "/userDashboard";
     } else {
       alert(result.message || "Login failed. Please try again.");
     }
@@ -195,37 +195,37 @@ function displayUsers(users) {
     if (user.status === "deleted") {
       lockUnlockButtons = `
         <button class="btn btn-link" disabled title="User is deleted and cannot be locked/unlocked">
-          <img src="/UI/images/unlockUser.png" alt="Unlock" style="width:24px;" />
+          <img src="/images/unlockUser.png" alt="Unlock" class = "navigation-icon" />
         </button>
         <button class="btn btn-link" disabled title="User is deleted and cannot be locked/unlocked">
-          <img src="/UI/images/lockUser.png" alt="Lock" style="width:24px;" />
+          <img src="/images/lockUser.png" alt="Lock" class = "navigation-icon" />
         </button>
         <button class="btn btn-link" disabled title="Deleted user cannot edit">
-          <img src="/UI/images/editUser.png" alt="Edit" style="width:24px;" />
+          <img src="/images/editUser.png" alt="Edit" class = "navigation-icon" />
         </button>
       `;
     } else if (user.status === "locked") {
       lockUnlockButtons = `
         <button class="btn btn-link" onclick="toggleUserLock('${index}', 'unlock')" title="Unlock User">
-          <img src="/UI/images/unlockUser.png" alt="Unlock" style="width:24px;" />
+          <img src="/images/unlockUser.png" alt="Unlock" class = "navigation-icon" />
         </button>
         <button class="btn btn-link" disabled title="User is locked and cannot be locked again">
-          <img src="/UI/images/lockUser.png" alt="Lock" style="width:24px;" />
+          <img src="/images/lockUser.png" alt="Lock" class = "navigation-icon" />
         </button>
         <button class="btn btn-link" onclick="editUser('${index}')" title="Edit User">
-          <img src="/UI/images/editUser.png" alt="Edit" style="width:24px;" />
+          <img src="/images/editUser.png" alt="Edit" class = "navigation-icon" />
         </button>
       `;
     } else {
       lockUnlockButtons = `
         <button class="btn btn-link" disabled title="User is active and cannot be unlocked">
-          <img src="/UI/images/unlockUser.png" alt="Unlock" style="width:24px;" />
+          <img src="/images/unlockUser.png" alt="Unlock" class = "navigation-icon" />
         </button>
         <button class="btn btn-link" onclick="toggleUserLock('${index}', 'lock')" title="Lock User">
-          <img src="/UI/images/lockUser.png" alt="Lock" style="width:24px;" />
+          <img src="/images/lockUser.png" alt="Lock" class = "navigation-icon" />
         </button>
         <button class="btn btn-link" onclick="editUser('${index}')" title="Edit User">
-          <img src="/UI/images/editUser.png" alt="Edit" style="width:24px;" />
+          <img src="/images/editUser.png" alt="Edit" class = "navigation-icon" />
         </button>
       `;
     }
@@ -240,10 +240,10 @@ function displayUsers(users) {
       <td>${user.status || "N/A"}</td>
       <td>
         <button class="btn btn-link" onclick="showUserDetails(${index})" title="View Details">
-          <img src="/UI/images/user.png" alt="Profile" style="width:24px;" />
+          <img src="/images/user.png" alt="Profile" class = "navigation-icon" />
         </button>
         <button class="btn btn-link" onclick="deleteUser(${index})" title="Delete User">
-          <img src="/UI/images/deleteUser.png" alt="Delete" style="width:24px;" />
+          <img src="/images/deleteUser.png" alt="Delete" class = "navigation-icon" />
         </button>
         ${lockUnlockButtons}
       </td>

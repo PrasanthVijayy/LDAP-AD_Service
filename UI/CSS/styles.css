@@ -150,3 +150,18 @@ body {
 .modal {
   z-index: 1050 !important;
 }
+
+.toggle-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.navigation-icon {
+  width: 24px;
+  height: auto;
+}
+
+.group-icons {
+  width: 32px;
+  height: auto;
+}
