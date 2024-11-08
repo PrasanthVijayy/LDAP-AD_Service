@@ -4,24 +4,32 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>User Dashboard</title>
-    <link rel="icon" href="/UI//images/faviconLogo.png" type="image/x-icon" />
+    <link rel="icon" href="/images/faviconLogo.png" type="image/x-icon" />
     <link
       href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/UI/CSS/styles.css" />
-    <script src="/UI/JS/sessionManager.js" defer></script>
+    <link rel="stylesheet" href="/CSS/styles.css" />
+    <script src="/JS/sessionManager.js" defer></script>
   </head>
   <body>
     <!-- Navigation Buttons -->
     <div class="left-fixed-buttons">
       <div class="button-row">
         <button class="btn btn-secondary" id="backButton">
-          <img src="/UI/images/backButton.png" alt="Back" style="width: 24px;">
+          <img
+            src="/images/backButton.png"
+            alt="Back"
+            class="navigation-icon"
+          />
           Back
         </button>
         <button class="btn btn-primary" id="homeButton">
-          <img src="/UI/images/homeButton.png" alt="Home" style="width: 24px;">
+          <img
+            src="/images/homeButton.png"
+            alt="Home"
+            class="navigation-icon"
+          />
           Home
         </button>
       </div>
@@ -29,12 +37,16 @@
 
     <div class="right-fixed-buttons">
       <button class="btn btn-danger" id="signoutButton">
-        <img src="/UI/images/logoutButton.png" alt="Sign Out" style="width: 24px;">
+        <img
+          src="/images/logoutButton.png"
+          alt="Sign Out"
+          class="navigation-icon"
+        />
         Sign Out
       </button>
     </div>
 
-    <!--Content--> 
+    <!--Content-->
     <div class="container my-5">
       <h1 class="text-center mb-4">User Dashboard</h1>
       <div class="row justify-content-center">
@@ -42,10 +54,10 @@
         <div class="col-md-3 mb-4">
           <div
             class="card shadow-sm h-100"
-            onclick="window.location.href='/UI/Pages/chpwd.html'"
+            onclick="window.location.href='/Pages/chpwd.html'"
           >
             <img
-              src="/UI/images/resetPassword.png"
+              src="/images/resetPassword.png"
               class="card-img-top"
               alt="Change Password"
             />
@@ -59,10 +71,10 @@
         <div class="col-md-3 mb-4">
           <div
             class="card shadow-sm h-100"
-            onclick="window.location.href='/UI/Pages/userSearch.html'"
+            onclick="window.location.href='/Pages/userSearch'"
           >
             <img
-              src="/UI/images/searchUser.png"
+              src="/images/searchUser.png"
               class="card-img-top"
               alt="Search User"
             />
@@ -74,8 +86,8 @@
       </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="/UI/JS/headerButtons.js"></script>
+    <script src="/design/jquery.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/JS/headerButtons.js"></script>
   </body>
 </html>

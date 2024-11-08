@@ -142,12 +142,12 @@ function populateGroupsTable(groups) {
       <td>${group.groupType}</td>
       <td>${groupOU}</td>
         <button class="btn btn-link" onclick="lockGroupMembers(${index})" title="Lock Group">
-          <img src="/UI/images/lockUser.png" alt="Lock Group" style="width:32px;">
+          <img src="/images/lockUser.png" alt="Lock Group" class ="group-icons">
         </button>
         <button class="btn btn-link" onclick="viewGroupDetails('${
           group.groupName
         }', '${group.groupType}','${groupOU}')" title="View Members">
-          <img src="/UI/images/groupMembers.png" alt="View Group" style="width:35px;">
+          <img src="/images/groupMembers.png" alt="View Group" class ="group-icons">
         </button>
       </td>
     `;
@@ -284,7 +284,7 @@ function displayGroupMembersModal(groupName, groupType, groupOU, members) {
   const addMemberLogo = document.createElement("div");
   addMemberLogo.classList.add("text-right", "mb-2");
   addMemberLogo.innerHTML = `<button class="btn btn-link" onclick="openAddMemberInput('${groupName}','${groupType}','${groupOU}')">
-    <img src="/UI/images/addUser.png" alt="Add Member" style="width:35px;">
+    <img src="/images/addUser.png" alt="Add Member" style="width:35px;">
   </button>`;
   membersList.appendChild(addMemberLogo);
 
@@ -305,7 +305,7 @@ function displayGroupMembersModal(groupName, groupType, groupOU, members) {
 
       const deleteButton = document.createElement("button");
       deleteButton.classList.add("btn", "btn-link");
-      deleteButton.innerHTML = `<img src="/UI/images/removeUser.png" alt="Delete" style="width:24px;">`;
+      deleteButton.innerHTML = `<img src="/images/removeUser.png" alt="Delete" style="width:24px;">`;
       deleteButton.onclick = () =>
         removeMemberFromGroup(groupName, groupType, groupOU, member);
 

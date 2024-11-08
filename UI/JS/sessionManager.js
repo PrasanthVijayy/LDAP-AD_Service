@@ -37,7 +37,7 @@ async function validateSession() {
 // Redirect to the login page
 function redirectToLogin() {
   console.log("Redirecting to login page...");
-  window.location.href = "/UI/index.html";
+  window.location.href = "/";
 }
 
 // Redirect to dashboard based on userType

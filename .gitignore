@@ -9,3 +9,6 @@ entry.txt
 tasks.txt
 
 project-structure.txt
+
+design
+design (folder) -> folder which has access to UI design and response (bootstrap - CSS , JS and JQuery)

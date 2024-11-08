@@ -35,7 +35,36 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(
   morgan(":method :url :status :res[content-length] - :response-time ms")
 ); // Morgan middleware to log requests in mentioned format
-app.use(helmet()); //Helmet security
+
+//app.use(helmet()); //Helmet security
+app.use((req, res, next) => {
+  res.locals.nonce = CryptoJS.lib.WordArray.random(16).toString(
+    CryptoJS.enc.Hex
+  ); // Generates a random nonce
+  next();
+});
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "https://cdn.jsdelivr.net",
+          "https://cdnjs.cloudflare.com",
+        ],
+        styleSrc: [
+          "'self'",
+          "https://stackpath.bootstrapcdn.com",
+          (req, res) => `'nonce-${res.locals.nonce}'`,
+        ],
+        imgSrc: ["'self'", "data:"],
+      },
+    },
+  })
+);
+
 app.disable("x-powered-by"); // Reduce Fingerprinting
 app.use(hpp()); // HTTP Parameter pollution
 app.use(compression()); // Enable compression for all API responses
@@ -43,13 +72,18 @@ app.use(cookieParser()); // Cookie parser middleware
 
 /* --------- CORS SETUP --------- */
 const corsOptions = {
-  origin: process.env.ALLOWED_ORIGIN,
-  methods: process.env.ALLOWED_METHODS.split(","),
-  allowedHeaders: process.env.ALLOWED_HEADERS.split(","),
-  credentials: process.env.ALLOWED_CREDENTIALS === "true",
+  origin: "*", // Allow all origins (you can limit this to your IP if needed)
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "X-Requested-With"],
+  credentials: true,
 };
 
 app.use(cors(corsOptions)); // Enabling CORS with specified options
+
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
+  next();
+});
 
 /* --------- SESSION SETUP --------- */
 
@@ -77,15 +111,55 @@ app.use(
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-app.get('/', (req, res) => {
-  res.render('index');
+app.get("/", (req, res) => {
+  res.render("index");
 });
 
+/* ---------- UI RENDERING SETUP ---------- */
+
+app.get("/", (req, res) => {
+  res.render("index"); // Renders the index
+});
+
+app.get("/createUser", (req, res) => {
+  res.render("Pages/createUser"); // Renders the createUser
+});
+
+app.get("/listUsers", (req, res) => {
+  res.render("Pages/listUsers"); // Renders the listUsers
+});
+
+app.get("/listOrganizations", (req, res) => {
+  res.render("Pages/listOrganizations"); // Renders the listOrganizations
+});
+
+app.get("/createGroup", (req, res) => {
+  res.render("Pages/createGroup"); // Renders the createGroup
+});
+
+app.get("/resetPassword", (req, res) => {
+  res.render("Pages/resetPassword"); // Renders the resetPassword
+});
+
+app.get("/adminDashboard", (req, res) => {
+  res.render("adminDashboard"); // Renders the adminDashboard
+});
+
+app.get("/userDashboard", (req, res) => {
+  res.render("userDashboard"); // Renders the userDashboard
+});
+
+app.get("/chpwd", (req, res) => {
+  res.render("chpwd"); // Renders the changePassword
+});
 
 /* --------- STATIC FILES --------- */
-app.use(express.static(path.join(__dirname, "UI")));
+app.use(express.static(path.join(__dirname, "UI")), (req, res, next) => {
+  console.log("Request URL:", req.url); // Log the requested URL
+  next();
+});
 
-/* ---------- ROUTES SETUP  ----------*/
+/* ---------- API ROUTES SETUP  ----------*/
 userRoutes(app);
 groupRoutes(app);
 organizationRoutes(app);
@@ -99,7 +173,9 @@ app.use(errorHandling);
 connectToLDAP()
   .then(() => {
     const PORT = process.env.PORT || 3001;
-    app.listen(PORT, "0.0.0.0", () => {
+    const HOST = process.env.HOST || "localhost";
+    app.listen(PORT, HOST, () => {
+      console.log(`App is running at http://${HOST}:${PORT}`);
       console.log(`Server started and listening on http://localhost:${PORT}`);
     });
   })
