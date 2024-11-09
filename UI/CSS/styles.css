@@ -165,3 +165,16 @@ body {
   width: 32px;
   height: auto;
 }
+
+.bg-color {
+  background-color: white;
+}
+
+.resetPwd-layout {
+  max-width: 400px;
+  width: 100%;
+}
+
+.common-font{
+  size: 140px;
+}

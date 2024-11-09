@@ -118,12 +118,23 @@ function extractOU(dn) {
   return ouMatch ? ouMatch[1] : "N/A"; // Return the matched OU, or 'N/A' if not found
 }
 
+document.addEventListener("DOMContentLoaded", () => {
+  // Attach the click event handler to the button
+  document
+    .getElementById("searchButton")
+    .addEventListener("click", searchUsers);
+});
+
 // Search users based on the selected criteria
 async function searchUsers() {
   const searchInput = document.getElementById("searchInput").value.trim();
-  console.log("searchInput", searchInput);
   const searchCriteria = document.getElementById("searchCriteria").value; // Get the selected search criteria
   const statusFilter = document.getElementById("statusFilter").value; // Get status filter
+
+  if (!searchInput) {
+    alert("Please enter value to search.");
+    return; // Exit the function if no input is provided
+  }
 
   let filter = "";
 
@@ -182,7 +193,7 @@ function displayUsers(users) {
   tableBody.innerHTML = "";
 
   if (!users || users.length === 0) {
-    tableBody.innerHTML = `<tr><td colspan="6" class="text-center"><strong>No users found.</strong></td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="7" class="text-center"><strong>No users found.</strong></td></tr>`;
     return;
   }
 
@@ -190,47 +201,7 @@ function displayUsers(users) {
     const row = document.createElement("tr");
     const userOU = extractOU(user.dn);
 
-    // Lock/Unlock button logic
-    let lockUnlockButtons = "";
-    if (user.status === "deleted") {
-      lockUnlockButtons = `
-        <button class="btn btn-link" disabled title="User is deleted and cannot be locked/unlocked">
-          <img src="/images/unlockUser.png" alt="Unlock" class = "navigation-icon" />
-        </button>
-        <button class="btn btn-link" disabled title="User is deleted and cannot be locked/unlocked">
-          <img src="/images/lockUser.png" alt="Lock" class = "navigation-icon" />
-        </button>
-        <button class="btn btn-link" disabled title="Deleted user cannot edit">
-          <img src="/images/editUser.png" alt="Edit" class = "navigation-icon" />
-        </button>
-      `;
-    } else if (user.status === "locked") {
-      lockUnlockButtons = `
-        <button class="btn btn-link" onclick="toggleUserLock('${index}', 'unlock')" title="Unlock User">
-          <img src="/images/unlockUser.png" alt="Unlock" class = "navigation-icon" />
-        </button>
-        <button class="btn btn-link" disabled title="User is locked and cannot be locked again">
-          <img src="/images/lockUser.png" alt="Lock" class = "navigation-icon" />
-        </button>
-        <button class="btn btn-link" onclick="editUser('${index}')" title="Edit User">
-          <img src="/images/editUser.png" alt="Edit" class = "navigation-icon" />
-        </button>
-      `;
-    } else {
-      lockUnlockButtons = `
-        <button class="btn btn-link" disabled title="User is active and cannot be unlocked">
-          <img src="/images/unlockUser.png" alt="Unlock" class = "navigation-icon" />
-        </button>
-        <button class="btn btn-link" onclick="toggleUserLock('${index}', 'lock')" title="Lock User">
-          <img src="/images/lockUser.png" alt="Lock" class = "navigation-icon" />
-        </button>
-        <button class="btn btn-link" onclick="editUser('${index}')" title="Edit User">
-          <img src="/images/editUser.png" alt="Edit" class = "navigation-icon" />
-        </button>
-      `;
-    }
-
-    // Constructing the table row
+    // Constructing the table row with placeholders for buttons
     row.innerHTML = `
       <th scope="row">${index + 1}</th>
       <td>${user.userName || "N/A"}</td>
@@ -239,18 +210,81 @@ function displayUsers(users) {
       <td>${user.phone || "N/A"}</td>
       <td>${user.status || "N/A"}</td>
       <td>
-        <button class="btn btn-link" onclick="showUserDetails(${index})" title="View Details">
-          <img src="/images/user.png" alt="Profile" class = "navigation-icon" />
+        <button class="btn btn-link view-details-btn" title="View Details">
+          <img src="/images/user.png" alt="Profile" class="navigation-icon" />
         </button>
-        <button class="btn btn-link" onclick="deleteUser(${index})" title="Delete User">
-          <img src="/images/deleteUser.png" alt="Delete" class = "navigation-icon" />
+        <button class="btn btn-link delete-user-btn" title="Delete User">
+          <img src="/images/deleteUser.png" alt="Delete" class="navigation-icon" />
         </button>
-        ${lockUnlockButtons}
+        ${generateLockUnlockButtons(user, index)}
       </td>
     `;
 
+    // Append the row to the table body
     tableBody.appendChild(row);
+
+    // Attach event listeners to the dynamically created buttons
+    row
+      .querySelector(".view-details-btn")
+      .addEventListener("click", () => showUserDetails(index));
+    row
+      .querySelector(".delete-user-btn")
+      .addEventListener("click", () => deleteUser(index));
+
+    // For lock/unlock and edit buttons, add event listeners conditionally
+    const lockBtn = row.querySelector(".lock-user-btn");
+    const unlockBtn = row.querySelector(".unlock-user-btn");
+    const editBtn = row.querySelector(".edit-user-btn");
+
+    if (lockBtn)
+      lockBtn.addEventListener("click", () => toggleUserLock(index, "lock"));
+    if (unlockBtn)
+      unlockBtn.addEventListener("click", () =>
+        toggleUserLock(index, "unlock")
+      );
+    if (editBtn) editBtn.addEventListener("click", () => editUser(index));
   });
+}
+
+// Helper function to generate lock/unlock/edit buttons based on user status
+function generateLockUnlockButtons(user, index) {
+  if (user.status === "deleted") {
+    return `
+      <button class="btn btn-link" disabled title="User is deleted and cannot be locked/unlocked">
+        <img src="/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
+      </button>
+      <button class="btn btn-link" disabled title="User is deleted and cannot be locked/unlocked">
+        <img src="/images/lockUser.png" alt="Lock" class="navigation-icon" />
+      </button>
+      <button class="btn btn-link" disabled title="Deleted user cannot edit">
+        <img src="/images/editUser.png" alt="Edit" class="navigation-icon" />
+      </button>
+    `;
+  } else if (user.status === "locked") {
+    return `
+      <button class="btn btn-link unlock-user-btn" title="Unlock User">
+        <img src="/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
+      </button>
+      <button class="btn btn-link" disabled title="User is locked and cannot be locked again">
+        <img src="/images/lockUser.png" alt="Lock" class="navigation-icon" />
+      </button>
+      <button class="btn btn-link edit-user-btn" title="Edit User">
+        <img src="/images/editUser.png" alt="Edit" class="navigation-icon" />
+      </button>
+    `;
+  } else {
+    return `
+      <button class="btn btn-link" disabled title="User is active and cannot be unlocked">
+        <img src="/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
+      </button>
+      <button class="btn btn-link lock-user-btn" title="Lock User">
+        <img src="/images/lockUser.png" alt="Lock" class="navigation-icon" />
+      </button>
+      <button class="btn btn-link edit-user-btn" title="Edit User">
+        <img src="/images/editUser.png" alt="Edit" class="navigation-icon" />
+      </button>
+    `;
+  }
 }
 
 // Filter users by status
@@ -389,8 +423,8 @@ async function toggleUserLock(index, action) {
   }
 }
 window.onload = function () {
-  const currentPage = window.location.pathname.split("/").pop(); // Get the current page name
-  if (currentPage === "listUsers.html") {
+  const currentPage = window.location.pathname; // Get the current page name
+  if (currentPage === "/listUsers") {
     fetchUsers(); // Fetch and display users on page load
   }
 };
@@ -400,26 +434,10 @@ function editUser(index) {
   const editUser = window.usersData[index];
   const username = editUser.userName;
   const userOU = extractOU(editUser.dn); // Extract OU correctly
-  window.location.href = `editUser.html?username=${encodeURIComponent(
+  window.location.href = `/editUser?username=${encodeURIComponent(
     username
   )}&ou=${encodeURIComponent(userOU)}`;
 }
-
-// Function to handle edit type change
-document.addEventListener("DOMContentLoaded", function () {
-  const currentPage = window.location.pathname.split("/").pop(); // Get the current page name
-  if (currentPage === "listUsers.html") {
-    fetchUsers(); // Fetch and display users on page load
-  } else if (currentPage === "editUser.html") {
-    const urlParams = new URLSearchParams(window.location.search);
-    const username = urlParams.get("username");
-    if (username) {
-      getElementById("username").value = editUser.userName; // Populate the username
-    }
-
-    handleEditTypeChange(); // Set the initial form state based on dropdown selection
-  }
-});
 
 // Function to get element by ID
 function getElementById(id) {
@@ -581,27 +599,6 @@ function resetValidation(input) {
   input.nextElementSibling.textContent = ""; // Clear any previous error message
 }
 
-// Function to handle the toggle for showing/hiding fields based on edit type
-function handleEditTypeChange() {
-  const editType = getElementById("editType").value;
-  const generalFields = ["registeredAddress", "postalCode", "userOU"];
-  const contactFields = ["telephoneNumber", "mail", "userOU"];
-
-  if (editType === "general") {
-    // Show all fields for general editing, including userOU
-    generalFields.concat(contactFields).forEach((fieldId) => {
-      getElementById(fieldId).closest(".form-group").style.display = "block";
-    });
-  } else if (editType === "contact") {
-    // Only show contact fields for contact edit, hide userOU and general fields
-    generalFields.forEach((fieldId) => {
-      getElementById(fieldId).closest(".form-group").style.display = "none";
-    });
-    contactFields.forEach((fieldId) => {
-      getElementById(fieldId).closest(".form-group").style.display = "block";
-    });
-  }
-}
 
 document.addEventListener("DOMContentLoaded", function () {
   // Add event listener for the edit type toggle
@@ -661,7 +658,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const result = await response.json();
         if (response.ok) {
           alert("User details updated successfully.");
-          window.location.href = "listUsers.html";
+          window.location.href = "/listUsers";
         } else {
           handleApiErrors(result);
         }

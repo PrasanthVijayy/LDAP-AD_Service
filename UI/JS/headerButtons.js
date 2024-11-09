@@ -5,17 +5,23 @@ document.getElementById("signoutButton").addEventListener("click", function () {
   localStorage.removeItem("username");
   localStorage.removeItem("ouName");
 
-  window.location.href = "/UI/index.html"; // Redirect to the login page
+  window.location.href = "/"; // Redirect to the login page
 });
 
 // Handle Back button click
 document.getElementById("backButton").addEventListener("click", function () {
   const userType = localStorage.getItem("userType");
-  if (userType === "admin" || userType === "user") {
-    window.history.back(); // Go back to the previous page
+  const currentPage = window.location.pathname; // Get the current page URL path
+
+  if (currentPage === "/editUser") {
+    window.location.href = "/listUsers"; // Redirect to the list of users
+  } else if (userType === "admin") {
+    window.location.href = "/adminDashboard"; // Admin dashboard
+  } else if (userType === "user") {
+    window.location.href = "/userDashboard"; // User dashboard
   } else {
     alert("Already logged out. Please Login to continue");
-    window.location.href = "/UI/index.html"; // Login page
+    window.location.href = "/"; // Login page
   }
 });
 
@@ -23,22 +29,20 @@ document.getElementById("backButton").addEventListener("click", function () {
 document.getElementById("homeButton").addEventListener("click", function () {
   const userType = localStorage.getItem("userType");
   if (userType === "admin") {
-    window.location.href = "/UI/adminDashboard.html"; // Admin dashboard
+    window.location.href = "/adminDashboard"; // Admin dashboard
   } else if (userType === "user") {
-    window.location.href = "/UI/userDashboard.html"; // Regular user dashboard
+    window.location.href = "/userDashboard"; // Regular user dashboard
   } else {
     alert("Already logged out. Please Login to continue");
-    window.location.href = "/UI/index.html"; // Login page
+    window.location.href = "/"; // Login page
   }
 });
 
 // Hide Home and Back buttons on the dashboard page, since not required
 document.addEventListener("DOMContentLoaded", function () {
-  const currentPage = window.location.pathname.split("/").pop();
-  if (
-    currentPage === "userDashboard.html" ||
-    currentPage === "adminDashboard.html"
-  ) {
+  const currentPage = window.location.pathname;
+
+  if (currentPage === "/userDashboard" || currentPage === "/adminDashboard") {
     document.getElementById("homeButton").style.display = "none";
     document.getElementById("backButton").style.display = "none";
   }

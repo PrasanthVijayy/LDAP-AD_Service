@@ -141,6 +141,10 @@ app.get("/resetPassword", (req, res) => {
   res.render("Pages/resetPassword"); // Renders the resetPassword
 });
 
+app.get("/editUser", (req, res) => {
+  res.render("Pages/editUser"); // Renders the editUser
+});
+
 app.get("/adminDashboard", (req, res) => {
   res.render("adminDashboard"); // Renders the adminDashboard
 });
