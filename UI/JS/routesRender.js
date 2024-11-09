@@ -21,13 +21,4 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("resetPasswordCard").addEventListener("click", () => {
     window.location.href = "/resetPassword"; // Navigate to /resetPassword
   });
-
-  // Additional button actions (if necessary)
-  document.getElementById("backButton").addEventListener("click", () => {
-    window.history.back();
-  });
-
-  document.getElementById("homeButton").addEventListener("click", () => {
-    window.location.href = "/";
-  });
 });
