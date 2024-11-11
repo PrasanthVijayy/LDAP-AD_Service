@@ -603,23 +603,24 @@ class UserService {
       // Bind using the LDAP admin or a service account
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
 
-      let searchBase;
-      if (userOU) {
-        // If userOU is provided, use it in the search base
-        searchBase = `ou=${userOU},${process.env.LDAP_BASE_DN}`;
-      } else {
-        searchBase = `${process.env.LDAP_BASE_DN}`; // Broad search base
-      }
+      // Define the search base, including the OU if provided
+      const searchBase = userOU
+        ? `ou=${userOU},${process.env.LDAP_BASE_DN}`
+        : `${process.env.LDAP_BASE_DN}`;
 
-      const searchFilter = `(cn=${username})`;
+      // Updated search filter to check both `cn` and `objectClass=person`
+      const searchFilter = `(&(cn=${username})(objectClass=person))`;
 
-      // Search for the user in LDAP
+      // Perform the search in LDAP
       const userExists = await search(searchBase, searchFilter);
 
       if (userExists.length === 0) {
-        throw new NotFoundError(`User not found.`);
+        throw new NotFoundError("User not found.");
       }
+
       console.log("Service: searchUser - Completed");
+
+      // Return user details in the desired format
       return userExists.map((user) => ({
         uid: user.uid,
         firstName: user.cn,
@@ -629,11 +630,10 @@ class UserService {
         address: user.registeredAddress,
         postalCode: user.postalCode,
         phoneNumber: user.telephoneNumber,
-        // accountStatus: user.description,
       }));
     } catch (error) {
       if (error.message.includes("Search operation failed: No Such Object")) {
-        throw new NotFoundError(`User not found.`);
+        throw new NotFoundError("User not found.");
       } else {
         console.log("Service: searchUser - Error", error);
         throw error;

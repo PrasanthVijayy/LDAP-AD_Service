@@ -121,6 +121,14 @@ app.get("/", (req, res) => {
   res.render("index"); // Renders the index
 });
 
+app.get("/adminDashboard", (req, res) => {
+  res.render("adminDashboard"); // Renders the adminDashboard
+});
+
+app.get("/userDashboard", (req, res) => {
+  res.render("userDashboard"); // Renders the userDashboard
+});
+
 app.get("/createUser", (req, res) => {
   res.render("Pages/createUser"); // Renders the createUser
 });
@@ -145,16 +153,12 @@ app.get("/editUser", (req, res) => {
   res.render("Pages/editUser"); // Renders the editUser
 });
 
-app.get("/adminDashboard", (req, res) => {
-  res.render("adminDashboard"); // Renders the adminDashboard
+app.get("/changePassword", (req, res) => {
+  res.render("Pages/chpwd"); // Renders the changePassword
 });
 
-app.get("/userDashboard", (req, res) => {
-  res.render("userDashboard"); // Renders the userDashboard
-});
-
-app.get("/chpwd", (req, res) => {
-  res.render("chpwd"); // Renders the changePassword
+app.get("/searchUser", (req, res) => {
+  res.render("Pages/userSearch"); // Renders the resetPassword
 });
 
 /* --------- STATIC FILES --------- */
@@ -177,9 +181,9 @@ app.use(errorHandling);
 connectToLDAP()
   .then(() => {
     const PORT = process.env.PORT || 3001;
-    const HOST = process.env.HOST || "localhost";
+    const HOST = "0.0.0.0";
     app.listen(PORT, HOST, () => {
-      console.log(`App is running at http://${HOST}:${PORT}`);
+      console.log(`App is running at ${HOST} on port ${PORT}`);
       console.log(`Server started and listening on http://localhost:${PORT}`);
     });
   })

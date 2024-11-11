@@ -10,7 +10,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/CSS/styles.css" />
-    <script src="/JS/sessionManager.js" defer></script>
+    <!-- <script src="/JS/sessionManager.js" defer></script> -->
   </head>
   <body>
     <!-- Navigation Buttons -->
@@ -31,10 +31,7 @@
       <div class="row justify-content-center">
         <!-- Card 1: Change Password -->
         <div class="col-md-3 mb-4">
-          <div
-            class="card shadow-sm h-100"
-            onclick="window.location.href='/Pages/chpwd.html'"
-          >
+          <div class="card shadow-sm h-100" id="changePasswordCard">
             <img
               src="/images/resetPassword.png"
               class="card-img-top"
@@ -48,10 +45,7 @@
 
         <!-- Card 2: Search User -->
         <div class="col-md-3 mb-4">
-          <div
-            class="card shadow-sm h-100"
-            onclick="window.location.href='/Pages/userSearch'"
-          >
+          <div class="card shadow-sm h-100" id = "searchUserCard">
             <img
               src="/images/searchUser.png"
               class="card-img-top"
