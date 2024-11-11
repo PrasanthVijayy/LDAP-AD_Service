@@ -4,24 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Search User</title>
-    <link rel="icon" href="/UI/images/faviconLogo.png" type="image/x-icon" />
+    <link rel="icon" href="/images/faviconLogo.png" type="image/x-icon" />
     <link
       href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/UI/CSS/styles.css" />
-    <script src="/UI/JS/sessionManager.js" defer></script>
+    <link rel="stylesheet" href="/CSS/styles.css" />
+    <!-- <script src="/UI/JS/sessionManager.js" defer></script> -->
   </head>
   <body>
     <!-- Navigation Buttons -->
     <div class="left-fixed-buttons">
       <div class="button-row">
         <button class="btn btn-secondary" id="backButton">
-          <img src="/UI/images/backButton.png" alt="Back" style="width: 24px" />
+          <img src="/images/backButton.png" alt="Back" class = "navigation-icon" />
           Back
         </button>
         <button class="btn btn-primary" id="homeButton">
-          <img src="/UI/images/homeButton.png" alt="Home" style="width: 24px" />
+          <img src="/images/homeButton.png" alt="Home" class = "navigation-icon" />
           Home
         </button>
       </div>
@@ -30,9 +30,9 @@
     <div class="right-fixed-buttons">
       <button class="btn btn-danger" id="signoutButton">
         <img
-          src="/UI/images/logoutButton.png"
+          src="/images/logoutButton.png"
           alt="Sign Out"
-          style="width: 24px"
+          class = "navigation-icon"
         />
         Sign Out
       </button>
@@ -43,7 +43,7 @@
       <h1 class="text-center mb-4">Search User</h1>
 
       <!-- Search Form -->
-      <form id="searchUserForm" onsubmit="searchUser(); return false;">
+      <form id="searchUserForm">
         <div class="input-group mb-4">
           <select class="form-control col-md-3" id="ouDropdown">
             <option value="">Select OU</option>
@@ -62,7 +62,12 @@
         </div>
       </form>
 
-      <!-- User Details Section -->
+      <!-- Error Message for No User Found -->
+      <div id="errorMessage" class="alert alert-danger d-none">
+        No user found with that username.
+      </div>
+
+      <!-- User Details Table -->
       <div id="userDetailsTable" class="d-none card p-4 shadow-lg no-pointer">
         <h3>User Details</h3>
         <div class="table-responsive">
@@ -86,15 +91,10 @@
         </div>
       </div>
 
-      <!-- Error Message for No User Found -->
-      <div id="errorMessage" class="alert alert-danger d-none">
-        No user found with that username.
-      </div>
+      <script src="/design/jquery.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+      <script src="JS/searchUserScript.js"></script>
+      <script src="JS/headerButtons.js"></script>
     </div>
-
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="/UI/JS/searchUserScript.js"></script>
-    <script src="/UI/JS/headerButtons.js"></script>
   </body>
 </html>

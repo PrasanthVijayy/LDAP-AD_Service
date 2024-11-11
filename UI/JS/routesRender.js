@@ -1,24 +1,52 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Handle card clicks
-  document.getElementById("createUserCard").addEventListener("click", () => {
-    window.location.href = "/createUser"; // Navigate to /createUser
-  });
-
-  document.getElementById("listUsersCard").addEventListener("click", () => {
-    window.location.href = "/listUsers"; // Navigate to /listUsers
-  });
-
-  document
-    .getElementById("listOrganizationsCard")
-    .addEventListener("click", () => {
-      window.location.href = "/listOrganizations"; // Navigate to /listOrganizations
+  const createUserCard = document.getElementById("createUserCard");
+  if (createUserCard) {
+    createUserCard.addEventListener("click", () => {
+      window.location.href = "/createUser";
     });
+  }
 
-  document.getElementById("createGroupCard").addEventListener("click", () => {
-    window.location.href = "/createGroup"; // Navigate to /createGroup
-  });
+  const listUsersCard = document.getElementById("listUsersCard");
+  if (listUsersCard) {
+    listUsersCard.addEventListener("click", () => {
+      window.location.href = "/listUsers";
+    });
+  }
 
-  document.getElementById("resetPasswordCard").addEventListener("click", () => {
-    window.location.href = "/resetPassword"; // Navigate to /resetPassword
-  });
+  const listOrganizationsCard = document.getElementById(
+    "listOrganizationsCard"
+  );
+  if (listOrganizationsCard) {
+    listOrganizationsCard.addEventListener("click", () => {
+      window.location.href = "/listOrganizations";
+    });
+  }
+
+  const createGroupCard = document.getElementById("createGroupCard");
+  if (createGroupCard) {
+    createGroupCard.addEventListener("click", () => {
+      window.location.href = "/createGroup";
+    });
+  }
+
+  const resetPasswordCard = document.getElementById("resetPasswordCard");
+  if (resetPasswordCard) {
+    resetPasswordCard.addEventListener("click", () => {
+      window.location.href = "/resetPassword";
+    });
+  }
+
+  const changePasswordCard = document.getElementById("changePasswordCard");
+  if (changePasswordCard) {
+    changePasswordCard.addEventListener("click", () => {
+      window.location.href = "/changePassword";
+    });
+  }
+
+  const searchUserCard = document.getElementById("searchUserCard");
+  if (searchUserCard) {
+    searchUserCard.addEventListener("click", () => {
+      window.location.href = "/searchUser";
+    });
+  }
 });

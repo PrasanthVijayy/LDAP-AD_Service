@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("userOU").value = userOU;
   } else {
     alert("Session expired!, Please log in again.");
-    window.location.href = "/UI/index.html"; // Redirect to login if no user details are available
+    window.location.href = "/"; // Redirect to login if no user details are available
   }
 });
 
@@ -22,10 +22,10 @@ function togglePasswordVisibility(inputId, iconId) {
   iconElement.addEventListener("click", function () {
     if (isPasswordVisible) {
       inputElement.setAttribute("type", "password");
-      iconElement.src = "/UI/images/hidden.png"; // Change to hide icon
+      iconElement.src = "images/hidden.png"; // Change to hide icon
     } else {
       inputElement.setAttribute("type", "text");
-      iconElement.src = "/UI/images/eye.png"; // Change to show icon
+      iconElement.src = "images/eye.png"; // Change to show icon
     }
     isPasswordVisible = !isPasswordVisible;
   });

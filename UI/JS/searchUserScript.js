@@ -1,8 +1,16 @@
 const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
 
-// On page load, populate OU dropdown
-$(document).ready(function () {
+// On page load, populate OU dropdown and attach the form submission handler
+document.addEventListener("DOMContentLoaded", () => {
   fetchOrganizationalUnits(); // Fetch OU list and populate dropdown
+
+  // Attach the submit event handler to the form
+  document
+    .getElementById("searchUserForm")
+    .addEventListener("submit", (event) => {
+      event.preventDefault(); // Prevent default form submission
+      searchUser(); // Call searchUser function
+    });
 });
 
 // Fetch list of OUs from the API
@@ -18,18 +26,18 @@ async function fetchOrganizationalUnits() {
     });
 
     const result = await response.json();
-    const ouDropdown = $("#ouDropdown");
+    const ouDropdown = document.getElementById("ouDropdown");
 
-    // Check if the response is valid
     if (
       response.ok &&
       result.organizations &&
       result.organizations.length > 0
     ) {
       result.organizations.forEach((ou) => {
-        ouDropdown.append(
-          `<option value="${ou.organizationDN}">${ou.organizationDN}</option>`
-        );
+        const option = document.createElement("option");
+        option.value = ou.organizationDN;
+        option.textContent = ou.organizationDN;
+        ouDropdown.appendChild(option);
       });
     } else {
       console.error("Failed to load OUs");
@@ -42,16 +50,17 @@ async function fetchOrganizationalUnits() {
 // Function to search user based on username and OU
 async function searchUser() {
   // Clear previous errors or user details
-  $("#userDetailsTable").addClass("d-none");
-  $("#errorMessage").addClass("d-none");
+  document.getElementById("userDetailsTable").classList.add("d-none");
+  document.getElementById("errorMessage").classList.add("d-none");
 
-  // Get the username and OU from the input fields
-  const username = $("#usernameInput").val().trim();
-  const selectedOU = $("#ouDropdown").val().trim();
+  const username = document.getElementById("usernameInput").value.trim();
+  const selectedOU = document.getElementById("ouDropdown").value.trim();
 
   // Validate the form
   if (!username) {
-    $("#errorMessage").removeClass("d-none").text("Please enter a username.");
+    document.getElementById("errorMessage").classList.remove("d-none");
+    document.getElementById("errorMessage").textContent =
+      "Please enter a username.";
     return;
   }
 
@@ -73,28 +82,25 @@ async function searchUser() {
     const result = await response.json();
 
     if (response.ok && result.users && result.users.length > 0) {
-      // Display user details in table format
-      displayUserDetails(result.users);
+      displayUserDetails(result.users); // Display user details in table format
     } else {
-      // Show error message if user is not found
-      $("#errorMessage")
-        .removeClass("d-none")
-        .text(result.message || "No user found with that username.");
+      document.getElementById("errorMessage").classList.remove("d-none");
+      document.getElementById("errorMessage").textContent =
+        result.message || "No user found with that username.";
     }
   } catch (error) {
     console.error("Error fetching user:", error);
-    $("#errorMessage")
-      .removeClass("d-none")
-      .text("An error occurred while fetching the user. Please try again.");
+    document.getElementById("errorMessage").classList.remove("d-none");
+    document.getElementById("errorMessage").textContent =
+      "An error occurred while fetching the user. Please try again.";
   }
 }
 
 // Function to display user details in a table
 function displayUserDetails(users) {
-  const userDetailsTableBody = $("#userDetailsTableBody");
-  userDetailsTableBody.empty(); // Clear previous content
+  const userDetailsTableBody = document.getElementById("userDetailsTableBody");
+  userDetailsTableBody.innerHTML = ""; // Clear previous content
 
-  // Iterate over users and add rows to the table
   users.forEach((user) => {
     const row = `
       <tr>
@@ -108,9 +114,9 @@ function displayUserDetails(users) {
         <td>${user.postalCode || "N/A"}</td>
       </tr>
     `;
-    userDetailsTableBody.append(row); // Append each row
+    userDetailsTableBody.insertAdjacentHTML("beforeend", row);
   });
 
   // Show the user details table
-  $("#userDetailsTable").removeClass("d-none");
+  document.getElementById("userDetailsTable").classList.remove("d-none");
 }
