@@ -1,7 +1,6 @@
 "use strict";
 import express from "express";
 import dotenv from "dotenv";
-import bodyParser from "body-parser";
 import cors from "cors";
 import morgan from "morgan";
 import helmet from "helmet";
@@ -30,11 +29,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /* ---------- MIDDLEWARE SETUP ---------- */
-app.use(bodyParser.json()); // Body parser middleware
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json()); // Body parser middleware
+app.use(express.urlencoded({ extended: true }));
 app.use(
   morgan(":method :url :status :res[content-length] - :response-time ms")
-); // Morgan middleware to log requests in mentioned format
+);
 
 //app.use(helmet()); //Helmet security
 app.use((req, res, next) => {

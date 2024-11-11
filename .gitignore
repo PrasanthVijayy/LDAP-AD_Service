@@ -10,5 +10,5 @@ tasks.txt
 
 project-structure.txt
 
-design
-design (folder) -> folder which has access to UI design and response (bootstrap - CSS , JS and JQuery)
+libs
+libs (folder) -> folder which has minified version of UI required files.
