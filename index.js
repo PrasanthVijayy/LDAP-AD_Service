@@ -52,6 +52,7 @@ app.use(
           "'self'",
           "https://cdn.jsdelivr.net",
           "https://cdnjs.cloudflare.com",
+          "https://stackpath.bootstrapcdn.com",
         ],
         styleSrc: [
           "'self'",

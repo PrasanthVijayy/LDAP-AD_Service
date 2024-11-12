@@ -1,4 +1,23 @@
+"use strict";
+
 const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
+const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV stage alone
+
+// Function to encrypt payload
+function encryptedData(data) {
+  const encryptedData = CryptoJS.AES.encrypt(
+    JSON.stringify(data),
+    SECRET_KEY
+  ).toString();
+  return encryptedData;
+}
+
+// Function to decrypt payload
+function decryptPayload(cipherText) {
+  const bytes = CryptoJS.AES.decrypt(cipherText, SECRET_KEY);
+  const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+  return JSON.parse(decryptedData);
+}
 
 $(document).ready(function () {
   // Fetch organizations and populate OU dropdown
@@ -15,7 +34,8 @@ $(document).ready(function () {
 
       if (response.ok) {
         const result = await response.json();
-        const organizations = result.organizations;
+        const decryptedData = decryptPayload(result.data);
+        const organizations = decryptedData.organizations;
 
         const ouDropdown = $("#organizationDN");
         ouDropdown.empty(); // Clear any existing options
@@ -121,7 +141,7 @@ $(document).ready(function () {
     }
 
     // Gather form data if validation passes
-    const userData = {
+    const userData = encryptedData({
       title: $("#title").val(),
       firstName: $("#firstName").val(),
       lastName: $("#lastName").val(),
@@ -132,17 +152,17 @@ $(document).ready(function () {
       mail: email,
       userPassword: $("#userPassword").val(),
       userOU: selectedOU,
-    };
+    });
 
     try {
-      const apiUrl = `${baseApiUrl}/users/addUser`; // Adjust the endpoint as necessary
+      const apiUrl = `${baseApiUrl}/users/addUser`;
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(userData),
+        body: JSON.stringify({ data: userData }),
       });
 
       const result = await response.json();
@@ -153,7 +173,7 @@ $(document).ready(function () {
         clearValidation(); // Clear validation feedback
         alert("User created successfully.");
       } else {
-        handleApiErrors(result.message);
+        alert(result.message || "Failed to create user. Please try again.");
       }
     } catch (error) {
       console.error("Error creating user:", error);

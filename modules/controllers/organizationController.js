@@ -3,6 +3,7 @@
 import OrganizationService from "../services/orgainzationService.js";
 import { BadRequestError, ConflictError } from "../../utils/error.js";
 import { search } from "../../utils/ldapUtils.js";
+import { encryptPayload, decryptPayload } from "../../utils/encryption.js";
 
 class OrganizationController {
   constructor() {
@@ -12,13 +13,16 @@ class OrganizationController {
   createOrganization = async (req, res, next) => {
     try {
       console.log("Controller: createOrganization - Started");
-      const { organizationName, description } = req.body;
-      if (!organizationName) {
+
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
+
+      if (!payload.organizationName) {
         throw new BadRequestError("Missing field: organizationName");
       }
 
       const baseDN = `${process.env.LDAP_BASE_DN}`;
-      const filter = `(ou=${organizationName})`;
+      const filter = `(ou=${payload.organizationName})`;
 
       // Search for existing OU
       // const organizationExists = await search(baseDN, filter);
@@ -27,8 +31,7 @@ class OrganizationController {
       // }
 
       const organization = await this.organizationService.createOrganization(
-        organizationName,
-        description
+        payload
       );
       console.log("Controller: createOrganization - Completed");
       res.status(201).json(organization);
@@ -45,8 +48,9 @@ class OrganizationController {
       const organizations = await this.organizationService.listOrganizaitons(
         filter
       );
+      const encryptData = encryptPayload(organizations);
       console.log("Controller: listOrganizaitons - Completed");
-      res.status(200).json(organizations);
+      res.status(200).json({ data: encryptData });
     } catch (error) {
       console.log("Controller: listOrganizaitons - Error", error);
       next(error);

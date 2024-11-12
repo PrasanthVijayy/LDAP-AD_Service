@@ -10,7 +10,7 @@ const groupRoutes = (app) => {
   app.use("/LDAP/v1/groups", router);
 
   router.post("/createGroup", sessionMiddleware, groupController.createGroup); // Create group 
-  router.get("/listGroups", sessionMiddleware, apiLimiter(30), groupController.listGroups); // List groups - additional
+  router.get("/listGroups", sessionMiddleware, groupController.listGroups); // List groups - additional
   router.post("/addToGroup", sessionMiddleware, groupController.addToGroup); // Add user to group
   router.delete("/deleteFromGroup", sessionMiddleware, groupController.deleteFromGroup); // Delete user from group
   router.get("/membersInGroup", sessionMiddleware, apiLimiter(30), groupController.membersInGroup); // List members in group - additional

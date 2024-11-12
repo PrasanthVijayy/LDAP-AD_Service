@@ -26,14 +26,17 @@ async function fetchOrganizationalUnits() {
     });
 
     const result = await response.json();
+    const decryptedData = decryptPayload(result.data);
+    const organizations = decryptedData.organizations;
+
     const ouDropdown = document.getElementById("ouDropdown");
 
     if (
       response.ok &&
-      result.organizations &&
-      result.organizations.length > 0
+      organizations.organizations &&
+      organizations.organizations.length > 0
     ) {
-      result.organizations.forEach((ou) => {
+      organizations.forEach((ou) => {
         const option = document.createElement("option");
         option.value = ou.organizationDN;
         option.textContent = ou.organizationDN;
@@ -120,3 +123,4 @@ function displayUserDetails(users) {
   // Show the user details table
   document.getElementById("userDetailsTable").classList.remove("d-none");
 }
+  

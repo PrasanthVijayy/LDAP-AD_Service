@@ -1,5 +1,6 @@
 "use strict"; // Using strict mode
 
+import dotenv from "dotenv";
 import UserService from "../services/userService.js";
 import {
   BadRequestError,
@@ -7,8 +8,11 @@ import {
   NotFoundError,
 } from "../../utils/error.js";
 import { search } from "../../utils/ldapUtils.js";
+import { encryptPayload, decryptPayload } from "../../utils/encryption.js";
 import OrganizationService from "../services/orgainzationService.js";
 import GroupService from "../services/groupService.js";
+
+dotenv.config();
 class UserController {
   constructor() {
     this.userService = new UserService();
@@ -21,20 +25,8 @@ class UserController {
     try {
       console.log("Controller: addUser - Started");
 
-      const payload = {
-        firstName: req.body.firstName,
-        lastName: req.body.lastName,
-        givenName: req.body.givenName, // Username
-        userPassword: req.body.userPassword,
-        telephoneNumber: req.body.telephoneNumber,
-        // attributes: req.body.attributes || {},
-        mail: req.body.mail,
-        registeredAddress: req.body.registeredAddress, // Correct the field
-        postalCode: req.body.postalCode,
-        description: req.body.description,
-        title: req.body.title || "user",
-        userOU: req.body.userOU,
-      };
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
 
       let missingFields = [];
       if (!payload.firstName) missingFields.push("firstName");
@@ -118,7 +110,8 @@ class UserController {
       console.log("Filter", filter);
       const users = await this.userService.listUsers(filter);
       console.log("Controller: listUsers - Completed");
-      res.status(200).json(users);
+      const encryptData = encryptPayload(users);
+      res.status(200).json({ data: encryptData });
     } catch (error) {
       console.log("Controller: listUsers - Error", error);
       next(error);
@@ -129,7 +122,11 @@ class UserController {
   resetPassword = async (req, res, next) => {
     try {
       console.log("Controller: resetPassword - Started");
-      const { username, password, confirmPassword, userOU } = req.body;
+
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
+
+      const { username, password, confirmPassword, userOU } = payload;
 
       let missingFields = [];
       if (!username) missingFields.push("username");
@@ -183,7 +180,10 @@ class UserController {
   deleteUser = async (req, res, next) => {
     try {
       console.log("Controller: deleteUser - Started");
-      const { username, userOU } = req.body;
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
+
+      const { username, password, confirmPassword, userOU } = payload;
 
       let missingFields = [];
       if (!username) missingFields.push("username");
@@ -226,7 +226,12 @@ class UserController {
   updateUser = async (req, res, next) => {
     try {
       console.log("Controller: updateUser - Started");
-      const { username, userOU, attributes } = req.body;
+
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
+
+      const { username, userOU, attributes } = payload;
+      // const { username, userOU, attributes } = req.body;
 
       let missingFields = [];
       if (!username) missingFields.push("username");
@@ -238,14 +243,15 @@ class UserController {
         );
       }
 
-      // Prevent updating username
-      if (attributes.username || attributes.sn || attributes.cn) {
-        throw new BadRequestError("Name fields cannot be updated.");
-      }
+      // Prevent updating username - feature can be used in future
+
+      // if (attributes.username || attributes.sn || attributes.cn) {
+      //   throw new BadRequestError("Name fields cannot be updated.");
+      // }
 
       // Check if user exists and fetch their current attributes
       const userExists = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
+        `ou=${userOU},${process.env.LDAP_BASE_DN}`,
         `(cn=${username})`
       );
       if (userExists.length === 0) {
@@ -263,19 +269,19 @@ class UserController {
 
       // Validate and check if email is different
       if (attributes.mail) {
-        // const validEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        // if (!validEmail.test(attributes.mail)) {
-        //   throw new BadRequestError("Invalid email address");
-        // }
+        const validEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!validEmail.test(attributes.mail)) {
+          throw new BadRequestError("Invalid email address");
+        }
 
-        // // Check if email is the same as the current one
+        // Check if email is the same as the current one
         // if (attributes.mail === currentUser.mail) {
         //   throw new BadRequestError("Update with new mail ID");
         // }
 
         // Check if email is already in use by another user
         const emailInUse = await search(
-          `ou=users,${process.env.LDAP_BASE_DN}`,
+          process.env.LDAP_BASE_DN,
           `(mail=${attributes.mail})`
         );
 
@@ -286,19 +292,19 @@ class UserController {
 
       // Validate and check if phone number is different
       if (attributes.telephoneNumber) {
-        // const validPhoneNumber = /^\d{10}$/;
-        // if (!validPhoneNumber.test(attributes.telephoneNumber)) {
-        //   throw new BadRequestError("Invalid phone number");
-        // }
+        const validPhoneNumber = /^\d{10}$/;
+        if (!validPhoneNumber.test(attributes.telephoneNumber)) {
+          throw new BadRequestError("Invalid phone number");
+        }
 
-        // // Check if phone number is the same as the current one
+        // Check if phone number is the same as the current one
         // if (attributes.telephoneNumber === currentUser.telephoneNumber) {
         //   throw new BadRequestError("Update with new phone number");
         // }
 
         // Check if phone number is already in use by another user
         const phoneInUse = await search(
-          `ou=users,${process.env.LDAP_BASE_DN}`,
+          `ou=${userOU},${process.env.LDAP_BASE_DN}`,
           `(telephoneNumber=${attributes.telephoneNumber})`
         );
 
@@ -326,7 +332,13 @@ class UserController {
   updateContactDetails = async (req, res, next) => {
     try {
       console.log("Controller: changeEmailPhone - Started");
-      const { username, userOU, attributes } = req.body;
+
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
+
+      const { username, userOU, attributes } = payload;
+
+      // const { username, userOU, attributes } = req.body;
 
       let missingFields = [];
       if (!username) missingFields.push("username");
@@ -351,7 +363,7 @@ class UserController {
       }
 
       const userExist = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
+        `ou=${userOU},${process.env.LDAP_BASE_DN}`,
         `(cn=${username})`
       );
       if (userExist.length === 0) {
@@ -374,7 +386,7 @@ class UserController {
 
         // Check if email is already in use by another user
         const emailInUse = await search(
-          `ou=users,${process.env.LDAP_BASE_DN}`,
+          `ou=${userOU},${process.env.LDAP_BASE_DN}`,
           `(mail=${attributes.mail})`
         );
 
@@ -397,7 +409,7 @@ class UserController {
 
         // Check if phone number is already in use by another user
         const phoneInUse = await search(
-          `ou=users,${process.env.LDAP_BASE_DN}`,
+          `ou=${userOU},${process.env.LDAP_BASE_DN}`,
           `(telephoneNumber=${attributes.telephoneNumber})`
         );
 
@@ -520,12 +532,13 @@ class UserController {
   userLockAction = async (req, res, next) => {
     try {
       console.log("Controller: modifyUserLockStatus - Started");
-      const { username, action, userOU } = req.body;
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
 
       let missingFields = [];
-      if (!username) missingFields.push("username");
-      if (!action) missingFields.push("action");
-      if (!userOU) missingFields.push("userOU");
+      if (!payload.username) missingFields.push("username");
+      if (!payload.action) missingFields.push("action");
+      if (!payload.userOU) missingFields.push("userOU");
       if (missingFields.length > 0) {
         return next(
           new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
@@ -533,9 +546,9 @@ class UserController {
       }
 
       // Checking the requested OU is valid
-      await this.organizationService.listOrganizaitons(`ou=${userOU}`);
+      await this.organizationService.listOrganizaitons(`ou=${payload.userOU}`);
 
-      if (!["unlock", "lock"].includes(action)) {
+      if (!["unlock", "lock"].includes(payload.action)) {
         throw new BadRequestError("Action should be either lock or unlock");
       }
       // const userExists = await search(
@@ -546,11 +559,7 @@ class UserController {
       //   throw new NotFoundError("User not found");
       // }
 
-      const message = await this.userService.userLockAction(
-        username,
-        action,
-        userOU
-      );
+      const message = await this.userService.userLockAction(payload);
       console.log("Controller: modifyUserLockStatus - Completed");
       res.status(202).json(message);
     } catch (error) {
@@ -664,7 +673,11 @@ class UserController {
     try {
       console.log("Controller: login - Started");
 
-      const { username, password, userType, OU } = req.body;
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+
+      // Decrypt the data
+      const decryptedData = decryptPayload(encryptedData);
+      const { username, password, userType, OU } = decryptedData;
 
       let missingFields = [];
       if (!username) missingFields.push("username");

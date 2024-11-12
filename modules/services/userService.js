@@ -509,11 +509,11 @@ class UserService {
     }
   }
 
-  async userLockAction(username, action, userOU) {
+  async userLockAction(payload) {
     try {
-      console.log(`Service: userLockAction - ${action} - Started`);
+      console.log(`Service: userLockAction - ${payload.action} - Started`);
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const userDN = `cn=${username},ou=${userOU},${process.env.LDAP_BASE_DN}`;
+      const userDN = `cn=${payload.username},ou=${payload.userOU},${process.env.LDAP_BASE_DN}`;
 
       // Verify the user exists and fetch their details
       const userSearchResults = await search(
@@ -522,21 +522,21 @@ class UserService {
       );
 
       if (userSearchResults.length === 0) {
-        throw new BadRequestError(`User ${username} not found.`);
+        throw new BadRequestError(`User ${payload.username} not found.`);
       }
 
       const user = userSearchResults[0].shadowExpire || 0;
 
       // Validation based on the current status and requested action
-      if (action === "lock" && user == 1) {
+      if (payload.action === "lock" && user == 1) {
         throw new ConflictError(`User already locked.`);
-      } else if (action === "unlock" && user == 0) {
+      } else if (payload.action === "unlock" && user == 0) {
         throw new ConflictError(`User already unlocked.`);
       }
 
       let modifications;
 
-      if (action === "lock") {
+      if (payload.action === "lock") {
         modifications = [
           {
             operation: "replace",
@@ -545,7 +545,7 @@ class UserService {
             },
           },
         ];
-      } else if (action === "unlock") {
+      } else if (payload.action === "unlock") {
         modifications = [
           {
             operation: "replace",
@@ -555,14 +555,14 @@ class UserService {
           },
         ];
       } else {
-        throw new BadRequestError(`Invalid action: ${action}`);
+        throw new BadRequestError(`Invalid action: ${payload.action}`);
       }
 
       // Apply the modification to the user
       await modify(userDN, modifications);
 
-      console.log(`Service: userLockAction - ${action} - Completed`);
-      return { message: `User ${action}ed successfully` };
+      console.log(`Service: userLockAction - ${payload.action} - Completed`);
+      return { message: `User ${payload.action}ed successfully` };
     } catch (error) {
       if (error.message.includes("No Such Object")) {
         throw new NotFoundError(`User not found.`);

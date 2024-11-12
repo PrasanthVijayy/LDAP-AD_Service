@@ -1,5 +1,10 @@
 const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
 
+// Function to get element by ID
+function getElementById(id) {
+  return document.getElementById(id);
+}
+
 // Function to toggle password visibility
 function togglePasswordVisibility() {
   const passwordField = document.getElementById("password");
@@ -34,6 +39,24 @@ document.addEventListener("DOMContentLoaded", function () {
   // fetchUsers();
 });
 
+const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV stage alone
+
+// Function to encrypt payload
+function encryptData(data) {
+  const encryptedData = CryptoJS.AES.encrypt(
+    JSON.stringify(data),
+    SECRET_KEY
+  ).toString();
+  return encryptedData;
+}
+
+// Function to decrypt payload
+function decryptPayload(cipherText) {
+  const bytes = CryptoJS.AES.decrypt(cipherText, SECRET_KEY);
+  const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+  return JSON.parse(decryptedData);
+}
+
 // Login form submission handler
 async function handleLogin() {
   const username = document.getElementById("username").value;
@@ -44,19 +67,19 @@ async function handleLogin() {
   ).value;
 
   const apiUrl = `${baseApiUrl}/users/authenticate`;
-  const data = {
+  const data = encryptData({
     username: username,
     password: password,
     userType: userType,
     OU: ouName,
-  };
+  });
 
   try {
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include", // This includes the session cookie
-      body: JSON.stringify(data),
+      body: JSON.stringify({ data }),
     });
     const result = await response.json();
 
@@ -101,8 +124,10 @@ async function fetchUsers() {
 
     if (response.ok) {
       const result = await response.json();
-      window.usersData = result.users;
-      displayUsers(result.users); // Call function to display users in the table
+      const decryptedData = decryptPayload(result.data);
+      const users = decryptedData.users;
+      window.usersData = users;
+      displayUsers(users); // Call function to display users in the table
     } else {
       alert("Unable to load users.");
     }
@@ -118,12 +143,10 @@ function extractOU(dn) {
   return ouMatch ? ouMatch[1] : "N/A"; // Return the matched OU, or 'N/A' if not found
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Attach the click event handler to the button
-  document
-    .getElementById("searchButton")
-    .addEventListener("click", searchUsers);
-});
+const searchButton = document.getElementById("searchButton");
+if (searchButton) {
+  searchButton.addEventListener("click", searchUsers);
+}
 
 // Search users based on the selected criteria
 async function searchUsers() {
@@ -168,18 +191,23 @@ async function searchUsers() {
     }
 
     const result = await response.json();
-    displayUsers(result.users);
+    const decryptedData = decryptPayload(result.data);
+    const users = decryptedData.users;
+    displayUsers(users);
   } catch (error) {
     console.error("Error fetching users:", error);
     alert("An error occurred while searching for users.");
   }
 }
 
-document.getElementById("searchInput").addEventListener("keypress", (event) => {
-  if (event.key === "Enter") {
-    searchUsers(); // Call searchUsers on Enter key press
-  }
-});
+const searchInput = document.getElementById("searchInput");
+if (searchInput) {
+  addEventListener("keypress", (event) => {
+    if (event.key === "Enter") {
+      searchUsers(); // Call searchUsers on Enter key press
+    }
+  });
+}
 
 // document.getElementById("searchInput").addEventListener("input", () => {
 //   searchUsers(); // Call searchUsers whenever the input value changes
@@ -350,11 +378,10 @@ async function deleteUser(index) {
 
   const apiUrl = `${baseApiUrl}/users/deleteUser`;
 
-  // Prepare data to send in the API request
-  const data = {
+  const data = encryptData({
     username: userToDelete.userName,
     userOU: userOU, // Include the sliced OU from the DN
-  };
+  });
 
   // Confirm deletion
   if (!confirm(`Are you sure you want to delete ${userToDelete.userName}?`))
@@ -366,7 +393,7 @@ async function deleteUser(index) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(data), // Include the data in the request body
+      body: JSON.stringify({ data }),
     });
 
     if (response.ok) {
@@ -399,12 +426,16 @@ async function toggleUserLock(index, action) {
   }
 
   const apiUrl = `${baseApiUrl}/users/userLockAction`;
-  const requestBody = { username: username, userOU: indexOU, action };
+  const requestBody = encryptData({
+    username: username,
+    userOU: indexOU,
+    action: action,
+  });
   try {
     const response = await fetch(apiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({ data: requestBody }),
     });
 
     if (response.ok) {
@@ -422,12 +453,12 @@ async function toggleUserLock(index, action) {
     alert("An error occurred. Please try again later.");
   }
 }
-window.onload = function () {
-  const currentPage = window.location.pathname; // Get the current page name
-  if (currentPage === "/listUsers") {
-    fetchUsers(); // Fetch and display users on page load
-  }
-};
+// window.onload = function () {
+//   const currentPage = window.location.pathname; // Get the current page name
+//   if (currentPage === "/listUsers") {
+//     fetchUsers(); // Fetch and display users on page load
+//   }
+// };
 
 // Function to initiate user edit and pass necessary parameters
 function editUser(index) {
@@ -437,11 +468,6 @@ function editUser(index) {
   window.location.href = `/editUser?username=${encodeURIComponent(
     username
   )}&ou=${encodeURIComponent(userOU)}`;
-}
-
-// Function to get element by ID
-function getElementById(id) {
-  return document.getElementById(id);
 }
 
 // Populate form fields with user data
@@ -493,17 +519,16 @@ document.addEventListener("DOMContentLoaded", function () {
     getElementById("userOU").value = userOU;
     fetchUserDetails(username, userOU); // Fetch and populate user details
   }
-
-  handleEditTypeChange();
-  getElementById("editType").addEventListener("change", handleEditTypeChange);
 });
 
 // Function to fetch user details and handle response data
 async function fetchUserDetails(username, userOU) {
   try {
-    const apiUrl = `${baseApiUrl}/users/listUsers?filter=cn%3D${encodeURIComponent(
-      username
-    )}&filter=ou%3D${encodeURIComponent(userOU)}`;
+    const urlParams = new URLSearchParams();
+    urlParams.append("filter", `cn=${username}`);
+    urlParams.append("filter", `ou=${userOU}`);
+
+    const apiUrl = `${baseApiUrl}/users/listUsers?${urlParams.toString()}`;
 
     const response = await fetch(apiUrl, {
       method: "GET",
@@ -513,7 +538,9 @@ async function fetchUserDetails(username, userOU) {
     });
 
     if (response.ok) {
-      const { users } = await response.json();
+      const result = await response.json();
+      const decryptedData = decryptPayload(result.data);
+      const users = decryptedData.users;
       const userData = users[0];
 
       if (userData) {
@@ -599,132 +626,144 @@ function resetValidation(input) {
   input.nextElementSibling.textContent = ""; // Clear any previous error message
 }
 
-
 document.addEventListener("DOMContentLoaded", function () {
   // Add event listener for the edit type toggle
-  document
-    .getElementById("editType")
-    .addEventListener("change", handleEditTypeChange);
+  const editType = getElementById("editType");
+  if (editType) {
+    editType.addEventListener("change", handleEditTypeChange);
 
-  // Add event listener for the edit user form
-  document
-    .getElementById("editUserForm")
-    .addEventListener("submit", async function (e) {
-      e.preventDefault(); // Prevent form submission
+    // Add event listener for the edit user form
+    document
+      .getElementById("editUserForm")
+      .addEventListener("submit", async function (e) {
+        e.preventDefault(); // Prevent form submission
 
-      // Validate the form fields
-      if (!validateForm()) {
-        return; // Stop form submission if validation fails
-      }
-
-      // Get form data
-      const username = getElementById("username").value;
-      const userOU = getElementById("userOU").value;
-      const telephoneNumber = getElementById("telephoneNumber").value;
-      const mail = getElementById("mail").value;
-      const registeredAddress = getElementById("registeredAddress").value;
-      const postalCode = getElementById("postalCode").value;
-      const editType = getElementById("editType").value; // Capture edit type
-
-      // Collect only changed or non-empty fields
-      const data = {
-        username: username,
-        userOU: userOU,
-        attributes: {},
-      };
-
-      if (telephoneNumber) data.attributes.telephoneNumber = telephoneNumber;
-      if (mail) data.attributes.mail = mail;
-      if (editType === "general") {
-        if (registeredAddress)
-          data.attributes.registeredAddress = registeredAddress;
-        if (postalCode) data.attributes.postalCode = postalCode;
-      }
-
-      const apiUrl =
-        editType === "general"
-          ? `${baseApiUrl}/users/updateUser`
-          : `${baseApiUrl}/users/updateContactDetails`;
-
-      try {
-        const response = await fetch(apiUrl, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        });
-
-        const result = await response.json();
-        if (response.ok) {
-          alert("User details updated successfully.");
-          window.location.href = "/listUsers";
-        } else {
-          handleApiErrors(result);
-        }
-      } catch (error) {
-        console.error("Error updating user details:", error);
-        alert("An error occurred. Please try again later.");
-      }
-
-      // Handle API error messages and display them in the form
-      function handleApiErrors(errors) {
-        // Check for LDAP the phone number is already in use by another user
-        if (
-          errors.message === "Phone number is already in use by another user"
-        ) {
-          setInvalid(
-            getElementById("telephoneNumber"),
-            "Phone number is already in use"
-          );
-        }
-        // Check for LDAP the mail is already in use by another user
-        if (errors.message === "Mail is already in use by another user") {
-          setInvalid(getElementById("mail"), "Mail is already in use");
+        // Validate the form fields
+        if (!validateForm()) {
+          return; // Stop form submission if validation fails
         }
 
-        if (errors.telephoneNumber) {
-          const telephoneError = errors.telephoneNumber;
-          if (telephoneError.includes("already in use by another user")) {
+        // Get form data
+        const username = getElementById("username").value;
+        const userOU = getElementById("userOU").value;
+        const telephoneNumber = getElementById("telephoneNumber").value;
+        const mail = getElementById("mail").value;
+        const registeredAddress = getElementById("registeredAddress").value;
+        const postalCode = getElementById("postalCode").value;
+        const editType = getElementById("editType").value; // Capture edit type
+
+        // Collect only changed or non-empty fields
+        const data = {
+          username: username,
+          userOU: userOU,
+          attributes: {},
+        };
+
+        if (telephoneNumber) data.attributes.telephoneNumber = telephoneNumber;
+        if (mail) data.attributes.mail = mail;
+        if (editType === "general") {
+          if (registeredAddress)
+            data.attributes.registeredAddress = registeredAddress;
+          if (postalCode) data.attributes.postalCode = postalCode;
+        }
+
+        // Encrypt the entire data object after data object is created fully
+        const encryptedData = encryptData(data);
+
+        const apiUrl =
+          editType === "general"
+            ? `${baseApiUrl}/users/updateUser`
+            : `${baseApiUrl}/users/updateContactDetails`;
+
+        try {
+          const response = await fetch(apiUrl, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ data: encryptedData }),
+          });
+
+          if (response.status === 429) {
+            alert(
+              "Too many requests. Please wait a few minutes before trying again."
+            );
+            return; // Stop further execution
+          }
+
+          const result = await response.json();
+          if (response.ok) {
+            alert("User details updated successfully.");
+            window.location.href = "/listUsers";
+          } else {
+            handleApiErrors(result);
+          }
+        } catch (error) {
+          console.error("Error updating user details:", error);
+          alert("An error occurred. Please try again later.");
+        }
+
+        // Handle API error messages and display them in the form
+        function handleApiErrors(errors) {
+          // Check for LDAP the phone number is already in use by another user
+          if (
+            errors.message === "Phone number is already in use by another user "
+          ) {
             setInvalid(
               getElementById("telephoneNumber"),
-              "number already in use"
+              "Phone number is already in use"
             );
-          } else {
-            setInvalid(getElementById("telephoneNumber"), telephoneError);
+          }
+          // Check for LDAP the mail is already in use by another user
+          if (errors.message === "Mail is already in use by another user") {
+            setInvalid(getElementById("mail"), "Mail is already in use");
+          }
+
+          if (errors.telephoneNumber) {
+            const telephoneError = errors.telephoneNumber;
+            if (telephoneError.includes("already in use by another user")) {
+              setInvalid(
+                getElementById("telephoneNumber"),
+                "number already in use"
+              );
+            } else {
+              setInvalid(getElementById("telephoneNumber"), telephoneError);
+            }
+          }
+
+          if (errors.mail) {
+            const mailError = errors.mail;
+            if (mailError.includes("already in use by another user")) {
+              setInvalid(getElementById("mail"), "email already in use");
+            } else {
+              setInvalid(getElementById("mail"), mailError);
+            }
+          }
+
+          if (errors.registeredAddress) {
+            setInvalid(
+              getElementById("registeredAddress"),
+              errors.registeredAddress
+            );
+          }
+
+          if (errors.postalCode) {
+            setInvalid(getElementById("postalCode"), errors.postalCode);
+          }
+
+          if (errors.username) {
+            setInvalid(getElementById("username"), errors.username);
           }
         }
-
-        if (errors.mail) {
-          const mailError = errors.mail;
-          if (mailError.includes("already in use by another user")) {
-            setInvalid(getElementById("mail"), "email already in use");
-          } else {
-            setInvalid(getElementById("mail"), mailError);
-          }
+        // Helper function to reset the form and clear validation styles
+        function resetForm() {
+          document.getElementById("editUserForm").reset();
+          document
+            .querySelectorAll(".is-valid, .is-invalid")
+            .forEach((input) => {
+              input.classList.remove("is-valid", "is-invalid");
+            });
         }
-
-        if (errors.registeredAddress) {
-          setInvalid(
-            getElementById("registeredAddress"),
-            errors.registeredAddress
-          );
-        }
-
-        if (errors.postalCode) {
-          setInvalid(getElementById("postalCode"), errors.postalCode);
-        }
-
-        if (errors.username) {
-          setInvalid(getElementById("username"), errors.username);
-        }
-      }
-      // Helper function to reset the form and clear validation styles
-      function resetForm() {
-        document.getElementById("editUserForm").reset();
-        document.querySelectorAll(".is-valid, .is-invalid").forEach((input) => {
-          input.classList.remove("is-valid", "is-invalid");
-        });
-      }
-    });
+      });
+  }
 });

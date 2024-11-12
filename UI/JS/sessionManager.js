@@ -44,7 +44,7 @@ function redirectToLogin() {
 function redirectToDashboard(userType) {
   console.log(`Redirecting to ${userType} dashboard...`);
   const dashboard =
-    userType === "admin" ? "adminDashboard.html" : "userDashboard.html";
+    userType === "admin" ? "/adminDashboard" : "/userDashboard";
   window.location.href = dashboard;
 }
 
