@@ -1,5 +1,23 @@
 const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
 
+const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV  stage alone
+
+// Function to encrypt payload
+function encryptData(data) {
+  const encryptedData = CryptoJS.AES.encrypt(
+    JSON.stringify(data),
+    SECRET_KEY
+  ).toString();
+  return encryptedData;
+}
+
+// Function to decrypt payload
+function decryptPayload(cipherText) {
+  const bytes = CryptoJS.AES.decrypt(cipherText, SECRET_KEY);
+  const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+  return JSON.parse(decryptedData);
+}
+
 // On page load, populate OU dropdown and set up event listeners
 $(document).ready(function () {
   fetchOrganizationalUnits(); // Fetch OU list and populate dropdown
@@ -18,6 +36,11 @@ async function fetchOrganizationalUnits() {
     });
 
     const result = await response.json();
+    const decryptedData = decryptPayload(result.data);
+    console.warn("decryptedData", decryptedData);
+    const memberOU = decryptedData.organizations;
+    console.warn("groups", memberOU);
+
     const ouDropdownMenu = $("#ouDropdownMenu");
 
     // Clear the dropdown before adding options
@@ -27,12 +50,8 @@ async function fetchOrganizationalUnits() {
     );
 
     // Populate dropdown with OUs
-    if (
-      response.ok &&
-      result.organizations &&
-      result.organizations.length > 0
-    ) {
-      result.organizations.forEach((ou) => {
+    if (response.ok && memberOU && memberOU.length > 0) {
+      memberOU.forEach((ou) => {
         ouDropdownMenu.append(
           `<a class="dropdown-item" href="#" data-value="${ou.organizationDN}">${ou.organizationDN}</a>`
         );
@@ -105,14 +124,19 @@ document
     }
 
     // Prepare the request payload
-    const data = { username, password: newPassword, userOU, confirmPassword };
+    const data = encryptData({
+      username: username,
+      password: newPassword,
+      userOU: userOU,
+      confirmPassword: confirmPassword,
+    });
 
     try {
       const response = await fetch(`${baseApiUrl}/users/resetPwd`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(data),
+        body: JSON.stringify({data}),
       });
 
       const result = await response.json();
@@ -125,7 +149,9 @@ document
         showErrorMessages("User not found. Please check the username.");
         document.getElementById("username").classList.add("is-invalid");
       } else {
-        showErrorMessages("Failed to reset password. Please try again.");
+        showErrorMessages(
+          result.message || "Failed to reset password. Please try again."
+        );
       }
     } catch (error) {
       console.error("Error during password reset:", error);

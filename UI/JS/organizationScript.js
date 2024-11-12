@@ -1,8 +1,25 @@
+"use strict";
+
 const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
+const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV  stage alone
 
 // Function to get element by ID
 function getElementById(id) {
   return document.getElementById(id);
+}
+
+function encryptData(data) {
+  const encryptedData = CryptoJS.AES.encrypt(
+    JSON.stringify(data),
+    SECRET_KEY
+  ).toString();
+  return encryptedData;
+}
+
+function decryptPayload(cipherText) {
+  const bytes = CryptoJS.AES.decrypt(cipherText, SECRET_KEY);
+  const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+  return JSON.parse(decryptedData);
 }
 
 // Add event listener for the organization creation form
@@ -19,10 +36,10 @@ getElementById("createOrganizationForm")?.addEventListener(
 
     const apiUrl = `${baseApiUrl}/organizations/createOrganization`;
 
-    const data = {
+    const data = encryptData({
       organizationName: organizationName,
       description: organizationDescription,
-    };
+    });
 
     try {
       const response = await fetch(apiUrl, {
@@ -30,7 +47,7 @@ getElementById("createOrganizationForm")?.addEventListener(
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ data: data }),
         credentials: "include",
       });
 
@@ -71,8 +88,8 @@ async function fetchOrganizations() {
 
     if (response.ok) {
       const result = await response.json();
-      const organizations = result.organizations;
-      console.warn("result data", result);
+      const decryptedData = decryptPayload(result.data);
+      const organizations = decryptedData.organizations;
       window.organizationsData = organizations;
       displayOrganizations(organizations);
     } else {

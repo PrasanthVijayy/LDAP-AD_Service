@@ -48,8 +48,8 @@ if (homeButton) {
 document.addEventListener("DOMContentLoaded", function () {
   const currentPage = window.location.pathname;
 
-  if (currentPage === "/userDashboard" || currentPage === "/adminDashboard") {
-    document.getElementById("homeButton").style.display = "none";
-    document.getElementById("backButton").style.display = "none";
-  }
+  // if (currentPage === "/userDashboard" || currentPage === "/adminDashboard") {
+  //   document.getElementById("homeButton").style.display = "none";
+  //   document.getElementById("backButton").style.display = "none";
+  // }
 });

@@ -2,15 +2,15 @@ import { search, bind, add } from "../../utils/ldapUtils.js";
 import { NotFoundError } from "../../utils/error.js";
 
 class OrganizationService {
-  async createOrganization(organizationName, description) {
+  async createOrganization(payload) {
     try {
       console.log("Service: createOrganization - Started");
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const organizationDN = `ou=${organizationName},${process.env.LDAP_BASE_DN}`;
+      const organizationDN = `ou=${payload.organizationName},${process.env.LDAP_BASE_DN}`;
       const organizationAttributes = {
-        ou: organizationName,
+        ou: payload.organizationName,
         objectClass: ["top", "organizationalUnit"],
-        description: description || "Default organization",
+        description: payload.description || "Default organization",
       };
       await add(organizationDN, organizationAttributes);
       console.log("Service: createOrganization - Completed");

@@ -1,6 +1,25 @@
-const baseApiUrl = "http://localhost:4001/LDAP/v1"; // Replace with actual base URL
+"use-strict";
 
-// On page load, populate OU dropdown and set up event listeners
+const baseApiUrl = "http://localhost:4001/LDAP/v1"; // Replace with actual base URL
+const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV  stage alone
+
+// Function to encrypt payload
+function encryptData(data) {
+  const encryptedData = CryptoJS.AES.encrypt(
+    JSON.stringify(data),
+    SECRET_KEY
+  ).toString();
+  return encryptedData;
+}
+
+// Function to decrypt payload
+
+function decryptPayload(cipherText) {
+  const bytes = CryptoJS.AES.decrypt(cipherText, SECRET_KEY);
+  const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+  return JSON.parse(decryptedData);
+}
+
 $(document).ready(function () {
   fetchOrganizationalUnits(); // Fetch OU list and populate dropdown
 });
@@ -18,21 +37,21 @@ async function fetchOrganizationalUnits() {
     });
 
     const result = await response.json();
-    const ouDropdownMenu = $("#ouDropdownMenu");
+    const decryptedData = decryptPayload(result.data);
+    const groupsOU = decryptedData.organizations;
 
-    // Clear the dropdown before adding options
-    ouDropdownMenu.empty();
+    // Clear and populate dropdown menu with options
+    const ouDropdownMenu = $("#ouDropdownMenu");
+    ouDropdownMenu.empty(); // Clear previous items
+
+    // Append default option
     ouDropdownMenu.append(
-      '<a class="dropdown-item" href="#">-- Select an OU --</a>'
+      '<a class="dropdown-item" href="#" data-value="">-- Select an OU --</a>'
     );
 
     // Populate dropdown with OUs
-    if (
-      response.ok &&
-      result.organizations &&
-      result.organizations.length > 0
-    ) {
-      result.organizations.forEach((ou) => {
+    if (response.ok && groupsOU && groupsOU.length > 0) {
+      groupsOU.forEach((ou) => {
         ouDropdownMenu.append(
           `<a class="dropdown-item" href="#" data-value="${ou.organizationDN}">${ou.organizationDN}</a>`
         );
@@ -45,31 +64,41 @@ async function fetchOrganizationalUnits() {
   }
 }
 
-// Event listener for selecting an OU
-$(document).on("click", ".dropdown-item", function () {
+// Event listener for selecting an OU from the dropdown
+$(document).on("click", ".dropdown-item", function (event) {
+  event.preventDefault();
   const selectedOU = $(this).data("value");
-  $("#groupOU").val(selectedOU); // Set hidden input value
-  $("#ouDropdownButton").text(selectedOU); // Change button text
-  $("#ouDropdownMenu").removeClass("show"); // Hide dropdown
+
+  if (selectedOU) {
+    $("#groupOU").val(selectedOU); // Set hidden input
+    $("#ouDropdownButton").text(selectedOU); // Update button text
+  } else {
+    $("#groupOU").val(""); // Reset if "Select an OU" is chosen
+    $("#ouDropdownButton").text("Select OU");
+  }
 });
 
-// Create group by submitting form data
+// Form submission event for creating a new group
 document
   .getElementById("createGroupForm")
   ?.addEventListener("submit", async function (e) {
     e.preventDefault();
 
+    // Get values from the form
     const groupName = document.getElementById("groupName").value;
     const groupType = document.getElementById("groupType").value;
     const groupOU = document.getElementById("groupOU").value;
-    const groupDescription = document.getElementById("groupDescription").value;
+    const groupDescription =
+      document.getElementById("groupDescription").value ||
+      "No description provided";
 
-    const groupPayload = {
-      groupName: groupName,
-      groupType: groupType,
+    // Encrypt form data before sending
+    const groupPayload = encryptData({
+      groupName,
+      groupType,
       groupOU,
-      description: groupDescription || "No description provided",
-    };
+      description: groupDescription,
+    });
 
     try {
       const response = await fetch(`${baseApiUrl}/groups/createGroup`, {
@@ -78,23 +107,22 @@ document
           "Content-Type": "application/json",
         },
         credentials: "include",
-
-        body: JSON.stringify(groupPayload),
+        body: JSON.stringify({ data: groupPayload }), // Encrypted payload
       });
 
       if (response.ok) {
         alert("Group created successfully!");
-        fetchGroups(); // Reload the group list after creation
-        document.getElementById("createGroupForm").reset();
+        fetchGroups(); // Refresh group list after creation
+        document.getElementById("createGroupForm").reset(); // Clear form
       } else {
-        alert("Failed to create group.");
+        const errorData = await response.json(); // Not working currently as encrypted the data
+        alert(errorData.message || "Failed to create group.");
       }
     } catch (error) {
       console.error("Error creating group:", error);
       alert("An error occurred while creating the group.");
     }
   });
-
 // Fetch and list groups
 async function fetchGroups() {
   try {
@@ -108,9 +136,11 @@ async function fetchGroups() {
 
     if (response.ok) {
       const result = await response.json();
-      window.usersData = result.groups; // Store the users data in a global variable
 
-      const groups = result.groups;
+      const decryptedData = decryptPayload(result.data);
+      const groups = decryptedData.groups;
+      window.usersData = groups; // Store the users data in a global variable
+
       populateGroupsTable(groups); // Populate the groups table
     } else {
       alert("Failed to load groups.");
@@ -136,21 +166,30 @@ function populateGroupsTable(groups) {
     const groupOU = extractOU(group.dn) || "N/A"; // Extract groupOU from DN
     const row = document.createElement("tr");
 
+    // Assuming you have your row creation code inside a loop, after this line:
     row.innerHTML = `
-      <th scope="row">${index + 1}</th>
-      <td>${group.groupName}</td>
-      <td>${group.groupType}</td>
-      <td>${groupOU}</td>
-        <button class="btn btn-link" onclick="lockGroupMembers(${index})" title="Lock Group">
-          <img src="/images/lockUser.png" alt="Lock Group" class ="group-icons">
-        </button>
-        <button class="btn btn-link" onclick="viewGroupDetails('${
-          group.groupName
-        }', '${group.groupType}','${groupOU}')" title="View Members">
-          <img src="/images/groupMembers.png" alt="View Group" class ="group-icons">
-        </button>
-      </td>
-    `;
+  <th scope="row">${index + 1}</th>
+  <td>${group.groupName}</td>
+  <td>${group.groupType}</td>
+  <td>${groupOU}</td>
+  <td>
+    <button class="btn btn-link" title="Lock Group">
+      <img src="/images/lockUser.png" alt="Lock Group" class="group-icons">
+    </button>
+    <button class="btn btn-link" title="View Members">
+      <img src="/images/groupMembers.png" alt="View Group" class="group-icons">
+    </button>
+  </td>
+`;
+
+    const lockButton = row.querySelector("button[title='Lock Group']");
+    const viewButton = row.querySelector("button[title='View Members']");
+
+    // Attach event listeners
+    lockButton.addEventListener("click", () => lockGroupMembers(index));
+    viewButton.addEventListener("click", () =>
+      viewGroupDetails(group.groupName, group.groupType, groupOU)
+    );
 
     tableBody.appendChild(row);
   });
@@ -177,7 +216,10 @@ async function fetchFilteredGroups(groupType) {
 
     if (response.ok) {
       const result = await response.json();
-      let groups = result.groups;
+      const decryptedData = decryptPayload(result.data);
+      const fetchGroupType = decryptedData.groups;
+
+      let groups = fetchGroupType;
 
       // Filter groups if a specific groupType is selected
       if (groupType !== "all") {
@@ -186,7 +228,7 @@ async function fetchFilteredGroups(groupType) {
 
       populateGroupsTable(groups); // Populate the groups table based on the filter
     } else {
-      alert("Failed to load groups.");
+      alert(result.message || "Failed to load groups.");
     }
   } catch (error) {
     console.error("Error fetching groups:", error);
@@ -280,20 +322,31 @@ function displayGroupMembersModal(groupName, groupType, groupOU, members) {
   const membersList = document.getElementById("membersList");
   membersList.innerHTML = ""; // Clear previous content
 
-  // Add member logo at the top right
+  // Add member logo at the top right (this is where the issue was)
   const addMemberLogo = document.createElement("div");
   addMemberLogo.classList.add("text-right", "mb-2");
-  addMemberLogo.innerHTML = `<button class="btn btn-link" onclick="openAddMemberInput('${groupName}','${groupType}','${groupOU}')">
-    <img src="/images/addUser.png" alt="Add Member" style="width:35px;">
+  addMemberLogo.innerHTML = `<button class="btn btn-link" id="addMemberBtn">
+    <img src="/images/addUser.png" alt="Add Member" class="group-icons">
   </button>`;
+
+  // Append the addMemberLogo to the members list
   membersList.appendChild(addMemberLogo);
 
+  // Now, add the event listener to the "Add Member" button inside the modal
+  document
+    .getElementById("addMemberBtn")
+    .addEventListener("click", function () {
+      openAddMemberInput(groupName, groupType, groupOU);
+    });
+
+  // Check if members list is empty
   if (members.length === 0) {
     const noMembersMessage = document.createElement("li");
     noMembersMessage.classList.add("list-group-item");
     noMembersMessage.textContent = "No members found in this group.";
     membersList.appendChild(noMembersMessage);
   } else {
+    // Loop through members and add them to the list
     members.forEach((member) => {
       const listItem = document.createElement("li");
       listItem.classList.add(
@@ -305,18 +358,21 @@ function displayGroupMembersModal(groupName, groupType, groupOU, members) {
 
       const deleteButton = document.createElement("button");
       deleteButton.classList.add("btn", "btn-link");
-      deleteButton.innerHTML = `<img src="/images/removeUser.png" alt="Delete" style="width:24px;">`;
-      deleteButton.onclick = () =>
+      deleteButton.innerHTML = `<img src="/images/removeUser.png" alt="Delete" class="navigation-icon">`;
+
+      deleteButton.addEventListener("click", () => {
         removeMemberFromGroup(groupName, groupType, groupOU, member);
+      });
 
       listItem.appendChild(deleteButton);
       membersList.appendChild(listItem);
     });
   }
 
+  // Show modal with backdrop and enable keyboard escape functionality
   $("#groupMembersModal").modal({
-    backdrop: false,
-    keyboard: true,
+    backdrop: false, // Disable backdrop (no background dimming)
+    keyboard: true, // Allow closing with the escape key
   });
 }
 
@@ -496,13 +552,10 @@ async function addMemberToGroup(
 
       // Check if error message indicates "User does not exist"
       if (errorData.message && errorData.message.includes("does not exist")) {
+        setInvalid(document.getElementById("addMemberInput"), "No user found!");
         setInvalid(
-          document.getElementById("addMemberInput"),
-          "User does not exist."
-        );
-        setInvalid(
-          document.getElementById("addMemberOU"),
-          "Please select a valid OU."
+          document.getElementById("addMemberOU")
+          // "Please select a valid OU."
         );
       } else {
         alert(`Failed to add member: ${errorData.message}`);

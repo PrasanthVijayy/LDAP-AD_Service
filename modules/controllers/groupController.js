@@ -8,6 +8,7 @@ import {
 } from "../../utils/error.js";
 import { search } from "../../utils/ldapUtils.js";
 import OrganizationService from "../services/orgainzationService.js";
+import { encryptPayload, decryptPayload } from "../../utils/encryption.js";
 class GroupController {
   constructor() {
     this.groupService = new GroupService();
@@ -17,8 +18,11 @@ class GroupController {
   createGroup = async (req, res, next) => {
     try {
       console.log("Controller: createGroup - Started");
-      const { groupName, description, groupType, groupOU } = req.body;
 
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
+
+      const { groupName, description, groupType, groupOU } = payload;
       let missingFields = [];
       if (!groupName) missingFields.push("groupName");
       if (!groupType) missingFields.push("groupType");
@@ -73,11 +77,12 @@ class GroupController {
       const filter = req.query.filter;
       console.log("Filter", filter);
       const groups = await this.groupService.listGroups(filter);
+      const encryptData = encryptPayload(groups);
       console.log("Controller: listGroups - Completed");
       // if (groups.count === 0) {
       //   res.status(204).end();
       // }
-      res.status(200).json(groups);
+      res.status(200).json({ data: encryptData });
     } catch (error) {
       console.log("Controller: listGroups - Error", error);
       next(error);
