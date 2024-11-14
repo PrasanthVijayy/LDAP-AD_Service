@@ -1,4 +1,22 @@
-const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
+const baseApiUrl = "/LDAP/v1"; // API Base URL
+
+const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV stage alone
+
+// Function to encrypt payload
+function encryptedData(data) {
+  const encryptedData = CryptoJS.AES.encrypt(
+    JSON.stringify(data),
+    SECRET_KEY
+  ).toString();
+  return encryptedData;
+}
+
+// Function to decrypt payload
+function decryptPayload(cipherText) {
+  const bytes = CryptoJS.AES.decrypt(cipherText, SECRET_KEY);
+  const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+  return JSON.parse(decryptedData);
+}
 
 document.addEventListener("DOMContentLoaded", function () {
   const username = localStorage.getItem("username");
@@ -65,13 +83,13 @@ document
 
     const apiUrl = `${baseApiUrl}/users/chpwd`;
 
-    const data = {
+    const data = encryptedData({
       username: username,
       userOU: userOU,
       currentPassword: currentPassword,
       newPassword: newPassword,
       confirmPassword: confirmPassword,
-    };
+    });
 
     try {
       const response = await fetch(apiUrl, {
@@ -80,7 +98,7 @@ document
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(data),
+        body: JSON.stringify({ data }),
       });
 
       const result = await response.json();
@@ -91,6 +109,7 @@ document
         document.getElementById("currentPassword").value = "";
         document.getElementById("newPassword").value = "";
         document.getElementById("confirmPassword").value = "";
+        location.reload(); // Refresh the page
       } else {
         document.getElementById(
           "message"
