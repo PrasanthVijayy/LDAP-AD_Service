@@ -1,6 +1,6 @@
 "use strict";
 
-const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
+const baseApiUrl = "/LDAP/v1"; // API Base URL
 
 // Validate session on each page load
 async function validateSession() {

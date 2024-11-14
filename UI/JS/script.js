@@ -1,4 +1,4 @@
-const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
+const baseApiUrl = "/LDAP/v1"; // API Base URL
 
 // Function to get element by ID
 function getElementById(id) {
@@ -34,9 +34,6 @@ document.addEventListener("DOMContentLoaded", function () {
       await handleLogin();
     });
   }
-
-  // Fetch users when the page loads (without needing to search first)
-  // fetchUsers();
 });
 
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV stage alone
@@ -465,9 +462,14 @@ function editUser(index) {
   const editUser = window.usersData[index];
   const username = editUser.userName;
   const userOU = extractOU(editUser.dn); // Extract OU correctly
+
+  // Encrypting the username and userOU values
+  const encryptedUsername = encryptData(username);
+  const encryptedUserOU = encryptData(userOU);
+
   window.location.href = `/editUser?username=${encodeURIComponent(
-    username
-  )}&ou=${encodeURIComponent(userOU)}`;
+    encryptedUsername
+  )}&ou=${encodeURIComponent(encryptedUserOU)}`;
 }
 
 // Populate form fields with user data
@@ -510,8 +512,11 @@ function handleEditTypeChange() {
 // On page load, fetch user details and set initial form state
 document.addEventListener("DOMContentLoaded", function () {
   const urlParams = new URLSearchParams(window.location.search);
-  const username = urlParams.get("username");
-  const userOU = urlParams.get("ou");
+  const encryptedUsername = urlParams.get("username");
+  const encryptedUserOU = urlParams.get("ou");
+
+  const username = decryptPayload(encryptedUsername);
+  const userOU = decryptPayload(encryptedUserOU)
 
   // Ensure username and OU fields are filled from URL params
   if (username && userOU) {
