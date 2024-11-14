@@ -59,6 +59,7 @@ app.use(
           "https://stackpath.bootstrapcdn.com",
           (req, res) => `'nonce-${res.locals.nonce}'`,
         ],
+        formAction: ["'self'", "*"],
         imgSrc: ["'self'", "data:"],
       },
     },
@@ -72,7 +73,7 @@ app.use(cookieParser()); // Cookie parser middleware
 
 /* --------- CORS SETUP --------- */
 const corsOptions = {
-  origin: "*", // Allow all origins (you can limit this to your IP if needed)
+  origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "X-Requested-With"],
   credentials: true,
@@ -111,8 +112,11 @@ app.use(
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-app.get("/", (req, res) => {
-  res.render("index");
+/* --------- STATIC FILES --------- */
+// This is your existing static file setup
+app.use(express.static(path.join(__dirname, "UI")), (req, res, next) => {
+  console.log(`Request for static file: ${req.url}`);
+  next();
 });
 
 /* ---------- UI RENDERING SETUP ---------- */
@@ -159,12 +163,6 @@ app.get("/changePassword", (req, res) => {
 
 app.get("/searchUser", (req, res) => {
   res.render("Pages/userSearch"); // Renders the resetPassword
-});
-
-/* --------- STATIC FILES --------- */
-app.use(express.static(path.join(__dirname, "UI")), (req, res, next) => {
-  console.log("Request URL:", req.url); // Log the requested URL
-  next();
 });
 
 /* ---------- API ROUTES SETUP  ----------*/

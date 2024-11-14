@@ -1,4 +1,22 @@
-const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
+const baseApiUrl = "/LDAP/v1"; // API Base URL
+
+const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV stage alone
+
+// Function to encrypt payload
+function encryptedData(data) {
+  const encryptedData = CryptoJS.AES.encrypt(
+    JSON.stringify(data),
+    SECRET_KEY
+  ).toString();
+  return encryptedData;
+}
+
+// Function to decrypt payload
+function decryptPayload(cipherText) {
+  const bytes = CryptoJS.AES.decrypt(cipherText, SECRET_KEY);
+  const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+  return JSON.parse(decryptedData);
+}
 
 // On page load, populate OU dropdown and attach the form submission handler
 document.addEventListener("DOMContentLoaded", () => {
@@ -27,16 +45,12 @@ async function fetchOrganizationalUnits() {
 
     const result = await response.json();
     const decryptedData = decryptPayload(result.data);
-    const organizations = decryptedData.organizations;
+    const memberOU = decryptedData.organizations;
 
     const ouDropdown = document.getElementById("ouDropdown");
 
-    if (
-      response.ok &&
-      organizations.organizations &&
-      organizations.organizations.length > 0
-    ) {
-      organizations.forEach((ou) => {
+    if (response.ok && memberOU && memberOU.length > 0) {
+      memberOU.forEach((ou) => {
         const option = document.createElement("option");
         option.value = ou.organizationDN;
         option.textContent = ou.organizationDN;
@@ -52,26 +66,34 @@ async function fetchOrganizationalUnits() {
 
 // Function to search user based on username and OU
 async function searchUser() {
-  // Clear previous errors or user details
-  document.getElementById("userDetailsTable").classList.add("d-none");
-  document.getElementById("errorMessage").classList.add("d-none");
-
-  const username = document.getElementById("usernameInput").value.trim();
-  const selectedOU = document.getElementById("ouDropdown").value.trim();
-
-  // Validate the form
-  if (!username) {
-    document.getElementById("errorMessage").classList.remove("d-none");
-    document.getElementById("errorMessage").textContent =
-      "Please enter a username.";
-    return;
-  }
-
   try {
+    // Clear previous errors or user details
+    document.getElementById("userDetailsTable").classList.add("d-none");
+    document.getElementById("errorMessage").classList.add("d-none");
+
+    const username = document.getElementById("usernameInput").value.trim();
+    const selectedOU = document.getElementById("ouDropdown").value.trim();
+
+    // Validate the form
+    if (!username) {
+      document.getElementById("errorMessage").classList.remove("d-none");
+      document.getElementById("errorMessage").textContent =
+        "Please enter a username.";
+      return;
+    }
+
+    // Encrypt the username and userOU values
+    const encryptedUsername = encryptedData(username);
+    const encryptedUserOU = encryptedData(selectedOU);
+
+    // Encode for URL safety
+    const encodedUsername = encodeURIComponent(encryptedUsername);
+    const encodedUserOU = encodeURIComponent(encryptedUserOU);
+
     // Construct API URL based on whether OU is provided
-    let apiUrl = `${baseApiUrl}/users/search?username=${username}`;
+    let apiUrl = `${baseApiUrl}/users/search?username=${encodedUsername}`;
     if (selectedOU) {
-      apiUrl += `&userOU=${selectedOU}`;
+      apiUrl += `&userOU=${encodedUserOU}`;
     }
 
     const response = await fetch(apiUrl, {
@@ -123,4 +145,3 @@ function displayUserDetails(users) {
   // Show the user details table
   document.getElementById("userDetailsTable").classList.remove("d-none");
 }
-  

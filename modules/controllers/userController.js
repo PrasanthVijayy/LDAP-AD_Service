@@ -590,15 +590,18 @@ class UserController {
   searchUser = async (req, res, next) => {
     try {
       console.log("Controller: searchUser - Started");
-      const { username, userOU } = req.query;
 
-      let missingFields = [];
-      if (!username) missingFields.push("username");
-      // if (!userOU) missingFields.push("userOU");
-      if (missingFields.length > 0) {
-        return next(
-          new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
-        );
+      // Decrypt the incoming encrypted parameters
+      const encryptedUsername = req.query.username;
+      const encryptedUserOU = req.query.userOU;
+
+      // Decrypt the values
+      const username = decryptPayload(encryptedUsername);
+      const userOU = encryptedUserOU ? decryptPayload(encryptedUserOU) : null;
+
+      // Check for missing fields after decryption
+      if (!username) {
+        return next(new BadRequestError("Missing fields: username"));
       }
 
       // const userExists = await search(
@@ -623,13 +626,16 @@ class UserController {
   chpwd = async (req, res, next) => {
     try {
       console.log("Controller: chpwd - Started");
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
+
       const {
         username,
         currentPassword,
         newPassword,
         confirmPassword,
         userOU,
-      } = req.body;
+      } = payload;
 
       let missingFields = [];
       if (!username) missingFields.push("username");

@@ -1,4 +1,4 @@
-const baseApiUrl = "http://localhost:4001/LDAP/v1"; // API Base URL
+const baseApiUrl = "/LDAP/v1"; // API Base URL
 
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV  stage alone
 
