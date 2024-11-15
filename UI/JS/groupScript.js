@@ -1,6 +1,6 @@
 "use-strict";
 
-const baseApiUrl = "/LDAP/v1"; // Replace with actual base URL
+const groupBaseAPI = "/LDAP/v1"; // Replace with actual base URL
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV  stage alone
 
 // Function to encrypt payload
@@ -27,7 +27,7 @@ $(document).ready(function () {
 // Fetch list of OUs from the API
 async function fetchOrganizationalUnits() {
   try {
-    const apiUrl = `${baseApiUrl}/organizations/listOrganizations`;
+    const apiUrl = `${groupBaseAPI}/organizations/listOrganizations`;
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
@@ -108,7 +108,7 @@ document
     });
 
     try {
-      const response = await fetch(`${baseApiUrl}/groups/createGroup`, {
+      const response = await fetch(`${groupBaseAPI}/groups/createGroup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -140,7 +140,7 @@ document
 // Fetch and list groups
 async function fetchGroups() {
   try {
-    const response = await fetch(`${baseApiUrl}/groups/listGroups`, {
+    const response = await fetch(`${groupBaseAPI}/groups/listGroups`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -226,7 +226,7 @@ document
 // Fetch filtered groups by groupType
 async function fetchFilteredGroups(groupType) {
   try {
-    const response = await fetch(`${baseApiUrl}/groups/listGroups`, {
+    const response = await fetch(`${groupBaseAPI}/groups/listGroups`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -276,7 +276,7 @@ async function lockGroupMembers(index) {
     const groupOU = extractOU(group.dn);
 
     const requestBody = { groupName: groupName, groupOU: groupOU };
-    const response = await fetch(`${baseApiUrl}/users/lockGroupMembers`, {
+    const response = await fetch(`${groupBaseAPI}/users/lockGroupMembers`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -327,7 +327,7 @@ async function lockGroupMembers(index) {
 async function viewGroupDetails(groupName, groupType, groupOU) {
   try {
     const response = await fetch(
-      `${baseApiUrl}/groups/membersInGroup?groupName=${groupName}&OU=${groupOU}`,
+      `${groupBaseAPI}/groups/membersInGroup?groupName=${groupName}&OU=${groupOU}`,
       {
         method: "GET",
         headers: {
@@ -573,7 +573,7 @@ async function addMemberToGroup(
   };
 
   try {
-    const response = await fetch(`${baseApiUrl}/groups/${apiEndpoint}`, {
+    const response = await fetch(`${groupBaseAPI}/groups/${apiEndpoint}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -666,7 +666,7 @@ async function removeMemberFromGroup(groupName, groupType, groupOU, member) {
     const username = extractUsernameFromDN(member);
     const userOU = extractOU(member);
 
-    const response = await fetch(`${baseApiUrl}/groups/${apiEndpoint}`, {
+    const response = await fetch(`${groupBaseAPI}/groups/${apiEndpoint}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

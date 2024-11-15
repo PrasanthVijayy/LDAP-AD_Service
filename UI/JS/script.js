@@ -1,4 +1,4 @@
-const baseApiUrl = "/LDAP/v1"; // API Base URL
+const scriptBaseAPI = "/LDAP/v1"; // API Base URL
 
 // Function to get element by ID
 function getElementById(id) {
@@ -63,7 +63,7 @@ async function handleLogin() {
     'input[name="userType"]:checked'
   ).value;
 
-  const apiUrl = `${baseApiUrl}/users/authenticate`;
+  const apiUrl = `${scriptBaseAPI}/users/authenticate`;
   const data = encryptData({
     username: username,
     password: password,
@@ -111,7 +111,7 @@ window.usersData = [];
 
 // Fetch users from the API
 async function fetchUsers() {
-  const apiUrl = `${baseApiUrl}/users/listUsers`;
+  const apiUrl = `${scriptBaseAPI}/users/listUsers`;
 
   try {
     const response = await fetch(apiUrl, {
@@ -179,7 +179,7 @@ async function searchUsers() {
   }
 
   try {
-    const apiUrl = `${baseApiUrl}/users/listUsers?filter=${encodeURIComponent(
+    const apiUrl = `${scriptBaseAPI}/users/listUsers?filter=${encodeURIComponent(
       filter
     )}`;
     const response = await fetch(apiUrl, {
@@ -380,7 +380,7 @@ async function deleteUser(index) {
     return;
   }
 
-  const apiUrl = `${baseApiUrl}/users/deleteUser`;
+  const apiUrl = `${scriptBaseAPI}/users/deleteUser`;
 
   const data = encryptData({
     username: userToDelete.userName,
@@ -436,7 +436,7 @@ async function toggleUserLock(index, action) {
     return;
   }
 
-  const apiUrl = `${baseApiUrl}/users/userLockAction`;
+  const apiUrl = `${scriptBaseAPI}/users/userLockAction`;
   const requestBody = encryptData({
     username: username,
     userOU: indexOU,
@@ -548,7 +548,7 @@ async function fetchUserDetails(username, userOU) {
     urlParams.append("filter", `cn=${username}`);
     urlParams.append("filter", `ou=${userOU}`);
 
-    const apiUrl = `${baseApiUrl}/users/listUsers?${urlParams.toString()}`;
+    const apiUrl = `${scriptBaseAPI}/users/listUsers?${urlParams.toString()}`;
 
     const response = await fetch(apiUrl, {
       method: "GET",
@@ -699,8 +699,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const apiUrl =
           editType === "general"
-            ? `${baseApiUrl}/users/updateUser`
-            : `${baseApiUrl}/users/updateContactDetails`;
+            ? `${scriptBaseAPI}/users/updateUser`
+            : `${scriptBaseAPI}/users/updateContactDetails`;
 
         try {
           const response = await fetch(apiUrl, {

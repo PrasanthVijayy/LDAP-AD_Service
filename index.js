@@ -20,6 +20,7 @@ import domainRoutes from "./modules/routes/domainRoutes.js";
 import sessionRoute from "./modules/routes/sessionRoute.js";
 import errorHandling from "./middleware/errorMiddleware.js";
 import { connectToLDAP } from "./config/ldapconfig.js";
+import apiLimiter from "./middleware/apiLimiter.js";
 
 dotenv.config();
 const app = express(); // Create express app
@@ -75,7 +76,6 @@ app.use((req, res, next) => {
   // Set security headers
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("Origin-Agent-Cluster", "?0");
-  res.removeHeader("Strict-Transport-Security"); // Ensure HSTS is disabled for HTTP
   res.setHeader(
     "Cache-Control",
     "private, no-cache, no-store, must-revalidate"
@@ -114,7 +114,7 @@ app.use(
       secure: false,
       sameSite: "Lax",
       path: "/",
-      maxAge: 10 * 60 * 1000, // 10 minutes
+      maxAge: 1 * 60 * 1000, // 10 minutes
     },
   })
 );
@@ -134,50 +134,50 @@ app.use(express.static(path.join(__dirname, "UI")), (req, res, next) => {
 
 /* ---------- UI RENDERING SETUP ---------- */
 
-app.get("/", (req, res) => {
+app.get("/", apiLimiter(), (req, res) => {
   res.render("index"); // Renders the index
 });
 
-app.get("/adminDashboard", (req, res) => {
+app.get("/adminDashboard", apiLimiter(), (req, res) => {
   res.render("adminDashboard"); // Renders the adminDashboard
 });
 
-app.get("/userDashboard", (req, res) => {
+app.get("/userDashboard", apiLimiter(), (req, res) => {
   res.render("userDashboard"); // Renders the userDashboard
 });
 
-app.get("/createUser", (req, res) => {
+app.get("/createUser", apiLimiter(), (req, res) => {
   res.render("Pages/createUser"); // Renders the createUser
 });
 
-app.get("/listUsers", (req, res) => {
+app.get("/listUsers", apiLimiter(), (req, res) => {
   res.render("Pages/listUsers"); // Renders the listUsers
 });
 
-app.get("/listOrganizations", (req, res) => {
+app.get("/listOrganizations", apiLimiter(), (req, res) => {
   res.render("Pages/listOrganizations"); // Renders the listOrganizations
 });
 
-app.get("/createGroup", (req, res) => {
+app.get("/createGroup", apiLimiter(), (req, res) => {
   res.render("Pages/createGroup"); // Renders the createGroup
 });
 
-app.get("/resetPassword", (req, res) => {
+// file deepcode ignore NoRateLimitingForExpensiveWebOperation: <please specify a reason of ignoring this>
+app.get("/resetPassword", apiLimiter(), (req, res) => {
   res.render("Pages/resetPassword"); // Renders the resetPassword
 });
 
-app.get("/editUser", (req, res) => {
+app.get("/editUser", apiLimiter(), (req, res) => {
   res.render("Pages/editUser"); // Renders the editUser
 });
 
-app.get("/changePassword", (req, res) => {
+app.get("/changePassword", apiLimiter(), (req, res) => {
   res.render("Pages/chpwd"); // Renders the changePassword
 });
 
-app.get("/searchUser", (req, res) => {
+app.get("/searchUser", apiLimiter(), (req, res) => {
   res.render("Pages/userSearch"); // Renders the resetPassword
 });
-
 /* ---------- API ROUTES SETUP  ----------*/
 userRoutes(app);
 groupRoutes(app);

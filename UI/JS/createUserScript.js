@@ -1,6 +1,6 @@
 "use strict";
 
-const baseApiUrl = "/LDAP/v1"; // API Base URL
+const createUserBaseApiUrl = "/LDAP/v1"; // API Base URL
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV stage alone
 
 // Function to encrypt payload
@@ -23,7 +23,7 @@ $(document).ready(function () {
   // Fetch organizations and populate OU dropdown
   async function fetchOrganizations() {
     try {
-      const apiUrl = `${baseApiUrl}/organizations/listOrganizations`;
+      const apiUrl = `${createUserBaseApiUrl}/organizations/listOrganizations`;
       const response = await fetch(apiUrl, {
         method: "GET",
         headers: {
@@ -162,7 +162,7 @@ $(document).ready(function () {
     });
 
     try {
-      const apiUrl = `${baseApiUrl}/users/addUser`;
+      const apiUrl = `${createUserBaseApiUrl}/users/addUser`;
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
