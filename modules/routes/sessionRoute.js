@@ -8,7 +8,7 @@ const sessionRoute = (app) => {
 
   // SESSION CHECK ROUTE
   router.get("/check", sessionMiddleware, (req, res) => {
-    console.warn(`Session for user: ${req.user.username} & sessionID: ${req.sessionID}`);
+    // console.warn(`Session for user: ${req.user.username} & sessionID: ${req.sessionID}`);
     res.status(200).json({
       status: "success",
       sessionId: req.sessionID,

@@ -51,6 +51,13 @@ getElementById("createOrganizationForm")?.addEventListener(
         credentials: "include",
       });
 
+      if (response.status === 429) {
+        alert(
+          "Too many requests. Please wait a few minutes before trying again."
+        );
+        return; // Stop further execution
+      }
+
       if (response.ok) {
         alert("Organization created successfully.");
         fetchOrganizations();
@@ -85,6 +92,13 @@ async function fetchOrganizations() {
       },
       credentials: "include",
     });
+
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
 
     if (response.ok) {
       const result = await response.json();

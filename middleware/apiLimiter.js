@@ -6,16 +6,18 @@ import rateLimit from "express-rate-limit";
 import { TooManyRequestsError } from "../utils/error.js";
 
 const apiLimiter = (n) => {
+  const limit = n || 100; // If no limit is provided, default to 100 requests per minute
+
   return rateLimit({
-    windowMs: 5 * 60 * 1000, // 5 minutes waiting window
-    max: n,
+    windowMs: 15 * 60 * 1000, // 15 minutes waiting window
+    max: limit,
     handler: () => {
       throw new TooManyRequestsError(
-        "Too many requests, please try again after 05 minutes."
+        "You have exceeded the maximum number of requests. Please wait before trying again."
       );
     },
-    standardHeaders: true,
-    legacyHeaders: false,
+    standardHeaders: false, // Disable the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   });
 };
 

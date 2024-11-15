@@ -78,6 +78,13 @@ async function handleLogin() {
       credentials: "include", // This includes the session cookie
       body: JSON.stringify({ data }),
     });
+
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
     const result = await response.json();
 
     if (response.ok) {
@@ -393,6 +400,13 @@ async function deleteUser(index) {
       body: JSON.stringify({ data }),
     });
 
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
+
     if (response.ok) {
       alert(`${userToDelete.userName} was deleted successfully.`);
       fetchUsers(); // Refresh the users list after deletion
@@ -435,6 +449,13 @@ async function toggleUserLock(index, action) {
       body: JSON.stringify({ data: requestBody }),
     });
 
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
+
     if (response.ok) {
       const result = await response.json();
       alert(result.message || "Action completed successfully.");
@@ -450,12 +471,6 @@ async function toggleUserLock(index, action) {
     alert("An error occurred. Please try again later.");
   }
 }
-// window.onload = function () {
-//   const currentPage = window.location.pathname; // Get the current page name
-//   if (currentPage === "/listUsers") {
-//     fetchUsers(); // Fetch and display users on page load
-//   }
-// };
 
 // Function to initiate user edit and pass necessary parameters
 function editUser(index) {
@@ -516,7 +531,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const encryptedUserOU = urlParams.get("ou");
 
   const username = decryptPayload(encryptedUsername);
-  const userOU = decryptPayload(encryptedUserOU)
+  const userOU = decryptPayload(encryptedUserOU);
 
   // Ensure username and OU fields are filled from URL params
   if (username && userOU) {
@@ -541,6 +556,13 @@ async function fetchUserDetails(username, userOU) {
         "Content-Type": "application/json",
       },
     });
+    
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
 
     if (response.ok) {
       const result = await response.json();

@@ -32,6 +32,13 @@ $(document).ready(function () {
         credentials: "include",
       });
 
+      if (response.status === 429) {
+        alert(
+          "Too many requests. Please wait a few minutes before trying again."
+        );
+        return; // Stop further execution
+      }
+
       if (response.ok) {
         const result = await response.json();
         const decryptedData = decryptPayload(result.data);
@@ -166,6 +173,13 @@ $(document).ready(function () {
       });
 
       const result = await response.json();
+
+      if (response.status === 429) {
+        alert(
+          "Too many requests. Please wait a few minutes before trying again."
+        );
+        return; // Stop further execution
+      }
 
       if (response.ok) {
         // Show success message and reset form
