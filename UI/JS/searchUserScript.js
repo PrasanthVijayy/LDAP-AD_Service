@@ -1,4 +1,4 @@
-const baseApiUrl = "/LDAP/v1"; // API Base URL
+const searchBaseAPI = "/LDAP/v1"; // API Base URL
 
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV stage alone
 
@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // Fetch list of OUs from the API
 async function fetchOrganizationalUnits() {
   try {
-    const apiUrl = `${baseApiUrl}/organizations/listOrganizations`;
+    const apiUrl = `${searchBaseAPI}/organizations/listOrganizations`;
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
@@ -98,7 +98,7 @@ async function searchUser() {
     const encodedUserOU = encodeURIComponent(encryptedUserOU);
 
     // Construct API URL based on whether OU is provided
-    let apiUrl = `${baseApiUrl}/users/search?username=${encodedUsername}`;
+    let apiUrl = `${searchBaseAPI}/users/search?username=${encodedUsername}`;
     if (selectedOU) {
       apiUrl += `&userOU=${encodedUserOU}`;
     }

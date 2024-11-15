@@ -1,4 +1,4 @@
-const baseApiUrl = "/LDAP/v1"; // API Base URL
+const resetPasswordBaseAPI = "/LDAP/v1"; // API Base URL
 
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV  stage alone
 
@@ -26,7 +26,7 @@ $(document).ready(function () {
 // Fetch list of OUs from the API
 async function fetchOrganizationalUnits() {
   try {
-    const apiUrl = `${baseApiUrl}/organizations/listOrganizations`;
+    const apiUrl = `${resetPasswordBaseAPI}/organizations/listOrganizations`;
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
@@ -136,7 +136,7 @@ document
     });
 
     try {
-      const response = await fetch(`${baseApiUrl}/users/resetPwd`, {
+      const response = await fetch(`${resetPasswordBaseAPI}/users/resetPwd`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

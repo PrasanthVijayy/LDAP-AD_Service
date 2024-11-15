@@ -1,6 +1,6 @@
 "use strict";
 
-const baseApiUrl = "/LDAP/v1"; // API Base URL
+const organizationBaseAPI = "/LDAP/v1"; // API Base URL
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV  stage alone
 
 // Function to get element by ID
@@ -34,7 +34,7 @@ getElementById("createOrganizationForm")?.addEventListener(
       "organizationDescription"
     ).value;
 
-    const apiUrl = `${baseApiUrl}/organizations/createOrganization`;
+    const apiUrl = `${organizationBaseAPI}/organizations/createOrganization`;
 
     const data = encryptData({
       organizationName: organizationName,
@@ -82,7 +82,7 @@ window.organizationsData = [];
 
 // Fetch organizations from the API
 async function fetchOrganizations() {
-  const apiUrl = `${baseApiUrl}/organizations/listOrganizations`;
+  const apiUrl = `${organizationBaseAPI}/organizations/listOrganizations`;
 
   try {
     const response = await fetch(apiUrl, {

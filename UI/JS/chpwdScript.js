@@ -1,4 +1,4 @@
-const baseApiUrl = "/LDAP/v1"; // API Base URL
+const chpwdBaseAPI = "/LDAP/v1"; // API Base URL
 
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV stage alone
 
@@ -81,7 +81,7 @@ document
       document.getElementById("confirmPassword").classList.remove("is-invalid");
     }
 
-    const apiUrl = `${baseApiUrl}/users/chpwd`;
+    const apiUrl = `${chpwdBaseAPI}/users/chpwd`;
 
     const data = encryptedData({
       username: username,

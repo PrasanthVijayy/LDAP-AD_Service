@@ -1,6 +1,7 @@
 import express from "express";
 import OrganizationController from "../controllers/organizationController.js";
 import { sessionMiddleware } from "../../middleware/sessionMiddleware.js";
+import apiLimiter from "../../middleware/apiLimiter.js";
 
 const organizationController = new OrganizationController();
 
