@@ -43,6 +43,13 @@ async function fetchOrganizationalUnits() {
       credentials: "include",
     });
 
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
+
     const result = await response.json();
     const decryptedData = decryptPayload(result.data);
     const memberOU = decryptedData.organizations;
@@ -105,6 +112,13 @@ async function searchUser() {
     });
 
     const result = await response.json();
+
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
 
     if (response.ok && result.users && result.users.length > 0) {
       displayUserDetails(result.users); // Display user details in table format

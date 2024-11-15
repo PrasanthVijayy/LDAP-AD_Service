@@ -36,6 +36,13 @@ async function fetchOrganizationalUnits() {
       credentials: "include",
     });
 
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
+
     const result = await response.json();
     const decryptedData = decryptPayload(result.data);
     const groupsOU = decryptedData.organizations;
@@ -110,6 +117,13 @@ document
         body: JSON.stringify({ data: groupPayload }), // Encrypted payload
       });
 
+      if (response.status === 429) {
+        alert(
+          "Too many requests. Please wait a few minutes before trying again."
+        );
+        return; // Stop further execution
+      }
+
       if (response.ok) {
         alert("Group created successfully!");
         fetchGroups(); // Refresh group list after creation
@@ -134,6 +148,12 @@ async function fetchGroups() {
       credentials: "include",
     });
 
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
     if (response.ok) {
       const result = await response.json();
 
@@ -214,6 +234,13 @@ async function fetchFilteredGroups(groupType) {
       credentials: "include",
     });
 
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
+
     if (response.ok) {
       const result = await response.json();
       const decryptedData = decryptPayload(result.data);
@@ -259,6 +286,12 @@ async function lockGroupMembers(index) {
       body: JSON.stringify(requestBody),
     });
 
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
     if (response.ok) {
       // Get the JSON response if needed
       const result = await response.json();
@@ -303,6 +336,13 @@ async function viewGroupDetails(groupName, groupType, groupOU) {
         credentials: "include",
       }
     );
+
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
 
     if (response.ok) {
       const result = await response.json();
@@ -543,6 +583,13 @@ async function addMemberToGroup(
       body: JSON.stringify(payload),
     });
 
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
+
     if (response.ok) {
       alert(`Member "${newMember}" added to group "${groupName}".`);
       viewGroupDetails(groupName, groupType, groupOU);
@@ -632,6 +679,13 @@ async function removeMemberFromGroup(groupName, groupType, groupOU, member) {
         memberOU: userOU,
       }),
     });
+
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
 
     if (response.ok) {
       alert(`Member "${username}" removed from group "${groupName}".`);

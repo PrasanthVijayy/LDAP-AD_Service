@@ -103,6 +103,13 @@ document
 
       const result = await response.json();
 
+      if (response.status === 429) {
+        alert(
+          "Too many requests. Please wait a few minutes before trying again."
+        );
+        return; // Stop further execution
+      }
+
       if (response.ok) {
         document.getElementById("message").innerHTML =
           '<div class="alert alert-success">Password reset successfully!</div>';

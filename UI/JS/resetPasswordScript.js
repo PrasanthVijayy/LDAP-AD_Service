@@ -35,11 +35,15 @@ async function fetchOrganizationalUnits() {
       credentials: "include",
     });
 
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
     const result = await response.json();
     const decryptedData = decryptPayload(result.data);
-    console.warn("decryptedData", decryptedData);
     const memberOU = decryptedData.organizations;
-    console.warn("groups", memberOU);
 
     const ouDropdownMenu = $("#ouDropdownMenu");
 
@@ -136,9 +140,15 @@ document
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({data}),
+        body: JSON.stringify({ data }),
       });
 
+      if (response.status === 429) {
+        alert(
+          "Too many requests. Please wait a few minutes before trying again."
+        );
+        return; // Stop further execution
+      }
       const result = await response.json();
 
       if (response.ok) {

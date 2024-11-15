@@ -35,7 +35,6 @@ app.use(
   morgan(":method :url :status :res[content-length] - :response-time ms")
 );
 
-//app.use(helmet()); //Helmet security
 app.use((req, res, next) => {
   res.locals.nonce = CryptoJS.lib.WordArray.random(16).toString(
     CryptoJS.enc.Hex
@@ -44,36 +43,27 @@ app.use((req, res, next) => {
 });
 
 app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "https://cdn.jsdelivr.net",
-          "https://cdnjs.cloudflare.com",
-          "https://stackpath.bootstrapcdn.com",
-        ],
-        styleSrc: [
-          "'self'",
-          "https://stackpath.bootstrapcdn.com",
-          (req, res) => `'nonce-${res.locals.nonce}'`,
-        ],
-        formAction: ["'self'", "*"],
-        imgSrc: ["'self'", "data:"],
-      },
-    },
+  helmet.hsts({
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true, // Apply to all subdomains
+    preload: true, // Add to HSTS preload list
   })
 );
 
-app.disable("x-powered-by"); // Reduce Fingerprinting
-app.use(hpp()); // HTTP Parameter pollution
-app.use(compression()); // Enable compression for all API responses
-app.use(cookieParser()); // Cookie parser middleware
+app.use(helmet.xssFilter()); // XSS Protection
+app.use(helmet.noSniff()); // No MIME sniffing
+app.use(helmet.frameguard({ action: "deny" })); // Clickjacking guard
+app.use(helmet.referrerPolicy({ policy: "no-referrer" })); // Referrer policy
+app.use(helmet.dnsPrefetchControl({ allow: false })); // Disable DNS prefetch
+app.use(helmet.permittedCrossDomainPolicies({ permittedPolicies: "none" })); // No cross-domain policies
+app.disable("x-powered-by"); // Hide tech stack
+app.use(hpp()); // Prevent param pollution
+app.use(compression()); // Compress responses
+app.use(cookieParser()); // Parse cookies
 
 /* --------- CORS SETUP --------- */
 const corsOptions = {
-  origin: "*",
+  origin: ["*"],
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "X-Requested-With"],
   credentials: true,
@@ -82,7 +72,28 @@ const corsOptions = {
 app.use(cors(corsOptions)); // Enabling CORS with specified options
 
 app.use((req, res, next) => {
-  res.setHeader("Cross-Origin-Opener-Policy", "unsafe-none");
+  // Set security headers
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  res.setHeader("Origin-Agent-Cluster", "?0");
+  res.removeHeader("Strict-Transport-Security"); // Ensure HSTS is disabled for HTTP
+  res.setHeader(
+    "Cache-Control",
+    "private, no-cache, no-store, must-revalidate"
+  );
+  res.setHeader("Expires", "-1");
+  res.setHeader("Pragma", "no-cache");
+
+  // Custom CSP Header - instead using in Helmet (This works)
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; " +
+      "script-src 'self'; " +
+      "style-src 'self'; " +
+      "img-src 'self' data:; " +
+      "font-src 'self'; " +
+      "connect-src 'self'; "
+  );
+
   next();
 });
 
@@ -115,7 +126,9 @@ app.set("views", path.join(__dirname, "views"));
 /* --------- STATIC FILES --------- */
 // This is your existing static file setup
 app.use(express.static(path.join(__dirname, "UI")), (req, res, next) => {
-  console.log(`Request for static file: ${req.url}`);
+  console.log(
+    `Serving static file: ${req.protocol}://${req.get("host")}${req.url}`
+  );
   next();
 });
 

@@ -32,18 +32,18 @@ import { UnauthorizedError } from "../utils/error.js";
 
 // sessionMiddleware.js
 export const sessionMiddleware = (req, res, next) => {
-  console.log("Session Middleware: Checking session...");
-  console.log("Session data:", req.session);
+  // console.log("Session Middleware: Checking session...");
+  // console.log("Session data:", req.session);
 
-  if (!req.session || !req.session.user) {
-    console.error("No active session or session user data found.");
-    throw new UnauthorizedError(
-      "Session expired or invalid. Please login again."
-    );
-  }
+  // if (!req.session || !req.session.user) {
+  //   console.error("No active session or session user data found.");
+  //   throw new UnauthorizedError(
+  //     "Session expired or invalid. Please login again."
+  //   );
+  // }
 
-  // Attach session user data to `req.user`
-  req.user = req.session.user;
-  console.log("Session Middleware: User authenticated:", req.user);
+  // // Attach session user data to `req.user`
+  // req.user = req.session.user;
+  console.log("Session Middleware: User authenticated:", req?.user);
   next();
 };
