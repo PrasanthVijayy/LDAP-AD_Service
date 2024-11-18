@@ -748,13 +748,22 @@ class UserController {
       );
 
       // Create a session for the user
-
       req.session.user = {
         username,
         userType,
         OU: OU || fetchedOU,
       };
       console.warn("Data passed to session:", req.session.user);
+
+      // Set the `logged_in` cookie
+      res.cookie("logged_in", "yes", {
+        httpOnly: false,
+        secure: false, 
+        sameSite: "Lax",
+        path: "/",
+        maxAge: 31536000, // 1 year
+      });
+
       console.log("Controller: login - Completed");
 
       // Send a clearer response with the required data

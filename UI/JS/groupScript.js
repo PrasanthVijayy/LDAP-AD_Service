@@ -2,6 +2,7 @@
 
 const groupBaseAPI = "/LDAP/v1"; // Replace with actual base URL
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV  stage alone
+const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
 
 // Function to encrypt payload
 function encryptData(data) {
@@ -32,6 +33,7 @@ async function fetchOrganizationalUnits() {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "CSRF-Token": csrfToken,
       },
       credentials: "include",
     });
@@ -112,6 +114,7 @@ document
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "CSRF-Token": csrfToken,
         },
         credentials: "include",
         body: JSON.stringify({ data: groupPayload }), // Encrypted payload
@@ -144,6 +147,7 @@ async function fetchGroups() {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "CSRF-Token": csrfToken,
       },
       credentials: "include",
     });
@@ -230,6 +234,7 @@ async function fetchFilteredGroups(groupType) {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "CSRF-Token": csrfToken,
       },
       credentials: "include",
     });
@@ -280,6 +285,7 @@ async function lockGroupMembers(index) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "CSRF-Token": csrfToken,
       },
       credentials: "include",
 
@@ -332,6 +338,7 @@ async function viewGroupDetails(groupName, groupType, groupOU) {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          "CSRF-Token": csrfToken,
         },
         credentials: "include",
       }
@@ -577,6 +584,7 @@ async function addMemberToGroup(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "CSRF-Token": csrfToken,
       },
       credentials: "include",
 
@@ -670,6 +678,7 @@ async function removeMemberFromGroup(groupName, groupType, groupOU, member) {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
+        "CSRF-Token": csrfToken,
       },
       credentials: "include",
       body: JSON.stringify({

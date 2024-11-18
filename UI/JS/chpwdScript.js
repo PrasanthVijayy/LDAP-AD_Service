@@ -2,6 +2,8 @@ const chpwdBaseAPI = "/LDAP/v1"; // API Base URL
 
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV stage alone
 
+const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
+
 // Function to encrypt payload
 function encryptedData(data) {
   const encryptedData = CryptoJS.AES.encrypt(
@@ -96,6 +98,7 @@ document
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "CSRF-Token": csrfToken,
         },
         credentials: "include",
         body: JSON.stringify({ data }),

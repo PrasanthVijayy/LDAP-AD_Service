@@ -1,6 +1,7 @@
 "use strict";
 
 const sessionBaseAPI = "/LDAP/v1"; // API Base URL
+const csrfToken = document.querySelector('input[name="_csrf"]').value; // 
 
 // Block UI rendering until session is validated
 document.body.style.visibility = "hidden"; // Hide the entire page initially
@@ -9,11 +10,24 @@ document.body.style.visibility = "hidden"; // Hide the entire page initially
 async function validateSession() {
   console.log("Validating session...");
 
+  // Check the `logged_in` cookie value
+  const loggedInCookie = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("logged_in="));
+  const isLoggedIn = loggedInCookie?.split("=")[1] === "yes";
+
+  if (!isLoggedIn) {
+    console.log("User is not logged in. Redirecting to login.");
+    redirectToLogin();
+    document.body.style.visibility = "visible";
+    return;
+  }
+
   try {
     // Fetch the session check endpoint with credentials included
     const response = await fetch(`${sessionBaseAPI}/session/check`, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "CSRF-Token": csrfToken },
       credentials: "include", // Include cookies for session validation
     });
 
@@ -21,30 +35,25 @@ async function validateSession() {
       const data = await response.json();
 
       if (data.status === "success" && data.user) {
-        const userType = data.user.userType;
+        const validatedUserType = data.user.userType;
 
         // Redirect to their respective dashboard if on the login page
         if (window.location.pathname === "/") {
-          redirectToDashboard(userType);
+          redirectToDashboard(validatedUserType);
         }
 
         // Enforce user-type-based restrictions
-        enforceUserTypeRestrictions(userType);
+        enforceUserTypeRestrictions(validatedUserType);
       } else {
-        // Handle expired or invalid session
         handleSessionExpiry(false); // Redirect without showing an alert
       }
     } else {
-      // If the API returns an error (e.g., 401 Unauthorized)
-      console.warn("Session check failed with status:", response.status);
       handleSessionExpiry(false); // Redirect without showing an alert
     }
   } catch (error) {
-    // Handle fetch or network errors
     console.error("Error validating session:", error);
     redirectToLogin();
   } finally {
-    // Make the page visible after session validation
     document.body.style.visibility = "visible";
   }
 }
@@ -107,7 +116,7 @@ function clearSession() {
   localStorage.removeItem("userType");
   localStorage.removeItem("username");
   localStorage.removeItem("ouName");
-  document.cookie  = "";
+  document.cookie = "";
 }
 
 // Run session validation on page load

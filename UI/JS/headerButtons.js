@@ -1,12 +1,25 @@
 // Handle Sign Out button click
-document.getElementById("signoutButton").addEventListener("click", function () {
-  // Removing user data from local storage
-  localStorage.removeItem("userType");
-  localStorage.removeItem("username");
-  localStorage.removeItem("ouName");
+document
+  .getElementById("signoutButton")
+  .addEventListener("click", async function () {
+    try {
+      const response = await fetch("/LDAP/v1/session/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
 
-  window.location.href = "/"; // Redirect to the login page
-});
+      if (response.ok) {
+        localStorage.clear(); // Clear session data locally
+        window.location.href = "/"; // Redirect to the login page
+      } else {
+        throw new Error("Logout failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error during signout:", error);
+      alert("Failed to sign out. Please try again.");
+    }
+  });
 
 // Handle Back button click
 const backButton = document.getElementById("backButton");

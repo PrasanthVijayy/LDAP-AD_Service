@@ -112,11 +112,12 @@ window.usersData = [];
 // Fetch users from the API
 async function fetchUsers() {
   const apiUrl = `${scriptBaseAPI}/users/listUsers`;
+  const csrfToken = document.querySelector('input[name="_csrf"]').value;
 
   try {
     const response = await fetch(apiUrl, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "CSRF-Token": csrfToken },
     });
 
     if (response.status === 429) {
@@ -178,13 +179,15 @@ async function searchUsers() {
     }
   }
 
+  const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
+
   try {
     const apiUrl = `${scriptBaseAPI}/users/listUsers?filter=${encodeURIComponent(
       filter
     )}`;
     const response = await fetch(apiUrl, {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "CSRF-Token": csrfToken },
     });
 
     if (response.status === 429) {
@@ -341,8 +344,10 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
-// Initial user fetch
-fetchUsers();
+// Initial user fetch to particular page
+if (window.location.pathname === "/listUsers") {
+  fetchUsers();
+}
 
 // Show user details in the modal
 function showUserDetails(index) {
@@ -380,6 +385,8 @@ async function deleteUser(index) {
     return;
   }
 
+  const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
+
   const apiUrl = `${scriptBaseAPI}/users/deleteUser`;
 
   const data = encryptData({
@@ -396,6 +403,7 @@ async function deleteUser(index) {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
+        "CSRF-Token": csrfToken,
       },
       body: JSON.stringify({ data }),
     });
@@ -436,6 +444,8 @@ async function toggleUserLock(index, action) {
     return;
   }
 
+  const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
+
   const apiUrl = `${scriptBaseAPI}/users/userLockAction`;
   const requestBody = encryptData({
     username: username,
@@ -445,7 +455,7 @@ async function toggleUserLock(index, action) {
   try {
     const response = await fetch(apiUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "CSRF-Token": csrfToken },
       body: JSON.stringify({ data: requestBody }),
     });
 
@@ -548,15 +558,18 @@ async function fetchUserDetails(username, userOU) {
     urlParams.append("filter", `cn=${username}`);
     urlParams.append("filter", `ou=${userOU}`);
 
+    const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
+
     const apiUrl = `${scriptBaseAPI}/users/listUsers?${urlParams.toString()}`;
 
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "CSRF-Token": csrfToken,
       },
     });
-    
+
     if (response.status === 429) {
       alert(
         "Too many requests. Please wait a few minutes before trying again."
@@ -696,6 +709,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Encrypt the entire data object after data object is created fully
         const encryptedData = encryptData(data);
+        const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
 
         const apiUrl =
           editType === "general"
@@ -707,6 +721,7 @@ document.addEventListener("DOMContentLoaded", function () {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
+              "CSRF-Token": csrfToken,
             },
             body: JSON.stringify({ data: encryptedData }),
           });
