@@ -50,6 +50,7 @@
       <div class="card p-4 shadow-lg col-lg-6 col-md-8 col-sm-12 no-pointer">
         <h2 class="text-center mb-4">Create User</h2>
         <form id="createUserForm" autocomplete="off">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
           <!-- User Details -->
           <div class="form-row">
             <div class="form-group col-md-6">

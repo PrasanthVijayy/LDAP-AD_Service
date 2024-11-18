@@ -9,8 +9,9 @@ import { UnauthorizedError } from "../utils/error.js";
 export const sessionMiddleware = (req, res, next) => {
   console.log("Session Middleware: Checking session...");
   console.log("Session data:", req.session);
+  const loggedInStatus = req.cookies?.logged_in;
 
-  if (!req.session || !req.session.user) {
+  if (!req.session || !req.session.user || loggedInStatus === "no") {
     console.error("No active session or session user data found.");
     throw new UnauthorizedError(
       "Session expired or invalid. Please login again."
@@ -19,6 +20,6 @@ export const sessionMiddleware = (req, res, next) => {
 
   // Attach session user data to `req.user`
   req.user = req.session.user;
-  console.log("Session Middleware: User authenticated:", req?.user);
+  console.log("User authenticated:", req?.user);
   next();
 };

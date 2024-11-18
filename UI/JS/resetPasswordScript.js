@@ -85,7 +85,6 @@ function togglePasswordVisibility(fieldId, iconId) {
   toggleIcon.src = isPassword ? "/images/eye.png" : "/images/hidden.png"; // Update icon
 }
 
-// Add event listeners for password visibility toggles
 // Toggle password visibility for New Password
 document
   .getElementById("toggleNewPassword")
@@ -135,10 +134,14 @@ document
       confirmPassword: confirmPassword,
     });
 
+    const csrfToken = document.querySelector('input[name="_csrf"]').value;
     try {
       const response = await fetch(`${resetPasswordBaseAPI}/users/resetPwd`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "CSRF-Token": csrfToken,
+        },
         credentials: "include",
         body: JSON.stringify({ data }),
       });

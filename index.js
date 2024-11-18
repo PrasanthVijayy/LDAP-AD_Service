@@ -21,6 +21,7 @@ import sessionRoute from "./modules/routes/sessionRoute.js";
 import errorHandling from "./middleware/errorMiddleware.js";
 import { connectToLDAP } from "./config/ldapconfig.js";
 import apiLimiter from "./middleware/apiLimiter.js";
+import csrfProtection from "./UI/libs/csurfProtection.js";
 
 dotenv.config();
 const app = express(); // Create express app
@@ -93,7 +94,6 @@ app.use((req, res, next) => {
       "font-src 'self'; " +
       "connect-src 'self'; "
   );
-
   next();
 });
 
@@ -114,7 +114,7 @@ app.use(
       secure: false,
       sameSite: "Lax",
       path: "/",
-      maxAge: 1 * 60 * 1000, // 10 minutes
+      maxAge: 1 * 60 * 1000, // 1 minutes
     },
   })
 );
@@ -138,45 +138,45 @@ app.get("/", apiLimiter(), (req, res) => {
   res.render("index"); // Renders the index
 });
 
-app.get("/adminDashboard", apiLimiter(), (req, res) => {
-  res.render("adminDashboard"); // Renders the adminDashboard
+app.get("/adminDashboard", apiLimiter(), csrfProtection, (req, res) => {
+  res.render("adminDashboard", { csrfToken: req.csrfToken() }); // Renders the adminDashboard
 });
 
-app.get("/userDashboard", apiLimiter(), (req, res) => {
-  res.render("userDashboard"); // Renders the userDashboard
+app.get("/userDashboard", apiLimiter(), csrfProtection, (req, res) => {
+  res.render("userDashboard", { csrfToken: req.csrfToken() }); // Renders the userDashboard
 });
 
-app.get("/createUser", apiLimiter(), (req, res) => {
-  res.render("Pages/createUser"); // Renders the createUser
+app.get("/createUser", apiLimiter(), csrfProtection, (req, res) => {
+  res.render("Pages/createUser", { csrfToken: req.csrfToken() }); // Renders the createUser
 });
 
-app.get("/listUsers", apiLimiter(), (req, res) => {
-  res.render("Pages/listUsers"); // Renders the listUsers
+app.get("/listUsers", apiLimiter(), csrfProtection, (req, res) => {
+  res.render("Pages/listUsers", { csrfToken: req.csrfToken() }); // Renders the listUsers
 });
 
-app.get("/listOrganizations", apiLimiter(), (req, res) => {
-  res.render("Pages/listOrganizations"); // Renders the listOrganizations
+app.get("/listOrganizations", apiLimiter(), csrfProtection, (req, res) => {
+  res.render("Pages/listOrganizations", { csrfToken: req.csrfToken() }); // Renders the listOrganizations
 });
 
-app.get("/createGroup", apiLimiter(), (req, res) => {
-  res.render("Pages/createGroup"); // Renders the createGroup
+app.get("/createGroup", apiLimiter(), csrfProtection, (req, res) => {
+  res.render("Pages/createGroup", { csrfToken: req.csrfToken() }); // Renders the createGroup
 });
 
 // file deepcode ignore NoRateLimitingForExpensiveWebOperation: <please specify a reason of ignoring this>
-app.get("/resetPassword", apiLimiter(), (req, res) => {
-  res.render("Pages/resetPassword"); // Renders the resetPassword
+app.get("/resetPassword", apiLimiter(), csrfProtection, (req, res) => {
+  res.render("Pages/resetPassword", { csrfToken: req.csrfToken() });
 });
 
-app.get("/editUser", apiLimiter(), (req, res) => {
-  res.render("Pages/editUser"); // Renders the editUser
+app.get("/editUser", apiLimiter(), csrfProtection, (req, res) => {
+  res.render("Pages/editUser", { csrfToken: req.csrfToken() }); // Renders the editUser
 });
 
-app.get("/changePassword", apiLimiter(), (req, res) => {
-  res.render("Pages/chpwd"); // Renders the changePassword
+app.get("/changePassword", apiLimiter(), csrfProtection, (req, res) => {
+  res.render("Pages/chpwd", { csrfToken: req.csrfToken() }); // Renders the changePassword
 });
 
-app.get("/searchUser", apiLimiter(), (req, res) => {
-  res.render("Pages/userSearch"); // Renders the resetPassword
+app.get("/searchUser", apiLimiter(), csrfProtection, (req, res) => {
+  res.render("Pages/userSearch", { csrfToken: req.csrfToken() }); // Renders the resetPassword
 });
 /* ---------- API ROUTES SETUP  ----------*/
 userRoutes(app);

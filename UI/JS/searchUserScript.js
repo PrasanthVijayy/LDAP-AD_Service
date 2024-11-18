@@ -1,6 +1,7 @@
 const searchBaseAPI = "/LDAP/v1"; // API Base URL
 
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV stage alone
+const csrfToken = document.querySelector('input[name="_csrf"]').value;
 
 // Function to encrypt payload
 function encryptedData(data) {
@@ -39,6 +40,7 @@ async function fetchOrganizationalUnits() {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "CSRF-Token": csrfToken,
       },
       credentials: "include",
     });
@@ -107,6 +109,7 @@ async function searchUser() {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "CSRF-Token": csrfToken,
       },
       credentials: "include",
     });
