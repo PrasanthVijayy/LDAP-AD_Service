@@ -9,110 +9,167 @@
     <link rel="stylesheet" href="/CSS/styles.css" />
     <script src="/JS/sessionManager.js" defer></script>
   </head>
-  <body>
+  <body class="login-page">
     <div
       class="container d-flex align-items-center justify-content-center vh-100"
     >
       <div class="card p-5 shadow-lg no-pointer">
-        <h2 class="text-center mb-4">Login</h2>
-        <!-- Updated form to post to the /login route -->
-        <form id="loginForm">
-          <!-- Username input -->
-          <div class="form-group">
-            <label for="username" class="required">Username</label>
-            <input
-              type="text"
-              class="form-control"
-              id="username"
-              name="username"
-              placeholder="Enter username"
-              required
-            />
-          </div>
-
-          <!-- Password input with toggle icon -->
-          <div class="form-group">
-            <label for="password" class="required">Password</label>
-            <div class="input-group">
-              <input
-                type="password"
-                class="form-control"
-                id="password"
-                name="password"
-                placeholder="Enter password"
-                required
-              />
-              <div class="input-group-append">
-                <button
-                  class="btn btn-outline-secondary"
-                  type="button"
-                  id="togglePassword"
-                >
-                  <img
-                    id="togglePasswordIcon"
-                    src="/images/hidden.png"
-                    alt="Toggle Password"
-                    class="toggle-icon"
-                  />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- OU input field (required) -->
-          <div class="form-group">
-            <label for="ouSelect" class="required"
-              >Organizational Unit (OU)</label
+        <!-- Navigation Tabs for Login Options -->
+        <ul class="nav nav-tabs" id="loginTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <a
+              class="nav-link active"
+              id="loginTab"
+              data-bs-toggle="tab"
+              href="#loginFormTab"
+              role="tab"
+              aria-controls="loginFormTab"
+              aria-selected="true"
+              >Username/Password Login</a
             >
-            <div class="input-group">
-              <div class="input-group-prepend">
-                <span class="input-group-text">ou=</span>
-              </div>
-              <input
-                type="text"
-                class="form-control"
-                id="ouSelect"
-                name="ouSelect"
-                placeholder="Select or enter OU"
-                list="ouOptions"
-                required
-              />
+          </li>
+          <li class="nav-item" role="presentation">
+            <a
+              class="nav-link"
+              id="samlTab"
+              data-bs-toggle="tab"
+              href="#samlTabContent"
+              role="tab"
+              aria-controls="samlTabContent"
+              aria-selected="false"
+              >SSO Login (SAML)</a
+            >
+          </li>
+        </ul>
 
-              <div class="input-group-append">
-                <span class="input-group-text">,dc=myLDAP,dc=com</span>
+        <div class="tab-content" id="loginTabsContent">
+          <!-- Username/Password Login Form -->
+          <div
+            class="tab-pane fade show active"
+            id="loginFormTab"
+            role="tabpanel"
+            aria-labelledby="loginTab"
+          >
+            <h2 class="text-center mb-4">Login</h2>
+            <form id="loginForm">
+              <!-- Username input -->
+              <div class="form-group">
+                <label for="username" class="required">Username</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="username"
+                  name="username"
+                  placeholder="Enter username"
+                  required
+                />
               </div>
-            </div>
+
+              <!-- Password input with toggle icon -->
+              <div class="form-group">
+                <label for="password" class="required">Password</label>
+                <div class="input-group">
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="password"
+                    name="password"
+                    placeholder="Enter password"
+                    required
+                  />
+                  <div class="input-group-append">
+                    <button
+                      class="btn btn-outline-secondary"
+                      type="button"
+                      id="togglePassword"
+                    >
+                      <img
+                        id="togglePasswordIcon"
+                        src="/images/hidden.png"
+                        alt="Toggle Password"
+                        class="toggle-icon"
+                      />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Organizational Unit input -->
+              <div class="form-group">
+                <label for="ouSelect" class="required"
+                  >Organizational Unit (OU)</label
+                >
+                <div class="input-group">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text">ou=</span>
+                  </div>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="ouSelect"
+                    name="ouSelect"
+                    placeholder="Select or enter OU"
+                    list="ouOptions"
+                    required
+                  />
+                  <div class="input-group-append">
+                    <span class="input-group-text">,dc=myLDAP,dc=com</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- User type radio buttons -->
+              <div class="form-group">
+                <label>Type:</label>
+                <div class="form-check form-check-inline">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="userType"
+                    id="user"
+                    value="user"
+                    checked
+                  />
+                  <label class="form-check-label" for="user">User</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input
+                    class="form-check-input"
+                    type="radio"
+                    name="userType"
+                    id="admin"
+                    value="admin"
+                  />
+                  <label class="form-check-label" for="admin">Admin</label>
+                </div>
+              </div>
+
+              <!-- Submit button -->
+              <button type="submit" class="btn btn-primary btn-block">
+                Login
+              </button>
+            </form>
           </div>
 
-          <!-- User type (radio buttons aligned horizontally) -->
-          <div class="form-group">
-            <label>Type:</label>
-            <div class="form-check form-check-inline">
-              <input
-                class="form-check-input"
-                type="radio"
-                name="userType"
-                id="user"
-                value="user"
-                checked
-              />
-              <label class="form-check-label" for="user">User</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input
-                class="form-check-input"
-                type="radio"
-                name="userType"
-                id="admin"
-                value="admin"
-              />
-              <label class="form-check-label" for="admin">Admin</label>
+          <!-- SSO Login (SAML) Tab Content -->
+          <div
+            class="tab-pane fade"
+            id="samlTabContent"
+            role="tabpanel"
+            aria-labelledby="samlTab"
+          >
+            <h2 class="text-center mb-4">Login with SSO</h2>
+            <p class="text-center mb-4">Use Single Sign-On (SSO) via SAML</p>
+            <!-- Button to initiate SSO login (redirects to IdP) -->
+            <div class="text-center">
+              <a
+                href="/saml/login"
+                class="btn btn-primary btn-block"
+                >Login with SAML</a
+              >
             </div>
           </div>
-
-          <!-- Submit button -->
-          <button type="submit" class="btn btn-primary btn-block">Login</button>
-        </form>
+        </div>
       </div>
     </div>
 
