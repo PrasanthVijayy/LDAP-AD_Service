@@ -20,7 +20,7 @@ const sessionRoute = (app) => {
     });
   });
 
-  router.post("/logout", sessionMiddleware, (req, res) => {
+  router.post("/logout", (req, res) => {
     if (req.session) {
       req.session.destroy((err) => {
         if (err) {

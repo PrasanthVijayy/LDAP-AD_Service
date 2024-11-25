@@ -1,4 +1,3 @@
-.env
 
 package-lock.json
 
@@ -10,5 +9,10 @@ tasks.txt
 
 project-structure.txt
 
+SSL_certificate
+
+
+.env
+Certificates
 libs
-libs (folder) -> folder which has minified version of UI required files.
+# libs (folder) -> folder which has minified version of UI required files.

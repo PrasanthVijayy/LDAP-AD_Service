@@ -4,6 +4,59 @@ body {
   background-color: #277acd; /* Common background color */
 }
 
+/* ---- Card styles apply only on the login page ---- */
+.login-page .card {
+  border: none;
+  border-radius: 10px;
+  transition: transform 0.1s;
+  cursor: pointer;
+  width: 550px;
+  height: 550px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
+  padding: 15px;
+  cursor: pointer;
+}
+
+.login-page .tab-content {
+  overflow-y: auto;
+  padding: 10px;
+  flex-grow: 1;
+  height: 100%; /* Ensures it takes up the full height */
+}
+
+.login-page .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.login-page .nav-tabs {
+  margin-bottom: 20px;
+}
+
+.login-page .input-group .form-control {
+  padding-right: 2.5rem;
+}
+
+.login-page .card-img-top {
+  margin-top: 0;
+}
+
+.login-page .container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.login-page .no-pointer{
+  cursor: default;
+}
+
+/* Card style end for login page*/
+
+/* ---- Card Styling for non login pages ----*/
 .card {
   border: none;
   border-radius: 10px;
@@ -99,7 +152,7 @@ body {
   margin-right: 5px;
 }
 
-/* Asterisks in RED color*/
+/* Asterisks in RED color */
 .required::after {
   content: "*";
   color: red;
@@ -116,6 +169,7 @@ body {
   position: relative;
   z-index: 1;
 }
+
 .input-group {
   position: relative;
 }
@@ -143,6 +197,7 @@ body {
   background-color: rgb(255, 244, 244);
   z-index: 1000;
 }
+
 .dropdown-menu {
   position: absolute;
 }
@@ -175,6 +230,6 @@ body {
   width: 100%;
 }
 
-.common-font{
+.common-font {
   size: 140px;
 }
