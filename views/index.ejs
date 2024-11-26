@@ -50,10 +50,18 @@
             role="tabpanel"
             aria-labelledby="loginTab"
           >
-            <h2 class="text-center mb-4">Login</h2>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h2 class="text-center mb-0">Login</h2>
+              <!-- Dropdown for LDAP/AD -->
+              <select id="authType" class="form-select w-auto">
+                <option value="ldap" selected>OpenLDAP</option>
+                <option value="ad">AD</option>
+              </select>
+            </div>
+
             <form id="loginForm">
-              <!-- Username input -->
-              <div class="form-group">
+              <!-- Username/Email input -->
+              <div class="form-group" id="usernameGroup">
                 <label for="username" class="required">Username</label>
                 <input
                   type="text"
@@ -63,6 +71,21 @@
                   placeholder="Enter username"
                   required
                 />
+              </div>
+              <div class="form-group d-none" id="emailGroup">
+                <label for="email" class="required">Email</label>
+                <div class="input-group">
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="email"
+                    name="email"
+                    placeholder="Enter your mail"
+                  />
+                  <div class="input-group-append">
+                    <span class="input-group-text">@cylock.com</span>
+                  </div>
+                </div>
               </div>
 
               <!-- Password input with toggle icon -->
@@ -95,7 +118,7 @@
               </div>
 
               <!-- Organizational Unit input -->
-              <div class="form-group">
+              <div class="form-group" id="ouGroup">
                 <label for="ouSelect" class="required"
                   >Organizational Unit (OU)</label
                 >
@@ -119,7 +142,7 @@
               </div>
 
               <!-- User type radio buttons -->
-              <div class="form-group">
+              <div class="form-group" id="userTypeGroup">
                 <label>Type:</label>
                 <div class="form-check form-check-inline">
                   <input
@@ -162,9 +185,7 @@
             <p class="text-center mb-4">Use Single Sign-On (SSO) via SAML</p>
             <!-- Button to initiate SSO login (redirects to IdP) -->
             <div class="text-center">
-              <a
-                href="/saml/login"
-                class="btn btn-primary btn-block"
+              <a href="/saml/login" class="btn btn-primary btn-block"
                 >Login with SAML</a
               >
             </div>
