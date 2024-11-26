@@ -1,15 +1,13 @@
 "use strict";
 
 const sessionBaseAPI = "/LDAP/v1"; // API Base URL
-const csrfToken = document.querySelector('input[name="_csrf"]').value; // 
+// const csrfToken = document.querySelector('input[name="_csrf"]').value; //
 
 // Block UI rendering until session is validated
 document.body.style.visibility = "hidden"; // Hide the entire page initially
 
 // Validate session on each page load
 async function validateSession() {
-  console.log("Validating session...");
-
   // Check the `logged_in` cookie value
   const loggedInCookie = document.cookie
     .split("; ")
@@ -27,7 +25,7 @@ async function validateSession() {
     // Fetch the session check endpoint with credentials included
     const response = await fetch(`${sessionBaseAPI}/session/check`, {
       method: "GET",
-      headers: { "Content-Type": "application/json", "CSRF-Token": csrfToken },
+      headers: { "Content-Type": "application/json" },
       credentials: "include", // Include cookies for session validation
     });
 

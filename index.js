@@ -137,7 +137,8 @@ passport.use(
       const surname =
         profile.attributes[
           "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"
-        ];
+        ] || "Unknown";
+
       let userRole = "user"; // Default role is user
 
       // If surname is EMP001, set role as admin
@@ -169,15 +170,12 @@ app.use(
       secure: false,
       sameSite: "Lax",
       path: "/",
-      maxAge: 1 * 60 * 1000, // 1 minutes
     },
   })
 );
 
 /* Middleware to manage `logged_in` cookie */
 app.use((req, res, next) => {
-  // console.log("Ensuring `logged_in` cookie is set...");
-
   const isUserLoggedIn = req.session && req.session.user;
   const loggedInValue = isUserLoggedIn ? "yes" : "no";
 
@@ -229,22 +227,95 @@ app.post(
   passport.authenticate("saml", {
     failureRedirect: "/saml/login", // Redirect if authentication fails
   }),
-  function (req, res) {
-    // Access the user role from req.user (added in the SAML strategy)
-    const userRole = req.user && req.user.role;
+  (req, res) => {
+    if (!req.user) {
+      console.error("SAML authentication failed.");
+      return res.redirect("/"); // Redirect to home on failure
+    }
 
-    // Redirect based on the role
-    if (userRole === "admin") {
-      console.warn("Redirecting to adminDashboard");
+    console.log("SAML Authentication Successful:", req.user);
+
+    // Extract raw assertion XML
+    const rawAssertionXml = req.user.getAssertionXml();
+    if (!rawAssertionXml) {
+      console.error("SAML assertion is missing.");
+      return res.redirect("/"); // Handle the case where no assertion is available
+    }
+
+    // Parse `NotOnOrAfter` from the `<Conditions>` tag
+    let notOnOrAfter;
+    const conditionsStart = rawAssertionXml.indexOf("<Conditions");
+    if (conditionsStart !== -1) {
+      const conditionsEnd = rawAssertionXml.indexOf(">", conditionsStart);
+      const conditionsTag = rawAssertionXml.substring(
+        conditionsStart,
+        conditionsEnd
+      );
+
+      // Look for `NotOnOrAfter` attribute
+      const notOnOrAfterMatch = conditionsTag.match(/NotOnOrAfter="([^"]+)"/);
+      if (notOnOrAfterMatch && notOnOrAfterMatch[1]) {
+        notOnOrAfter = notOnOrAfterMatch[1];
+        console.log("Extracted NotOnOrAfter:", notOnOrAfter);
+      }
+    }
+
+    // Validate and set session expiration
+    let sessionMaxAge;
+    if (notOnOrAfter) {
+      const expiryDate = new Date(notOnOrAfter);
+      const currentDate = new Date();
+
+      if (expiryDate > currentDate) {
+        sessionMaxAge = expiryDate - currentDate; // Calculate remaining validity
+      } else {
+        console.warn("SAML session has expired.");
+        return res.redirect("/saml/login"); // Redirect if SAML session is invalid
+      }
+    }
+
+    // Set session user information
+    req.session.user = {
+      username: req.user.nameID,
+      userType: req.user.role,
+      OU: null, // SAML users may not have OU
+      authMethod: "SAML",
+    };
+
+    // Update session expiration dynamically
+    req.session.cookie.maxAge = sessionMaxAge;
+
+    // Redirect based on user role
+    if (req.user.role === "admin") {
       return res.redirect("/adminDashboard");
-    } else if (userRole === "user") {
-      console.warn("Redirecting to userDashboard");
+    } else if (req.user.role === "user") {
       return res.redirect("/userDashboard");
     } else {
-      return res.redirect("/"); // Default if no role is found
+      return res.redirect("/");
     }
   }
 );
+
+app.post("/", apiLimiter(), (req, res) => {
+  console.log("Redirected to index after IdP logout");
+
+  req.session?.destroy((err) => {
+    if (err) {
+      console.error("Session destroy error:", err);
+      res.redirect("/"); // Redirect to index after logout
+    }
+  });
+  res.redirect("/"); // Redirect to index
+});
+
+// Setting default session maxAge when login without SAML
+app.use((req, res, next) => {
+  if (!req.session.user) {
+    const defaultSessionMaxAge = 2 * 60 * 1000; // 30 minutes
+    req.session.cookie.maxAge = defaultSessionMaxAge;
+  }
+  next();
+});
 
 passport.serializeUser((user, done) => {
   done(null, user);

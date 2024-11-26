@@ -752,13 +752,14 @@ class UserController {
         username,
         userType,
         OU: OU || fetchedOU,
+        authMethod: "Password",
       };
       console.warn("Data passed to session:", req.session.user);
 
       // Set the `logged_in` cookie
       res.cookie("logged_in", "yes", {
         httpOnly: false,
-        secure: false, 
+        secure: false,
         sameSite: "Lax",
         path: "/",
         maxAge: 31536000, // 1 year
