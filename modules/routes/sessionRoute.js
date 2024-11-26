@@ -27,31 +27,34 @@ const sessionRoute = (app) => {
           `User "${req.session?.user?.username}" logging out from SAML auth`
         );
 
+        // IdP logout URL with RelayState
         const idpLogoutUrl =
           "https://sso.cybernexa.com/adfs/ls/?wa=wsignout1.0";
         const relayState = encodeURIComponent("https://192.168.0.145/");
 
         const logoutUrlWithRelayState = `${idpLogoutUrl}&RelayState=${relayState}`;
+
         console.warn(
           `Redirecting user to SAML logout URL: ${logoutUrlWithRelayState}`
         );
 
         // Clear SP session
-        req.session?.destroy((err) => {
+        req.session.destroy((err) => {
           if (err) {
             console.error("Error destroying session:", err);
             return res
               .status(500)
-              .json({ status: "error", message: "Failed to logout" });
+              .json({ status: "error", message: "Failed to logout from SP" });
           }
 
+          // Clear session cookies
           res.clearCookie("sessionID");
 
-          // Inform client to redirect to IdP logout
+          // Return the IdP logout URL to the frontend
           return res.status(200).json({
             status: "success",
             message: "Redirecting to SAML IdP logout",
-            logoutUrl: logoutUrlWithRelayState, // Send the URL with RelayState to the frontend
+            logoutUrl: logoutUrlWithRelayState,
           });
         });
       } else {
@@ -64,6 +67,7 @@ const sessionRoute = (app) => {
               .json({ status: "error", message: "Failed to logout" });
           }
 
+          // Clear session cookies
           res.clearCookie("sessionID");
 
           res.cookie("logged_in", "no", {
@@ -81,6 +85,7 @@ const sessionRoute = (app) => {
         });
       }
     } else {
+      // No active session
       res
         .status(200)
         .json({ status: "success", message: "No active session to logout" });

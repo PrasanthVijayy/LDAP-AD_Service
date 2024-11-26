@@ -19,8 +19,8 @@ document
         if (result.logoutUrl) {
           console.log("Redirecting to SAML logout URL:", result.logoutUrl);
 
-          // Perform logout at IdP and redirect back to SP index page
-          window.location.href = result.logoutUrl; // IdP will redirect to your index page
+          // Redirect to IdP logout page
+          window.location.href = result.logoutUrl;
         } else {
           console.log("Logged out successfully from local session");
           localStorage.clear();

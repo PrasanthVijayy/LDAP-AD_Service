@@ -296,13 +296,13 @@ app.post(
   }
 );
 
-app.post("/", apiLimiter(), (req, res) => {
+app.post("/logout", apiLimiter(), (req, res) => {
   console.log("Redirected to index after IdP logout");
 
   req.session?.destroy((err) => {
     if (err) {
       console.error("Session destroy error:", err);
-      res.redirect("/"); // Redirect to index after logout
+      res.redirect("/"); // Redirect to index if error
     }
   });
   res.redirect("/"); // Redirect to index
