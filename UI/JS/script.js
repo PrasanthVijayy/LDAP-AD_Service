@@ -19,6 +19,63 @@ function togglePasswordVisibility() {
   }
 }
 
+document.addEventListener("DOMContentLoaded", () => {
+  const authType = document.getElementById("authType");
+  const usernameGroup = document.getElementById("usernameGroup");
+  const emailGroup = document.getElementById("emailGroup");
+  const ouGroup = document.getElementById("ouGroup");
+  const userTypeGroup = document.getElementById("userTypeGroup");
+  const usernameInput = document.getElementById("username");
+  const emailInput = document.getElementById("email");
+  const ouInput = document.getElementById("ouSelect");
+  const passwordInput = document.getElementById("password");
+
+  // Function to clear input values
+  const clearInputs = () => {
+    usernameInput.value = "";
+    emailInput.value = "";
+    ouInput.value = "";
+    passwordInput.value = "";
+  };
+
+  authType.addEventListener("change", function () {
+    // Clear all inputs when switching
+    clearInputs();
+
+    if (this.value === "ad") {
+      // Switch to AD view
+      usernameGroup.classList.add("d-none");
+      usernameInput.setAttribute("disabled", "true");
+      usernameInput.removeAttribute("required");
+
+      ouGroup.classList.add("d-none");
+      ouInput.setAttribute("disabled", "true");
+      ouInput.removeAttribute("required");
+
+      userTypeGroup.classList.add("d-none");
+
+      emailGroup.classList.remove("d-none");
+      emailInput.removeAttribute("disabled");
+      emailInput.setAttribute("required", "true");
+    } else {
+      // Switch to OpenLDAP view
+      usernameGroup.classList.remove("d-none");
+      usernameInput.removeAttribute("disabled");
+      usernameInput.setAttribute("required", "true");
+
+      ouGroup.classList.remove("d-none");
+      ouInput.removeAttribute("disabled");
+      ouInput.setAttribute("required", "true");
+
+      userTypeGroup.classList.remove("d-none");
+
+      emailGroup.classList.add("d-none");
+      emailInput.setAttribute("disabled", "true");
+      emailInput.removeAttribute("required");
+    }
+  });
+});
+
 // Add event listener to the toggle password button
 document.addEventListener("DOMContentLoaded", function () {
   const togglePassword = document.getElementById("togglePassword");
