@@ -16,38 +16,76 @@ const sessionRoute = (app) => {
       status: "success",
       sessionId: req.sessionID,
       message: "Session is active",
-      user: { ...req.user, expiry: undefined },
+      user: req.user,
     });
   });
 
   router.post("/logout", (req, res) => {
     if (req.session) {
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("Error destroying session:", err);
-          return res
-            .status(500)
-            .json({ status: "error", message: "Failed to logout" });
-        }
+      if (req.session?.user?.authMethod === "SAML") {
+        console.warn(
+          `User "${req.session?.user?.username}" logging out from SAML auth`
+        );
 
-        // Clear session cookie
-        res.clearCookie("sessionID");
+        // IdP logout URL with RelayState
+        const idpLogoutUrl =
+          "https://sso.cybernexa.com/adfs/ls/?wa=wsignout1.0";
+        const relayState = encodeURIComponent("https://192.168.0.145/");
 
-        // Update `logged_in` cookie
-        res.cookie("logged_in", "no", {
-          httpOnly: false,
-          secure: false,
-          sameSite: "Lax",
-          path: "/",
-          maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+        const logoutUrlWithRelayState = `${idpLogoutUrl}&RelayState=${relayState}`;
+
+        console.warn(
+          `Redirecting user to SAML logout URL: ${logoutUrlWithRelayState}`
+        );
+
+        // Clear SP session
+        req.session.destroy((err) => {
+          if (err) {
+            console.error("Error destroying session:", err);
+            return res
+              .status(500)
+              .json({ status: "error", message: "Failed to logout from SP" });
+          }
+
+          // Clear session cookies
+          res.clearCookie("sessionID");
+
+          // Return the IdP logout URL to the frontend
+          return res.status(200).json({
+            status: "success",
+            message: "Redirecting to SAML IdP logout",
+            logoutUrl: logoutUrlWithRelayState,
+          });
         });
+      } else {
+        // Handle non-SAML logout
+        req.session.destroy((err) => {
+          if (err) {
+            console.error("Error destroying session:", err);
+            return res
+              .status(500)
+              .json({ status: "error", message: "Failed to logout" });
+          }
 
-        return res.status(200).json({
-          status: "success",
-          message: "User logged out successfully",
+          // Clear session cookies
+          res.clearCookie("sessionID");
+
+          res.cookie("logged_in", "no", {
+            httpOnly: false,
+            secure: false,
+            sameSite: "Lax",
+            path: "/",
+            maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+          });
+
+          return res.status(200).json({
+            status: "success",
+            message: "User logged out successfully",
+          });
         });
-      });
+      }
     } else {
+      // No active session
       res
         .status(200)
         .json({ status: "success", message: "No active session to logout" });
