@@ -7,6 +7,17 @@ export const samlConfig = {
   idpCert: fs.readFileSync("Certificates/idp-certificate.pem", "utf-8"),
   identifierFormat: null,
 };
+
+/*  ---------- SAML CONFIG - TESTING START ---------- */
+// export const samlConfig = {
+//   entryPoint: "https://sso.cybernexa.com/adfs/ls",
+//   issuer: "https://remote.cybernexa.com/",
+//   callbackUrl: "https://remote.cybernexa.com/login/callback",
+//   idpCert: fs.readFileSync("/root/auth_app/adfs_certificate.cer", "utf-8"),
+//   identifierFormat: null,
+// };
+/*  ---------- SAML CONFIG - TESTING END ---------- */
+
 // https://sso.cybernexa.com/adfs/ls/idpinitiatedsignonpage.aspx
 //   callbackUrl: "https://remote.cybernexa.com/login/callback",
 
