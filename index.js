@@ -50,9 +50,9 @@ const __dirname = path.dirname(__filename);
 /* ---------- MIDDLEWARE SETUP ---------- */
 app.use(express.json()); // Body parser middleware
 app.use(express.urlencoded({ extended: true }));
-// app.use(
-//   morgan(":method :url :status :res[content-length] - :response-time ms")
-// );
+app.use(
+  morgan(":method :url :status :res[content-length] - :response-time ms")
+);
 
 app.use((req, res, next) => {
   res.locals.nonce = CryptoJS.lib.WordArray.random(16).toString(
@@ -138,6 +138,13 @@ passport.use(
         profile.attributes[
           "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"
         ] || "Unknown";
+
+      /* ------- SAML CLAIM TESTING - START ------- */
+      // const surname =
+      // profile.attributes[
+      //   "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn"
+      // ] || "Unknown";
+      /* ------- SAML CLAIM TESTING - END ------- */
 
       let userRole = "user"; // Default role is user
 
