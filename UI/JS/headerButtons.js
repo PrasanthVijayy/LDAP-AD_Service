@@ -102,6 +102,69 @@ if (homeButton) {
   });
 }
 
+const profileLogo = document.getElementById("profileLogo");
+const profileModal = document.getElementById("profileModal");
+const userNameElem = document.getElementById("userName");
+const userRoleElem = document.getElementById("userRole");
+const userOUElem = document.getElementById("userOU");
+const profileLogoArrow = document.createElement("div");
+profileLogoArrow.classList.add("profile-logo-arrow"); // Create and style the arrow
+document.body.appendChild(profileLogoArrow); // Add arrow to the document
+
+// Function to toggle modal visibility
+const toggleModal = () => {
+  const isModalVisible = profileModal.style.display === "flex";
+  profileModal.style.display = isModalVisible ? "none" : "flex";
+  profileLogoArrow.style.display = isModalVisible ? "none" : "block"; // Toggle arrow visibility
+};
+
+// Show the modal when the profile logo is clicked
+profileLogo.addEventListener("click", async function (event) {
+  // If modal is already visible, hide it
+  if (profileModal.style.display === "flex") {
+    profileModal.style.display = "none";
+    profileLogoArrow.style.display = "none"; // Hide arrow if modal is closed
+  } else {
+    // Fetch session data and populate the modal
+    try {
+      const response = await fetch(`${headerBaseAPI}/session/check`, {
+        method: "GET",
+        credentials: "include", // Ensure cookies are included
+      });
+
+      const data = await response.json();
+
+      if (data.status === "success" && data.user) {
+        // Fill in the user details in the modal
+        userNameElem.textContent = data.user.username;
+        userRoleElem.textContent = data.user.userType;
+        userOUElem.textContent = data.user.OU;
+
+        // Show the modal with the user details
+        profileModal.style.display = "flex";
+        profileLogoArrow.style.display = "block"; // Show the arrow
+      } else {
+        alert("User session not found or expired.");
+      }
+    } catch (error) {
+      console.error("Error fetching session data:", error);
+      alert("Error fetching session data. Please try again.");
+    }
+  }
+});
+
+// Hide the modal if clicked outside the modal content or on the profile logo
+window.addEventListener("click", (event) => {
+  if (
+    event.target !== profileModal &&
+    event.target !== profileLogo &&
+    !profileModal.contains(event.target)
+  ) {
+    profileModal.style.display = "none"; // Hide modal when clicking outside
+    profileLogoArrow.style.display = "none"; // Hide the arrow
+  }
+});
+
 // Hide Home and Back buttons on the dashboard page, since not required
 document.addEventListener("DOMContentLoaded", function () {
   const currentPage = window.location.pathname;
