@@ -50,7 +50,7 @@ body {
   min-height: 100vh;
 }
 
-.login-page .no-pointer{
+.login-page .no-pointer {
   cursor: default;
 }
 
@@ -141,6 +141,18 @@ body {
   right: 20px;
 }
 
+.right-fixed-buttons {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex; /* Use flexbox to align items horizontally */
+  align-items: center; /* Vertically center items */
+}
+
+.right-fixed-buttons .profile-container {
+  margin-right: 10px; /* Space between the profile logo and the sign-out button */
+}
+
 .right-fixed-buttons button {
   width: 120px;
   display: flex;
@@ -150,6 +162,38 @@ body {
 
 .right-fixed-buttons img {
   margin-right: 5px;
+}
+
+/* Profile logo specific styles */
+.profile-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%; /* Make it circular */
+  border: 2px solid #000000;
+  cursor: pointer;
+}
+
+/* Profile Modal */
+.profile-modal {
+  display: none;
+  position: absolute;
+  top: 60px;
+  right: 20px;
+  background-color: #277acd;
+  padding: 10px;
+  width: 200px; 
+}
+
+/* Modal Content */
+.modal-content {
+  padding: 10px;
+  text-align: left;
+}
+
+
+/* Styling for user profile information */
+.profile-modal p {
+  margin: 0px 0;
 }
 
 /* Asterisks in RED color */

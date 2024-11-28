@@ -12,6 +12,16 @@
   <body>
     <!-- Navigation Buttons -->
     <div class="right-fixed-buttons">
+      <!-- Profile Logo -->
+      <div class="profile-container" id="profileContainer">
+        <img
+          src="/images/viewProfile.png"
+          alt="Profile"
+          class="profile-icon"
+          id="profileLogo"
+        />
+      </div>
+      <!-- Sign Out Button -->
       <button class="btn btn-danger" id="signoutButton">
         <img
           src="/images/logoutButton.png"
@@ -54,6 +64,16 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+    <!-- Profile Modal -->
+    <div class="profile-modal" id="profileModal">
+      <div class="modal-content">
+        <!-- Profile content is dynamically injected by JS -->
+        <h2>Profile</h2>
+        <p><strong>Name:</strong> <span id="userName"></span></p>
+        <p><strong>Role:</strong> <span id="userRole"></span></p>
+        <p><strong>OU:</strong> <span id="userOU"></span></p>
       </div>
     </div>
 
