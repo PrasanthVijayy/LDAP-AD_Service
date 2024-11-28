@@ -1,4 +1,5 @@
 import { createLogger, format, transports } from "winston";
+import DailyRotateFile from "winston-daily-rotate-file"; // Import the daily rotate transport
 const { combine, timestamp, printf, colorize, errors } = format;
 
 // Define custom log levels and colors
@@ -19,19 +20,16 @@ const customLevels = {
 
 // Custom log format (Square brackets around log level)
 const logFormat = printf(({ level, message, timestamp, stack }) => {
-  // return `${timestamp} [${level}]: ${stack || message}`;
-  return `${stack || message}`;
+  return timestamp
+    ? `${timestamp} [${level}]: ${stack || message}`
+    : `${stack || message}`;
 });
 
 // Initialize Winston Logger with custom levels
 const logger = createLogger({
   levels: customLevels.levels,
   level: "info",
-  format: combine(
-    timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
-    errors({ stack: true }),
-    logFormat
-  ),
+  format: combine(errors({ stack: true })),
   transports: [
     // Console transport with colorization
     new transports.Console({
@@ -41,24 +39,25 @@ const logger = createLogger({
         logFormat
       ),
     }),
-    // File transport for general logs without colorization
-    new transports.File({
-      filename: "logs/app.log",
-      level: "warn", // Setting highest log level
+    // Daily rotate transport for general logs
+    new DailyRotateFile({
+      filename: "logs/app-%DATE%.log",
+      level: "warn",
       maxsize: 5 * 1024 * 1024,
-      maxFiles: 5,
-      format: combine(timestamp(), logFormat),
+      maxFiles: "1d",
+      format: combine(timestamp({ format: "YYYY-MM-DD HH:mm:ss" }), logFormat),
     }),
-    // File transport for error logs without colorization
-    new transports.File({
-      filename: "logs/errors.log",
-      level: "error", // Setting highest log level
+    // Daily rotate transport for error logs
+    new DailyRotateFile({
+      filename: "logs/errors-%DATE%.log",
+      level: "error",
       maxsize: 5 * 1024 * 1024,
-      maxFiles: 5,
-      format: combine(timestamp(), logFormat),
+      maxFiles: "1d",
+      format: combine(timestamp({ format: "YYYY-MM-DD HH:mm:ss" }), logFormat),
+      filter: (log) => log.level === "error",
     }),
   ],
-  exitOnError: false, // Prevents app from crashing on unhandled errors
+  exitOnError: false,
 });
 
 export default logger;

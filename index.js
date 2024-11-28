@@ -3,10 +3,6 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import morgan from "morgan";
-import helmet from "helmet";
-import hpp from "hpp";
-import compression from "compression";
-import cookieParser from "cookie-parser";
 import session from "express-session";
 import CryptoJS from "crypto-js";
 import path from "path";
@@ -14,8 +10,6 @@ import { fileURLToPath } from "url";
 import fs from "fs";
 import https from "https";
 import passport from "passport";
-import { Strategy as SamlStrategy } from "@node-saml/passport-saml";
-import { v4 as uuidv4 } from "uuid";
 
 /* ---------- IMPORT FILES ---------- */
 import userRoutes from "./modules/routes/userRoutes.js";
@@ -25,9 +19,10 @@ import domainRoutes from "./modules/routes/domainRoutes.js";
 import sessionRoute from "./modules/routes/sessionRoute.js";
 import errorHandling from "./middleware/errorMiddleware.js";
 import { connectToLDAP } from "./config/ldapconfig.js";
-import apiLimiter from "./middleware/apiLimiter.js";
-import csrfProtection from "./UI/libs/csurfProtection.js";
-import { samlConfig } from "./config/samlConfig.js";
+import logger from "./config/logger.js";
+import { renderRoutes } from "./modules/routes/renderRoutes.js";
+import { corsOptions, securityHeaders } from "./config/securityHeaders.js";
+import { setupPassport } from "./config/passportConfig.js";
 
 dotenv.config();
 const app = express(); // Create express app
@@ -50,114 +45,11 @@ const __dirname = path.dirname(__filename);
 /* ---------- MIDDLEWARE SETUP ---------- */
 app.use(express.json()); // Body parser middleware
 app.use(express.urlencoded({ extended: true }));
+app.use(cors(corsOptions)); // Enabling CORS
+securityHeaders(app); // Enabling Security headers
+
 app.use(
   morgan(":method :url :status :res[content-length] - :response-time ms")
-);
-
-app.use((req, res, next) => {
-  res.locals.nonce = CryptoJS.lib.WordArray.random(16).toString(
-    CryptoJS.enc.Hex
-  ); // Generates a random nonce
-  next();
-});
-
-app.use(
-  helmet.hsts({
-    maxAge: 31536000, // 1 year
-    includeSubDomains: true, // Apply to all subdomains
-    preload: true, // Add to HSTS preload list
-  })
-);
-
-app.use(helmet.xssFilter()); // XSS Protection
-app.use(helmet.noSniff()); // No MIME sniffing
-app.use(helmet.frameguard({ action: "deny" })); // Clickjacking guard
-app.use(helmet.referrerPolicy({ policy: "no-referrer" })); // Referrer policy
-app.use(helmet.dnsPrefetchControl({ allow: false })); // Disable DNS prefetch
-app.use(helmet.permittedCrossDomainPolicies({ permittedPolicies: "none" })); // No cross-domain policies
-app.disable("x-powered-by"); // Hide tech stack
-app.use(hpp()); // Prevent param pollution
-app.use(compression()); // Compress responses
-app.use(cookieParser()); // Parse cookies
-
-/* --------- CORS SETUP --------- */
-const corsOptions = {
-  origin: ["*"],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "X-Requested-With"],
-  credentials: true,
-};
-
-app.use(cors(corsOptions)); // Enabling CORS with specified options
-
-app.use((req, res, next) => {
-  // Set security headers
-  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
-  res.setHeader("Origin-Agent-Cluster", "?0");
-  res.setHeader(
-    "Cache-Control",
-    "private, no-cache, no-store, must-revalidate"
-  );
-  res.setHeader("Expires", "-1");
-  res.setHeader("Pragma", "no-cache");
-
-  // Custom CSP Header - instead using in Helmet (This works)
-  res.setHeader(
-    "Content-Security-Policy",
-    "default-src 'self'; " +
-      "script-src 'self'; " +
-      "style-src 'self'; " +
-      "img-src 'self' data:; " +
-      "font-src 'self'; " +
-      "connect-src 'self'; "
-  );
-  next();
-});
-
-/* --------- SAML SSO SETUP --------- */
-
-passport.use(
-  "saml",
-  new SamlStrategy(
-    {
-      entryPoint: samlConfig.entryPoint,
-      issuer: samlConfig.issuer,
-      callbackUrl: samlConfig.callbackUrl,
-      idpCert: samlConfig.idpCert,
-      identifierFormat: samlConfig.identifierFormat,
-      algorithm: "sha256",
-      debug: true,
-      acceptedClockSkewMs: 0,
-      wantAuthnResponseSigned: false,
-      // validateInResponseTo: "never",
-    },
-    (profile, done) => {
-      console.log("SAML Profile:", profile); // For debugging
-
-      const surname =
-        profile.attributes[
-          "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"
-        ] || "Unknown";
-
-      /* ------- SAML CLAIM TESTING - START ------- */
-      // const surname =
-      // profile.attributes[
-      //   "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn"
-      // ] || "Unknown";
-      /* ------- SAML CLAIM TESTING - END ------- */
-
-      let userRole = "user"; // Default role is user
-
-      // If surname is EMP001, set role as admin
-      if (surname === "EMP001") {
-        userRole = "admin";
-      }
-
-      // Attach the role to the user profile
-      profile.role = userRole;
-      return done(null, profile);
-    }
-  )
 );
 
 /* --------- SESSION SETUP --------- */
@@ -196,7 +88,6 @@ app.use((req, res, next) => {
       maxAge: 31536000,
     });
   }
-
   next();
 });
 
@@ -205,179 +96,31 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 /* --------- STATIC FILES --------- */
-// This is your existing static file setup
-app.use(express.static(path.join(__dirname, "UI")), (req, res, next) => {
-  console.log(
-    `Serving static file: ${req.protocol}://${req.get("host")}${req.url}`
-  );
-  next();
-});
-
-/* ---------- UI RENDERING SETUP ---------- */
-
-app.get("/", apiLimiter(), (req, res) => {
-  res.render("index"); // Renders the index
-});
-
-app.get(
-  "/saml/login",
-  apiLimiter(),
-  passport.authenticate("saml", {
-    failureRedirect: "/",
-  })
-);
-
-// SAML callback handler
-app.post(
-  "/login/callback",
-  apiLimiter(), // Rate limiter middleware
-  passport.authenticate("saml", {
-    failureRedirect: "/saml/login", // Redirect if authentication fails
+app.use(
+  express.static(path.join(__dirname, "UI"), {
+    maxAge: "1d", // Cache files for 1 day
+    etag: true, // Enable ETag header for better caching
   }),
-  (req, res) => {
-    if (!req.user) {
-      console.error("SAML authentication failed.");
-      return res.redirect("/"); // Redirect to home on failure
-    }
-
-    console.log("SAML Authentication Successful:", req.user);
-
-    // Extract raw assertion XML
-    const rawAssertionXml = req.user.getAssertionXml();
-    if (!rawAssertionXml) {
-      console.error("SAML assertion is missing.");
-      return res.redirect("/"); // Handle the case where no assertion is available
-    }
-
-    // Parse `NotOnOrAfter` from the `<Conditions>` tag
-    let notOnOrAfter;
-    const conditionsStart = rawAssertionXml.indexOf("<Conditions");
-    if (conditionsStart !== -1) {
-      const conditionsEnd = rawAssertionXml.indexOf(">", conditionsStart);
-      const conditionsTag = rawAssertionXml.substring(
-        conditionsStart,
-        conditionsEnd
-      );
-
-      // Look for `NotOnOrAfter` attribute
-      const notOnOrAfterMatch = conditionsTag.match(/NotOnOrAfter="([^"]+)"/);
-      if (notOnOrAfterMatch && notOnOrAfterMatch[1]) {
-        notOnOrAfter = notOnOrAfterMatch[1];
-        console.log("Extracted NotOnOrAfter:", notOnOrAfter);
-      }
-    }
-
-    // Validate and set session expiration
-    let sessionMaxAge;
-    if (notOnOrAfter) {
-      const expiryDate = new Date(notOnOrAfter);
-      const currentDate = new Date();
-
-      if (expiryDate > currentDate) {
-        sessionMaxAge = expiryDate - currentDate; // Calculate remaining validity
-      } else {
-        console.warn("SAML session has expired.");
-        return res.redirect("/saml/login"); // Redirect if SAML session is invalid
-      }
-    }
-
-    // Set session user information
-    req.session.user = {
-      username: req.user.nameID,
-      userType: req.user.role,
-      OU: null, // SAML users may not have OU
-      authMethod: "SAML",
-    };
-
-    // Update session expiration dynamically
-    req.session.cookie.maxAge = sessionMaxAge;
-
-    // Redirect based on user role
-    if (req.user.role === "admin") {
-      return res.redirect("/adminDashboard");
-    } else if (req.user.role === "user") {
-      return res.redirect("/userDashboard");
-    } else {
-      return res.redirect("/");
-    }
+  (req, res, next) => {
+    logger.info(
+      `Serving static file: ${req.protocol}://${req.get("host")}${req.url}`
+    );
+    next();
   }
 );
 
-app.post("/logout", apiLimiter(), (req, res) => {
-  console.log("Redirected to index after IdP logout");
+/* ---------- PASSPORT SETUP ---------- */
+setupPassport();
+app.use(passport.initialize());
+app.use(passport.session());
 
-  req.session?.destroy((err) => {
-    if (err) {
-      console.error("Session destroy error:", err);
-      res.redirect("/"); // Redirect to index if error
-    }
-  });
-  res.redirect("/"); // Redirect to index
-});
-
-// Setting default session maxAge when login without SAML
-app.use((req, res, next) => {
-  if (!req.session.user) {
-    const defaultSessionMaxAge = 2 * 60 * 1000; // 30 minutes
-    req.session.cookie.maxAge = defaultSessionMaxAge;
-  }
-  next();
-});
-
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
-
-passport.deserializeUser((id, done) => {
-  done(null, id);
-});
-
-app.get("/adminDashboard", apiLimiter(), csrfProtection, (req, res) => {
-  res.render("adminDashboard", { csrfToken: req.csrfToken() }); // Renders the adminDashboard
-});
-
-app.get("/userDashboard", apiLimiter(), csrfProtection, (req, res) => {
-  res.render("userDashboard", { csrfToken: req.csrfToken() }); // Renders the userDashboard
-});
-
-app.get("/createUser", apiLimiter(), csrfProtection, (req, res) => {
-  res.render("Pages/createUser", { csrfToken: req.csrfToken() }); // Renders the createUser
-});
-
-app.get("/listUsers", apiLimiter(), csrfProtection, (req, res) => {
-  res.render("Pages/listUsers", { csrfToken: req.csrfToken() }); // Renders the listUsers
-});
-
-app.get("/listOrganizations", apiLimiter(), csrfProtection, (req, res) => {
-  res.render("Pages/listOrganizations", { csrfToken: req.csrfToken() }); // Renders the listOrganizations
-});
-
-app.get("/createGroup", apiLimiter(), csrfProtection, (req, res) => {
-  res.render("Pages/createGroup", { csrfToken: req.csrfToken() }); // Renders the createGroup
-});
-
-// file deepcode ignore NoRateLimitingForExpensiveWebOperation: <please specify a reason of ignoring this>
-app.get("/resetPassword", apiLimiter(), csrfProtection, (req, res) => {
-  res.render("Pages/resetPassword", { csrfToken: req.csrfToken() });
-});
-
-app.get("/editUser", apiLimiter(), csrfProtection, (req, res) => {
-  res.render("Pages/editUser", { csrfToken: req.csrfToken() }); // Renders the editUser
-});
-
-app.get("/changePassword", apiLimiter(), csrfProtection, (req, res) => {
-  res.render("Pages/chpwd", { csrfToken: req.csrfToken() }); // Renders the changePassword
-});
-
-app.get("/searchUser", apiLimiter(), csrfProtection, (req, res) => {
-  res.render("Pages/userSearch", { csrfToken: req.csrfToken() }); // Renders the resetPassword
-});
 /* ---------- API ROUTES SETUP  ----------*/
 userRoutes(app);
 groupRoutes(app);
 organizationRoutes(app);
 domainRoutes(app);
 sessionRoute(app);
+renderRoutes(app);
 
 /* ------------ ERROR HANDLING ------------ */
 app.use(errorHandling);
@@ -389,8 +132,10 @@ connectToLDAP()
     const HOST = "0.0.0.0";
     // Use HTTPS to create the server
     https.createServer(credentials, app).listen(PORT, HOST, () => {
-      console.warn(`Server started and listening on https://localhost:${PORT}`);
-      console.warn(`Server running with machine IP: https://192.168.0.145/`);
+      logger.info(`Server started and listening on https://localhost:${PORT}`);
+      logger.warn(
+        `Server running with machine IP: ${process.env.APP_LOGIN_URL}`
+      );
     });
   })
   .catch((err) => {
