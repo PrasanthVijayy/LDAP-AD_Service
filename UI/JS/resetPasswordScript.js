@@ -1,6 +1,7 @@
 const resetPasswordBaseAPI = "/LDAP/v1"; // API Base URL
 
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV  stage alone
+const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
 
 // Function to encrypt payload
 function encryptData(data) {
@@ -31,6 +32,7 @@ async function fetchOrganizationalUnits() {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "CSRF-Token": csrfToken,
       },
       credentials: "include",
     });
@@ -41,23 +43,23 @@ async function fetchOrganizationalUnits() {
       );
       return; // Stop further execution
     }
+
     const result = await response.json();
     const decryptedData = decryptPayload(result.data);
-    const memberOU = decryptedData.organizations;
+    const groupsOU = decryptedData.organizations;
 
-    const ouDropdownMenu = $("#ouDropdownMenu");
+    // Clear and populate the dropdown menu with options
+    const ouDropdown = $("#organizationDN");
+    ouDropdown.empty(); // Clear previous items
 
-    // Clear the dropdown before adding options
-    ouDropdownMenu.empty();
-    ouDropdownMenu.append(
-      '<a class="dropdown-item" href="#">-- Select an OU --</a>'
-    );
+    // Append default option
+    ouDropdown.append('<option value="">Select OU</option>');
 
     // Populate dropdown with OUs
-    if (response.ok && memberOU && memberOU.length > 0) {
-      memberOU.forEach((ou) => {
-        ouDropdownMenu.append(
-          `<a class="dropdown-item" href="#" data-value="${ou.organizationDN}">${ou.organizationDN}</a>`
+    if (response.ok && groupsOU && groupsOU.length > 0) {
+      groupsOU.forEach((ou) => {
+        ouDropdown.append(
+          `<option value="${ou.organizationDN}">${ou.organizationDN}</option>`
         );
       });
     } else {
@@ -68,12 +70,14 @@ async function fetchOrganizationalUnits() {
   }
 }
 
-// Event listener for selecting an OU
-$(document).on("click", ".dropdown-item", function () {
-  const selectedOU = $(this).data("value");
-  $("#userOU").val(selectedOU); // Set hidden input value
-  $("#ouDropdownButton").text(selectedOU); // Change button text
-  $("#ouDropdownMenu").removeClass("show"); // Hide dropdown
+// Handle selecting an OU from the dropdown
+$("#organizationDN").change(function () {
+  const selectedOU = $(this).val(); // Get the selected OU from the dropdown
+  if (selectedOU) {
+    $("#userOU").val(selectedOU); // Set hidden input value
+  } else {
+    $("#userOU").val(""); // Reset hidden input value if no OU is selected
+  }
 });
 
 // Function to toggle password visibility
@@ -100,13 +104,14 @@ document
   });
 
 // Handle form submission and validation
+// Form submission event for resetting the password
 document
   .getElementById("resetPasswordForm")
-  .addEventListener("submit", async function (e) {
+  ?.addEventListener("submit", async function (e) {
     e.preventDefault(); // Prevent form submission
 
-    // Get form data
-    const userOU = document.getElementById("userOU").value; // Get selected OU
+    // Get values from the form
+    const userOU = document.getElementById("organizationDN").value; // Get selected OU
     const username = document.getElementById("username").value;
     const newPassword = document.getElementById("newPassword").value;
     const confirmPassword = document.getElementById("confirmPassword").value;
@@ -152,6 +157,7 @@ document
         );
         return; // Stop further execution
       }
+
       const result = await response.json();
 
       if (response.ok) {

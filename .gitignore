@@ -13,6 +13,8 @@ SSL_certificate
 
 Logs
 
+expressjs-ldap-api*
+
 .env
 Certificates
 libs
