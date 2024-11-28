@@ -49,20 +49,18 @@ async function fetchOrganizationalUnits() {
     const decryptedData = decryptPayload(result.data);
     const groupsOU = decryptedData.organizations;
 
-    // Clear and populate dropdown menu with options
-    const ouDropdownMenu = $("#ouDropdownMenu");
-    ouDropdownMenu.empty(); // Clear previous items
+    // Clear and populate the dropdown menu with options
+    const ouDropdown = $("#organizationDN");
+    ouDropdown.empty(); // Clear previous items
 
     // Append default option
-    ouDropdownMenu.append(
-      '<a class="dropdown-item" href="#" data-value="">-- Select an OU --</a>'
-    );
+    ouDropdown.append('<option value="">Select OU</option>');
 
     // Populate dropdown with OUs
     if (response.ok && groupsOU && groupsOU.length > 0) {
       groupsOU.forEach((ou) => {
-        ouDropdownMenu.append(
-          `<a class="dropdown-item" href="#" data-value="${ou.organizationDN}">${ou.organizationDN}</a>`
+        ouDropdown.append(
+          `<option value="${ou.organizationDN}">${ou.organizationDN}</option>`
         );
       });
     } else {
@@ -96,7 +94,7 @@ document
     // Get values from the form
     const groupName = document.getElementById("groupName").value;
     const groupType = document.getElementById("groupType").value;
-    const groupOU = document.getElementById("groupOU").value;
+    const groupOU = document.getElementById("organizationDN").value;
     const groupDescription =
       document.getElementById("groupDescription").value ||
       "No description provided";
