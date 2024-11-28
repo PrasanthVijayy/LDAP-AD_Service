@@ -53,6 +53,28 @@ class UserController {
       // Checking if OU exists
       await this.organizationService.listOrganizaitons(`ou=${payload.userOU}`);
 
+      const userData = await this.userService.listUsers();
+      console.log(`Let's see the userData: ${JSON.stringify(userData)}`);
+
+      const employeeCount = userData.count || 0;
+
+      //Setting the next employee number while adding user.
+      const newEmployeeId = `EMP${(employeeCount + 1)
+        .toString()
+        .padStart(3, "0")}`;
+
+      payload.employeeNumber = newEmployeeId;
+
+      // Check empID uniqueness
+      const empIdExists = await search(
+        `ou=${payload.userOU},${process.env.LDAP_BASE_DN}`,
+        `(employeeNumber=${payload.employeeNumber})`
+      );
+
+      if (empIdExists.length > 0) {
+        throw new ConflictError(`Employee ID already exists.`);
+      }
+
       // Check for uniqueness
       const userExists = await search(
         `ou=${payload.userOU},${process.env.LDAP_BASE_DN}`,
@@ -754,6 +776,8 @@ class UserController {
         OU: OU || fetchedOU,
         authMethod: "Password",
       };
+      req.session.cookie.maxAge = 30 * 60 * 1000; // 30 minutes
+
       console.warn("Data passed to session:", req.session.user);
 
       // Set the `logged_in` cookie

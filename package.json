@@ -28,7 +28,8 @@
     "passport-strategy": "^1.0.0",
     "uid": "^2.0.2",
     "use-strict": "^1.0.1",
-    "uuid": "^11.0.3"
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "scripts": {
     "start": "nodemon index.js"

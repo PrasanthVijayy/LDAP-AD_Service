@@ -59,6 +59,7 @@ class UserService {
         shadowFlag: 0, // Set to
         title: payload.title || "user",
         ou: organizationalUnitName, // Storing the OU for easy retrieval
+        employeeNumber: payload.employeeNumber || "Error", // Setting error for testing
       };
 
       console.log("Service: addUser - Completed");

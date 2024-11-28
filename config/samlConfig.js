@@ -6,6 +6,7 @@ export const samlConfig = {
   callbackUrl: "https://192.168.0.145/login/callback",
   idpCert: fs.readFileSync("Certificates/idp-certificate.pem", "utf-8"),
   identifierFormat: null,
+  logoutURL: "https:sso.cybernexa.com/adfs/ls/?wa=wsignout1.0",
 };
 
 /*  ---------- SAML CONFIG - TESTING START ---------- */

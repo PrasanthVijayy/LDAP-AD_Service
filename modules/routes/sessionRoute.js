@@ -2,6 +2,9 @@
 import express from "express";
 import { sessionMiddleware } from "../../middleware/sessionMiddleware.js";
 import csrfProtection from "../../UI/libs/csurfProtection.js";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const sessionRoute = (app) => {
   const router = express.Router();
@@ -30,7 +33,7 @@ const sessionRoute = (app) => {
         // IdP logout URL with RelayState
         const idpLogoutUrl =
           "https://sso.cybernexa.com/adfs/ls/?wa=wsignout1.0";
-        const relayState = encodeURIComponent("https://192.168.0.145/");
+        const relayState = encodeURIComponent(process.env.APP_LOGIN_URL);
 
         const logoutUrlWithRelayState = `${idpLogoutUrl}&RelayState=${relayState}`;
 
