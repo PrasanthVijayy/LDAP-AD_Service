@@ -181,7 +181,7 @@ body {
   right: 20px;
   background-color: #277acd;
   padding: 10px;
-  width: 200px;
+  width: 200px; 
 }
 
 /* Modal Content */
@@ -189,6 +189,7 @@ body {
   padding: 10px;
   text-align: left;
 }
+
 
 /* Styling for user profile information */
 .profile-modal p {
@@ -241,10 +242,6 @@ body {
   z-index: 1000;
 }
 
-.inner-scroll {
-  max-height: 400px;
-  overflow-y: auto;
-}
 .dropdown-menu {
   position: absolute;
 }

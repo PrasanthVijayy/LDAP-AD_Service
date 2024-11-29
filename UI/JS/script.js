@@ -12,10 +12,10 @@ function togglePasswordVisibility() {
 
   if (passwordField.type === "password") {
     passwordField.type = "text";
-    toggleIcon.src = "/directoryManagement/images/eye.png"; // Change to the icon for "visible"
+    toggleIcon.src = "/images/eye.png"; // Change to the icon for "visible"
   } else {
     passwordField.type = "password";
-    toggleIcon.src = "/directoryManagement/images/hidden.png"; // Change to the icon for "hidden"
+    toggleIcon.src = "/images/hidden.png"; // Change to the icon for "hidden"
   }
 }
 
@@ -38,44 +38,42 @@ document.addEventListener("DOMContentLoaded", () => {
     passwordInput.value = "";
   };
 
-  if (authType) {
-    authType.addEventListener("change", function () {
-      // Clear all inputs when switching
-      clearInputs();
+  authType.addEventListener("change", function () {
+    // Clear all inputs when switching
+    clearInputs();
 
-      if (this.value === "ad") {
-        // Switch to AD view
-        usernameGroup.classList.add("d-none");
-        usernameInput.setAttribute("disabled", "true");
-        usernameInput.removeAttribute("required");
+    if (this.value === "ad") {
+      // Switch to AD view
+      usernameGroup.classList.add("d-none");
+      usernameInput.setAttribute("disabled", "true");
+      usernameInput.removeAttribute("required");
 
-        ouGroup.classList.add("d-none");
-        ouInput.setAttribute("disabled", "true");
-        ouInput.removeAttribute("required");
+      ouGroup.classList.add("d-none");
+      ouInput.setAttribute("disabled", "true");
+      ouInput.removeAttribute("required");
 
-        userTypeGroup.classList.add("d-none");
+      userTypeGroup.classList.add("d-none");
 
-        emailGroup.classList.remove("d-none");
-        emailInput.removeAttribute("disabled");
-        emailInput.setAttribute("required", "true");
-      } else {
-        // Switch to OpenLDAP view
-        usernameGroup.classList.remove("d-none");
-        usernameInput.removeAttribute("disabled");
-        usernameInput.setAttribute("required", "true");
+      emailGroup.classList.remove("d-none");
+      emailInput.removeAttribute("disabled");
+      emailInput.setAttribute("required", "true");
+    } else {
+      // Switch to OpenLDAP view
+      usernameGroup.classList.remove("d-none");
+      usernameInput.removeAttribute("disabled");
+      usernameInput.setAttribute("required", "true");
 
-        ouGroup.classList.remove("d-none");
-        ouInput.removeAttribute("disabled");
-        ouInput.setAttribute("required", "true");
+      ouGroup.classList.remove("d-none");
+      ouInput.removeAttribute("disabled");
+      ouInput.setAttribute("required", "true");
 
-        userTypeGroup.classList.remove("d-none");
+      userTypeGroup.classList.remove("d-none");
 
-        emailGroup.classList.add("d-none");
-        emailInput.setAttribute("disabled", "true");
-        emailInput.removeAttribute("required");
-      }
-    });
-  }
+      emailGroup.classList.add("d-none");
+      emailInput.setAttribute("disabled", "true");
+      emailInput.removeAttribute("required");
+    }
+  });
 });
 
 // Add event listener to the toggle password button
@@ -99,30 +97,18 @@ const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV stage 
 
 // Function to encrypt payload
 function encryptData(data) {
-  try {
-    const encryptedData = CryptoJS.AES.encrypt(
-      JSON.stringify(data),
-      SECRET_KEY
-    ).toString();
-    return encryptedData;
-  } catch (error) {
-    console.error("Encryption failed", error);
-    throw error;
-  }
+  const encryptedData = CryptoJS.AES.encrypt(
+    JSON.stringify(data),
+    SECRET_KEY
+  ).toString();
+  return encryptedData;
 }
+
 // Function to decrypt payload
 function decryptPayload(cipherText) {
-  try {
-    const bytes = CryptoJS.AES.decrypt(cipherText, SECRET_KEY);
-    const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
-    if (!decryptedData) {
-      throw new Error("Decryption failed or empty result");
-    }
-    return JSON.parse(decryptedData);
-  } catch (error) {
-    console.error("Decryption error:", error);
-    return null; // Handle or return a default object
-  }
+  const bytes = CryptoJS.AES.decrypt(cipherText, SECRET_KEY);
+  const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+  return JSON.parse(decryptedData);
 }
 
 // Login form submission handler
@@ -167,9 +153,7 @@ async function handleLogin() {
 
       // Redirect to the appropriate dashboard
       window.location.href =
-        userType === "admin"
-          ? "/directoryManagement/admin"
-          : "/directoryManagement/user";
+        userType === "admin" ? "/adminDashboard" : "/userDashboard";
     } else {
       alert(result.message || "Login failed. Please try again.");
     }
@@ -319,10 +303,10 @@ function displayUsers(users) {
       <td>${user.status || "N/A"}</td>
       <td>
         <button class="btn btn-link view-details-btn" title="View Details">
-          <img src="/directoryManagement/images/user.png" alt="Profile" class="navigation-icon" />
+          <img src="/images/user.png" alt="Profile" class="navigation-icon" />
         </button>
         <button class="btn btn-link delete-user-btn" title="Delete User">
-          <img src="/directoryManagement/images/deleteUser.png" alt="Delete" class="navigation-icon" />
+          <img src="/images/deleteUser.png" alt="Delete" class="navigation-icon" />
         </button>
         ${generateLockUnlockButtons(user, index)}
       </td>
@@ -359,37 +343,37 @@ function generateLockUnlockButtons(user, index) {
   if (user.status === "deleted") {
     return `
       <button class="btn btn-link" disabled title="User is deleted and cannot be locked/unlocked">
-        <img src="/directoryManagement/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
+        <img src="/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
       </button>
       <button class="btn btn-link" disabled title="User is deleted and cannot be locked/unlocked">
-        <img src="/directoryManagement/images/lockUser.png" alt="Lock" class="navigation-icon" />
+        <img src="/images/lockUser.png" alt="Lock" class="navigation-icon" />
       </button>
       <button class="btn btn-link" disabled title="Deleted user cannot edit">
-        <img src="/directoryManagement/images/editUser.png" alt="Edit" class="navigation-icon" />
+        <img src="/images/editUser.png" alt="Edit" class="navigation-icon" />
       </button>
     `;
   } else if (user.status === "locked") {
     return `
       <button class="btn btn-link unlock-user-btn" title="Unlock User">
-        <img src="/directoryManagement/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
+        <img src="/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
       </button>
       <button class="btn btn-link" disabled title="User is locked and cannot be locked again">
-        <img src="/directoryManagement/images/lockUser.png" alt="Lock" class="navigation-icon" />
+        <img src="/images/lockUser.png" alt="Lock" class="navigation-icon" />
       </button>
       <button class="btn btn-link edit-user-btn" title="Edit User">
-        <img src="/directoryManagement/images/editUser.png" alt="Edit" class="navigation-icon" />
+        <img src="/images/editUser.png" alt="Edit" class="navigation-icon" />
       </button>
     `;
   } else {
     return `
       <button class="btn btn-link" disabled title="User is active and cannot be unlocked">
-        <img src="/directoryManagement/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
+        <img src="/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
       </button>
       <button class="btn btn-link lock-user-btn" title="Lock User">
-        <img src="/directoryManagement/images/lockUser.png" alt="Lock" class="navigation-icon" />
+        <img src="/images/lockUser.png" alt="Lock" class="navigation-icon" />
       </button>
       <button class="btn btn-link edit-user-btn" title="Edit User">
-        <img src="/directoryManagement/images/editUser.png" alt="Edit" class="navigation-icon" />
+        <img src="/images/editUser.png" alt="Edit" class="navigation-icon" />
       </button>
     `;
   }
@@ -418,7 +402,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // Initial user fetch to particular page
-if (window.location.pathname === "/directoryManagement/listUsers") {
+if (window.location.pathname === "/listUsers") {
   fetchUsers();
 }
 
@@ -565,7 +549,7 @@ function editUser(index) {
   const encryptedUsername = encryptData(username);
   const encryptedUserOU = encryptData(userOU);
 
-  window.location.href = `/directoryManagement/editUser?username=${encodeURIComponent(
+  window.location.href = `/editUser?username=${encodeURIComponent(
     encryptedUsername
   )}&ou=${encodeURIComponent(encryptedUserOU)}`;
 }
@@ -809,7 +793,7 @@ document.addEventListener("DOMContentLoaded", function () {
           const result = await response.json();
           if (response.ok) {
             alert("User details updated successfully.");
-            window.location.href = "/directoryManagement/listUsers";
+            window.location.href = "/listUsers";
           } else {
             handleApiErrors(result);
           }

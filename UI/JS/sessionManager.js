@@ -67,7 +67,7 @@ function redirectToLogin() {
 // Redirect to dashboard based on userType
 function redirectToDashboard(userType) {
   console.log(`Redirecting to ${userType} dashboard...`);
-  const dashboard = userType === "admin" ? "/directoryManagement/admin" : "/directoryManagement/user";
+  const dashboard = userType === "admin" ? "/adminDashboard" : "/userDashboard";
   if (window.location.pathname !== dashboard) {
     window.location.href = dashboard;
   }
@@ -76,17 +76,17 @@ function redirectToDashboard(userType) {
 // Enforce user-type-based page access
 function enforceUserTypeRestrictions(userType) {
   const adminRestrictedPages = [
-    "/directoryManagement/user",
-    "/directoryManagement/changePassword",
-    "/directoryManagement/searchUser",
+    "/userDashboard",
+    "/changePassword",
+    "/searchUser",
   ];
   const userRestrictedPages = [
-    "/directoryManagement/admin",
-    "/directoryManagement/createUser",
-    "/directoryManagement/listUser",
-    "/directoryManagement/listOrganizations",
-    "/directoryManagement/createGroup",
-    "/directoryManagement/resetPassword",
+    "/adminDashboard",
+    "/createUser",
+    "/listUser",
+    "/listOrganizations",
+    "/createGroup",
+    "/resetPassword",
   ];
 
   if (

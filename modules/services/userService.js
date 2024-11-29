@@ -147,7 +147,6 @@ class UserService {
 
         return {
           dn: user.dn,
-          empID: user.employeeNumber,
           userOU: user.ou,
           userType: user.title,
           firstName: user.gn,

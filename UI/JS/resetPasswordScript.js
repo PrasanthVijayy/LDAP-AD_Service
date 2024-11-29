@@ -86,7 +86,7 @@ function togglePasswordVisibility(fieldId, iconId) {
   const toggleIcon = document.getElementById(iconId);
   const isPassword = passwordField.getAttribute("type") === "password";
   passwordField.setAttribute("type", isPassword ? "text" : "password");
-  toggleIcon.src = isPassword ? "/directoryManagement/images/eye.png" : "/directoryManagement/images/hidden.png"; // Update icon
+  toggleIcon.src = isPassword ? "/images/eye.png" : "/images/hidden.png"; // Update icon
 }
 
 // Toggle password visibility for New Password

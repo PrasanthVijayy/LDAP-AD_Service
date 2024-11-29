@@ -97,9 +97,7 @@ app.set("views", path.join(__dirname, "views"));
 
 /* --------- STATIC FILES --------- */
 app.use(
-  "/directoryManagement",
   express.static(path.join(__dirname, "UI"), {
-    fallthrough: true,
     maxAge: "1d", // Cache files for 1 day
     etag: true, // Enable ETag header for better caching
   }),

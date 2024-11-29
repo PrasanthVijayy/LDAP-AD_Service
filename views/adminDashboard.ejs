@@ -4,14 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Dashboard</title>
-    <link
-      rel="icon"
-      href="/directoryManagement/images/faviconLogo.png"
-      type="image/x-icon"
-    />
-    <link rel="stylesheet" href="/directoryManagement/libs/bootstrap.min.css" />
-    <link rel="stylesheet" href="/directoryManagement/CSS/styles.css" />
-    <script src="/directoryManagement/JS/sessionManager.js" defer></script>
+    <link rel="icon" href="/images/faviconLogo.png" type="image/x-icon" />
+    <link rel="stylesheet" href="/libs/bootstrap.min.css" />
+    <link rel="stylesheet" href="/CSS/styles.css" />
+    <script src="JS/sessionManager.js" defer></script>
   </head>
   <body>
     <!-- Navigation Buttons -->
@@ -19,7 +15,7 @@
       <!-- Profile Logo -->
       <div class="profile-container" id="profileContainer">
         <img
-          src="/directoryManagement/images/viewProfile.png"
+          src="/images/viewProfile.png"
           alt="Profile"
           class="profile-icon"
           id="profileLogo"
@@ -28,7 +24,7 @@
       <!-- Sign Out Button -->
       <button class="btn btn-danger" id="signoutButton">
         <img
-          src="/directoryManagement/images/logoutButton.png"
+          src="/images/logoutButton.png"
           alt="Sign Out"
           class="navigation-icon"
         />
@@ -39,13 +35,13 @@
     <!-- Main Content of Dashboard -->
     <div class="container my-5">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-      <h1 class="text-center mb-4">Directory Management</h1>
+      <h1 class="text-center mb-4">Admin Dashboard</h1>
       <div class="row">
         <!-- Card 1 -->
         <div class="col-md-2 mb-4">
           <div class="card shadow-sm h-100" id="createUserCard">
             <img
-              src="/directoryManagement/images/createUser.png"
+              src="/images/createUser.png"
               class="card-img-top"
               alt="Create User"
             />
@@ -55,25 +51,21 @@
           </div>
         </div>
 
-        <!-- Card 2 -->
+        <!-- Card 5 -->
         <div class="col-md-2 mb-4">
           <div class="card shadow-sm h-100" id="listUsersCard">
-            <img
-              src="/directoryManagement/images/user.png"
-              class="card-img-top"
-              alt="List Users"
-            />
+            <img src="/images/user.png" class="card-img-top" alt="List Users" />
             <div class="card-body">
               <h5 class="card-title text-center">Manage User Actions</h5>
             </div>
           </div>
         </div>
 
-        <!-- Card 3 -->
+        <!-- Card 6 -->
         <div class="col-md-2 mb-4">
           <div class="card shadow-sm h-100" id="listOrganizationsCard">
             <img
-              src="/directoryManagement/images/Organizations.png"
+              src="/images/Organizations.png"
               class="card-img-top"
               alt="List Organizations"
             />
@@ -83,11 +75,11 @@
           </div>
         </div>
 
-        <!-- Card 4 -->
+        <!-- Card 2 -->
         <div class="col-md-2 mb-4">
           <div class="card shadow-sm h-100" id="createGroupCard">
             <img
-              src="/directoryManagement/images/groups.png"
+              src="/images/groups.png"
               class="card-img-top"
               alt="Create Group"
             />
@@ -97,11 +89,11 @@
           </div>
         </div>
 
-        <!-- Card 5 -->
+        <!-- Card 8 -->
         <div class="col-md-2 mb-4">
           <div class="card shadow-sm h-100" id="resetPasswordCard">
             <img
-              src="/directoryManagement/images/resetPassword.png"
+              src="/images/resetPassword.png"
               class="card-img-top"
               alt="Reset Password"
             />
@@ -124,10 +116,10 @@
     </div>
 
     <!-- Scripts -->
-    <script src="/directoryManagement/libs/jquery.js"></script>
-    <script src="/directoryManagement/libs/bootstrap.min.js"></script>
-    <script src="/directoryManagement/JS/headerButtons.js"></script>
-    <script src="/directoryManagement/JS/routesRender.js"></script>
-    <script src="/directoryManagement/libs/crypto-js.min.js"></script>
+    <script src="/libs/jquery.js"></script>
+    <script src="/libs/bootstrap.min.js"></script>
+    <script src="/JS/headerButtons.js"></script>
+    <script src="/JS/routesRender.js"></script>
+    <script src="/libs/crypto-js.min.js"></script>
   </body>
 </html>
