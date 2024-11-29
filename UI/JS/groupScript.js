@@ -196,10 +196,10 @@ function populateGroupsTable(groups) {
   <td>${groupOU}</td>
   <td>
     <button class="btn btn-link" title="Lock Group">
-      <img src="/images/lockUser.png" alt="Lock Group" class="group-icons">
+      <img src="/directoryManagement/images/lockUser.png" alt="Lock Group" class="group-icons">
     </button>
     <button class="btn btn-link" title="View Members">
-      <img src="/images/groupMembers.png" alt="View Group" class="group-icons">
+      <img src="/directoryManagement/images/groupMembers.png" alt="View Group" class="group-icons">
     </button>
   </td>
 `;
@@ -371,7 +371,7 @@ function displayGroupMembersModal(groupName, groupType, groupOU, members) {
   const addMemberLogo = document.createElement("div");
   addMemberLogo.classList.add("text-right", "mb-2");
   addMemberLogo.innerHTML = `<button class="btn btn-link" id="addMemberBtn">
-    <img src="/images/addUser.png" alt="Add Member" class="group-icons">
+    <img src="/directoryManagement/images/addUser.png" alt="Add Member" class="group-icons">
   </button>`;
 
   // Append the addMemberLogo to the members list
@@ -403,7 +403,7 @@ function displayGroupMembersModal(groupName, groupType, groupOU, members) {
 
       const deleteButton = document.createElement("button");
       deleteButton.classList.add("btn", "btn-link");
-      deleteButton.innerHTML = `<img src="/images/removeUser.png" alt="Delete" class="navigation-icon">`;
+      deleteButton.innerHTML = `<img src="/directoryManagement/images/removeUser.png" alt="Delete" class="navigation-icon">`;
 
       deleteButton.addEventListener("click", () => {
         removeMemberFromGroup(groupName, groupType, groupOU, member);

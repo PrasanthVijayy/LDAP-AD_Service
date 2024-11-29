@@ -52,11 +52,11 @@ if (backButton) {
         const currentPage = window.location.pathname; // Get the current page URL path
 
         if (currentPage === "/editUser") {
-          window.location.href = "/listUsers"; // Redirect to the list of users
+          window.location.href = "/directoryManagement/listUsers"; // Redirect to the list of users
         } else if (data.user?.userType === "admin") {
-          window.location.href = "/adminDashboard"; // Admin dashboard
+          window.location.href = "/directoryManagement/admin"; // Admin dashboard
         } else if (data.user?.userType === "user") {
-          window.location.href = "/userDashboard"; // User dashboard
+          window.location.href = "/directoryManagement/user"; // User dashboard
         } else {
           alert("Invalid session. Please login to continue");
           window.location.href = "/"; // Login page
@@ -87,9 +87,9 @@ if (homeButton) {
 
       if (data) {
         if (data.user?.userType === "admin") {
-          window.location.href = "/adminDashboard"; // Admin dashboard
+          window.location.href = "/directoryManagement/admin"; // Admin dashboard
         } else if (data.user?.userType === "user") {
-          window.location.href = "/userDashboard"; // Regular user dashboard
+          window.location.href = "/directoryManagement/user"; // Regular user dashboard
         }
       } else {
         alert("Already logged out. Please Login to continue");
@@ -119,45 +119,48 @@ const toggleModal = () => {
 };
 
 // Show the modal when the profile logo is clicked
-profileLogo.addEventListener("click", async function (event) {
-  // If modal is already visible, hide it
-  if (profileModal.style.display === "flex") {
-    profileModal.style.display = "none";
-    profileLogoArrow.style.display = "none"; // Hide arrow if modal is closed
-  } else {
-    // Fetch session data and populate the modal
-    try {
-      const response = await fetch(`${headerBaseAPI}/session/check`, {
-        method: "GET",
-        credentials: "include", // Ensure cookies are included
-      });
+if (profileLogo) {
+  profileLogo.addEventListener("click", async function (event) {
+    // If modal is already visible, hide it
+    if (profileModal.style.display === "flex") {
+      profileModal.style.display = "none";
+      profileLogoArrow.style.display = "none"; // Hide arrow if modal is closed
+    } else {
+      // Fetch session data and populate the modal
+      try {
+        const response = await fetch(`${headerBaseAPI}/session/check`, {
+          method: "GET",
+          credentials: "include", // Ensure cookies are included
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (data.status === "success" && data.user) {
-        // Fill in the user details in the modal
-        userNameElem.textContent = data.user.username;
-        userRoleElem.textContent = data.user.userType;
-        userOUElem.textContent = data.user.OU;
+        if (data.status === "success" && data.user) {
+          // Fill in the user details in the modal
+          userNameElem.textContent = data.user.username;
+          userRoleElem.textContent = data.user.userType;
+          userOUElem.textContent = data.user.OU;
 
-        // Show the modal with the user details
-        profileModal.style.display = "flex";
-        profileLogoArrow.style.display = "block"; // Show the arrow
-      } else {
-        alert("User session not found or expired.");
+          // Show the modal with the user details
+          profileModal.style.display = "flex";
+          profileLogoArrow.style.display = "block"; // Show the arrow
+        } else {
+          alert("User session not found or expired.");
+        }
+      } catch (error) {
+        console.error("Error fetching session data:", error);
+        alert("Error fetching session data. Please try again.");
       }
-    } catch (error) {
-      console.error("Error fetching session data:", error);
-      alert("Error fetching session data. Please try again.");
     }
-  }
-});
+  });
+}
 
 // Hide the modal if clicked outside the modal content or on the profile logo
 window.addEventListener("click", (event) => {
   if (
     event.target !== profileModal &&
     event.target !== profileLogo &&
+    profileModal !== null &&
     !profileModal.contains(event.target)
   ) {
     profileModal.style.display = "none"; // Hide modal when clicking outside
@@ -169,7 +172,7 @@ window.addEventListener("click", (event) => {
 document.addEventListener("DOMContentLoaded", function () {
   const currentPage = window.location.pathname;
 
-  // if (currentPage === "/userDashboard" || currentPage === "/adminDashboard") {
+  // if (currentPage === "/directoryManagement/user" || currentPage === "/directoryManagement/admin") {
   //   document.getElementById("homeButton").style.display = "none";
   //   document.getElementById("backButton").style.display = "none";
   // }

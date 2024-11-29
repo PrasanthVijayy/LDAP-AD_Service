@@ -4,10 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>User Dashboard</title>
-    <link rel="icon" href="/images/faviconLogo.png" type="image/x-icon" />
-    <link rel="stylesheet" href="/libs/bootstrap.min.css" />
-    <link rel="stylesheet" href="/CSS/styles.css" />
-    <script src="/JS/sessionManager.js" defer></script>
+    <link
+      rel="icon"
+      href="/directoryManagement/images/faviconLogo.png"
+      type="image/x-icon"
+    />
+    <link rel="stylesheet" href="/directoryManagement/libs/bootstrap.min.css" />
+    <link rel="stylesheet" href="/directoryManagement/CSS/styles.css" />
+    <script src="/directoryManagement/JS/sessionManager.js" defer></script>
   </head>
   <body>
     <!-- Navigation Buttons -->
@@ -15,7 +19,7 @@
       <!-- Profile Logo -->
       <div class="profile-container" id="profileContainer">
         <img
-          src="/images/viewProfile.png"
+          src="/directoryManagement/images/viewProfile.png"
           alt="Profile"
           class="profile-icon"
           id="profileLogo"
@@ -24,7 +28,7 @@
       <!-- Sign Out Button -->
       <button class="btn btn-danger" id="signoutButton">
         <img
-          src="/images/logoutButton.png"
+          src="/directoryManagement/images/logoutButton.png"
           alt="Sign Out"
           class="navigation-icon"
         />
@@ -35,13 +39,13 @@
     <!--Content-->
     <div class="container my-5">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-      <h1 class="text-center mb-4">User Dashboard</h1>
+      <h1 class="text-center mb-4">Directory Management</h1>
       <div class="row justify-content-center">
         <!-- Card 1: Change Password -->
         <div class="col-md-3 mb-4">
           <div class="card shadow-sm h-100" id="changePasswordCard">
             <img
-              src="/images/resetPassword.png"
+              src="/directoryManagement/images/resetPassword.png"
               class="card-img-top"
               alt="Change Password"
             />
@@ -55,7 +59,7 @@
         <div class="col-md-3 mb-4">
           <div class="card shadow-sm h-100" id="searchUserCard">
             <img
-              src="/images/searchUser.png"
+              src="/directoryManagement/images/searchUser.png"
               class="card-img-top"
               alt="Search User"
             />
@@ -77,10 +81,10 @@
       </div>
     </div>
 
-    <script src="/libs/jquery.js"></script>
-    <script src="/libs/bootstrap.min.js"></script>
-    <script src="/JS/headerButtons.js"></script>
-    <script src="/JS/routesRender.js"></script>
-    <script src="/libs/crypto-js.min.js"></script>
+    <script src="/directoryManagement/libs/jquery.js"></script>
+    <script src="/directoryManagement/libs/bootstrap.min.js"></script>
+    <script src="/directoryManagement/JS/headerButtons.js"></script>
+    <script src="/directoryManagement/JS/routesRender.js"></script>
+    <script src="/directoryManagement/libs/crypto-js.min.js"></script>
   </body>
 </html>
