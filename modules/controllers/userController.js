@@ -530,13 +530,16 @@ class UserController {
   lockGroupMembers = async (req, res, next) => {
     try {
       console.log("Controller: modifyUserLockStatus - Started");
-      const { groupName, groupOU } = req.body;
+      // const { groupName, groupOU } = req.body;
+      const encryptedData = req.body.data;
+      const payload = decryptPayload(encryptedData); // Decrypt the data
 
-      if (!groupName) throw new BadRequestError("Group name is required");
-      if (!groupOU) throw new BadRequestError("Group OU is required");
+      if (!payload.groupName)
+        throw new BadRequestError("Group name is required");
+      if (!payload.groupOU) throw new BadRequestError("Group OU is required");
 
       // Check if given OU is valid
-      await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
+      await this.organizationService.listOrganizaitons(`ou=${payload.groupOU}`);
 
       // const groupExists = await search(
       //   `ou=groups,${process.env.LDAP_BASE_DN}`,
@@ -546,10 +549,7 @@ class UserController {
       //   throw new NotFoundError("Group not found");
       // }
 
-      const message = await this.userService.lockGroupMembers(
-        groupName,
-        groupOU
-      );
+      const message = await this.userService.lockGroupMembers(payload);
       console.log("Controller: lockUser - Completed");
       res.status(202).json(message);
     } catch (error) {
