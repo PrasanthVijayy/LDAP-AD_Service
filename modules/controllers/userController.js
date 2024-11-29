@@ -53,21 +53,29 @@ class UserController {
       // Checking if OU exists
       await this.organizationService.listOrganizaitons(`ou=${payload.userOU}`);
 
+      // Fetch the existing users from LDAP
       const userData = await this.userService.listUsers();
-      console.log(`Let's see the userData: ${JSON.stringify(userData)}`);
 
-      const employeeCount = userData.count || 0;
+      // Extract all existing empID numbers
+      const existingEmpIds = userData.users
+        .filter((user) => user.empID) // Filter out users that do not have an empID
+        .map((user) => parseInt(user.empID.replace("EMP", ""))); // Extract the numeric part and convert to an integer
 
-      //Setting the next employee number while adding user.
-      const newEmployeeId = `EMP${(employeeCount + 1)
+      console.warn("existingEmpIds", existingEmpIds);
+      // Determine the next employee number (increment the highest empID found)
+      const nextEmpIdNumber =
+        existingEmpIds.length > 0 ? Math.max(...existingEmpIds) + 1 : 1;
+
+      console.warn("NExt emp id:", nextEmpIdNumber);
+
+      // Format the new empID (e.g., EMP001, EMP002, ...)
+      payload.employeeNumber = `EMP${nextEmpIdNumber
         .toString()
         .padStart(3, "0")}`;
 
-      payload.employeeNumber = newEmployeeId;
-
       // Check empID uniqueness
       const empIdExists = await search(
-        `ou=${payload.userOU},${process.env.LDAP_BASE_DN}`,
+        `${process.env.LDAP_BASE_DN}`,
         `(employeeNumber=${payload.employeeNumber})`
       );
 
