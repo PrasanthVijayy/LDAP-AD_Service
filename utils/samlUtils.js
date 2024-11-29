@@ -1,16 +1,17 @@
 import fs from "fs";
 
-export const samlConfig = {
+export const samlUtils = {
   entryPoint: "https://sso.cybernexa.com/adfs/ls/idpinitiatedsignonpage.aspx",
   issuer: "https://192.168.0.145/",
   callbackUrl: "https://192.168.0.145/login/callback",
   idpCert: fs.readFileSync("Certificates/idp-certificate.pem", "utf-8"),
   identifierFormat: null,
-  logoutURL: "https:sso.cybernexa.com/adfs/ls/?wa=wsignout1.0",
+  logoutURL: "https://sso.cybernexa.com/adfs/ls/?wa=wsignout1.0",
+  URL: "https://192.168.0.145/",
 };
 
 /*  ---------- SAML CONFIG - TESTING START ---------- */
-// export const samlConfig = {
+// export const samlUtils = {
 //   entryPoint: "https://sso.cybernexa.com/adfs/ls",
 //   issuer: "https://remote.cybernexa.com/",
 //   callbackUrl: "https://remote.cybernexa.com/login/callback",

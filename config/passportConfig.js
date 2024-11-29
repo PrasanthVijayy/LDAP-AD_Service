@@ -1,7 +1,7 @@
 "use strict";
 import passport from "passport";
 import { Strategy as SamlStrategy } from "@node-saml/passport-saml";
-import { samlConfig } from "./samlConfig.js";
+import { samlUtils } from "../utils/samlUtils.js";
 
 /* --------- SAML SSO SETUP  STARTS ---------- */
 
@@ -10,11 +10,11 @@ export const setupPassport = () => {
     "saml",
     new SamlStrategy(
       {
-        entryPoint: samlConfig?.entryPoint,
-        issuer: samlConfig?.issuer,
-        callbackUrl: samlConfig?.callbackUrl,
-        idpCert: samlConfig?.idpCert,
-        identifierFormat: samlConfig?.identifierFormat,
+        entryPoint: samlUtils?.entryPoint,
+        issuer: samlUtils?.issuer,
+        callbackUrl: samlUtils?.callbackUrl,
+        idpCert: samlUtils?.idpCert,
+        identifierFormat: samlUtils?.identifierFormat,
         algorithm: "sha256",
         debug: true,
         acceptedClockSkewMs: 0,

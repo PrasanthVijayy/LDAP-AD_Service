@@ -6,7 +6,7 @@ import logger from "../../config/logger.js";
 import apiLimiter from "../../middleware/apiLimiter.js";
 import csrfProtection from "../../UI/libs/csurfProtection.js";
 import { search } from "../../utils/ldapUtils.js";
-import { samlConfig } from "../../config/samlConfig.js";
+import { samlUtils } from "../../utils/samlUtils.js";
 
 export const renderRoutes = (app) => {
   // Render index page
@@ -166,11 +166,8 @@ export const renderRoutes = (app) => {
           logger.info(`API URL:, ${process.env.APP_LOGIN_URL}`); // Getting correct URL
           // Redirect to IdP logout endpoint
           const idpLogoutUrl = `${
-            samlConfig.logoutURL
+            samlUtils.logoutURL
           }&RelayState=${encodeURIComponent(process.env.APP_LOGIN_URL || "/")}`;
-          logger.info(`saml logout url: ${samlConfig.logoutURL}`); // Getting correct URL
-          logger.info(`WITH RELAY PARTY: ${idpLogoutUrl}`); // Getting correct URL
-  
           return res.redirect(idpLogoutUrl);
         }
 
