@@ -279,6 +279,7 @@ async function lockGroupMembers(index) {
     const groupOU = extractOU(group.dn);
 
     const requestBody = { groupName: groupName, groupOU: groupOU };
+    const encryptedData = encryptData(requestBody);
     const response = await fetch(`${groupBaseAPI}/users/lockGroupMembers`, {
       method: "POST",
       headers: {
@@ -287,7 +288,7 @@ async function lockGroupMembers(index) {
       },
       credentials: "include",
 
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({ data: encryptedData }),
     });
 
     if (response.status === 429) {
@@ -305,13 +306,6 @@ async function lockGroupMembers(index) {
         `Success: ${result.message}` ||
           `Locked group members for group "${groupName}".`
       );
-
-      // Ensure 'groups' is properly defined
-      // if (typeof groups !== "undefined") {
-      //   populateGroupsTable(groups); // Call only if 'groups' is defined
-      // } else {
-      //   console.error(`'groups' is undefined. Cannot populate group table.`);
-      // }
     } else {
       const errorData = await response.json();
       alert(
@@ -330,8 +324,15 @@ async function lockGroupMembers(index) {
 // View group details and members
 async function viewGroupDetails(groupName, groupType, groupOU) {
   try {
+    const encrypredGroupName = encryptData(groupName);
+    const encrypredGroupOU = encryptData(groupOU);
+
+    // Encode
+    const encodedGroupName = encodeURIComponent(encrypredGroupName);
+    const encodedGroupOU = encodeURIComponent(encrypredGroupOU);
+
     const response = await fetch(
-      `${groupBaseAPI}/groups/membersInGroup?groupName=${groupName}&OU=${groupOU}`,
+      `${groupBaseAPI}/groups/membersInGroup?groupName=${encodedGroupName}&OU=${encodedGroupOU}`,
       {
         method: "GET",
         headers: {
@@ -351,7 +352,8 @@ async function viewGroupDetails(groupName, groupType, groupOU) {
 
     if (response.ok) {
       const result = await response.json();
-      const members = result.members;
+      const decryptedData = decryptPayload(result.data);
+      const members = decryptedData.members;
       displayGroupMembersModal(groupName, groupType, groupOU, members);
     } else {
       alert(`Failed to load members for group "${groupName}".`);

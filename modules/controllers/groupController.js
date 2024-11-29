@@ -214,7 +214,13 @@ class GroupController {
   membersInGroup = async (req, res, next) => {
     try {
       console.log("Controller: membersInGroup - Started");
-      const { groupName, OU } = req.query;
+      // const { groupName, OU } = req.query;
+      const encryptedGroupName = req.query.groupName;
+      const encryptedOU = req.query.OU;
+
+      const groupName = decryptPayload(encryptedGroupName);
+      const OU = decryptPayload(encryptedOU);    
+
 
       let missingFields = [];
       if (!groupName) missingFields.push("groupName");
@@ -238,8 +244,12 @@ class GroupController {
       const OUValue = OU ? OU : "groups";
 
       const group = await this.groupService.membersInGroup(groupName, OUValue);
+      const encryptData = encryptPayload(group);
+
       console.log("Controller: membersInGroup - Completed");
-      res.status(200).json(group);
+      // res.status(200).json(group);
+
+      res.status(200).json({ data: encryptData });
     } catch (error) {
       console.log("Controller: membersInGroup - Error", error);
       next(error);
@@ -396,9 +406,11 @@ class GroupController {
         member,
         memberOU
       );
-      console.log("Controller: deleteUserFromGroups - Completed");
 
-      res.status(200).json(result);
+      const encryptData = encryptPayload(result);
+      console.log("Controller: deleteUserFromGroups - Completed");
+      // res.status(200).json(result);
+      res.status(200).json({ data: encryptData });
     } catch (error) {
       console.log("Controller: deleteUserFromGroups - Error", error);
       next(error);

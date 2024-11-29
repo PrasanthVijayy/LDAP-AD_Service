@@ -421,17 +421,17 @@ class UserService {
     }
   }
 
-  async lockGroupMembers(groupName, groupOU) {
+  async lockGroupMembers(payload) {
     try {
       console.log(
-        `Service: lockGroupMembers - Locking members of group ${groupName} Started`
+        `Service: lockGroupMembers - Locking members of group ${payload.groupName} Started`
       );
 
       // Bind with LDAP admin credentials
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
 
       // Define the group's distinguished name (DN)
-      const groupDN = `cn=${groupName},ou=${groupOU},${process.env.LDAP_BASE_DN}`;
+      const groupDN = `cn=${payload.groupName},ou=${payload.groupOU},${process.env.LDAP_BASE_DN}`;
 
       // Search for all members (users) in the group
       const searchFilter = `(member=*)`; // Searches for the "member" attribute in the group
@@ -448,7 +448,7 @@ class UserService {
       // Check if there are no valid members to lock
       if (groupMembers.length === 0) {
         throw new BadRequestError(
-          `Group ${groupName} has no valid members to lock.`
+          `Group ${payload.groupName} has no valid members to lock.`
         );
       }
 
