@@ -173,7 +173,7 @@ export const renderRoutes = (app) => {
 
         // Employee exists in OpenLDAP - Proceed with setting session
         const ldapUser = ldapResults[0];
-        logger.info("ldap user check", ldapUser);
+        console.log("ldap user data from SAML Login:", ldapUser);
 
         req.session.user = {
           username: ldapUser?.cn,

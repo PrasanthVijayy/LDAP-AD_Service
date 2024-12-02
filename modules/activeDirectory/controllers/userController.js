@@ -1,16 +1,17 @@
 "use strict"; // Using strict mode
 
 import dotenv from "dotenv";
-import UserService from "../services/userService.js";
+import UserService from "../../services/userService.js";
 import {
   BadRequestError,
   ConflictError,
   NotFoundError,
-} from "../../utils/error.js";
-import { search } from "../../utils/ldapUtils.js";
-import { encryptPayload, decryptPayload } from "../../utils/encryption.js";
-import OrganizationService from "../services/orgainzationService.js";
-import GroupService from "../services/groupService.js";
+} from "../../../utils/error.js";
+import { search } from "../../../utils/ldapUtils.js";
+import { encryptPayload, decryptPayload } from "../../../utils/encryption.js";
+import OrganizationService from "../../services/orgainzationService.js";
+import GroupService from "../../services/groupService.js";
+import { connectDirectory } from "../../../utils/directoryConnector.js";
 
 dotenv.config();
 class UserController {
@@ -714,6 +715,8 @@ class UserController {
       // Decrypt the data
       const decryptedData = decryptPayload(encryptedData);
       const { username, password, userType, OU } = decryptedData;
+
+      await connectDirectory(req.body?.data?.authType);
 
       let missingFields = [];
       if (!username) missingFields.push("username");

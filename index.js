@@ -12,13 +12,14 @@ import https from "https";
 import passport from "passport";
 
 /* ---------- IMPORT FILES ---------- */
-import userRoutes from "./modules/routes/userRoutes.js";
+import userRoutes from "./modules/openLdap/routes/userRoutes.js";
 import groupRoutes from "./modules/routes/groupRoutes.js";
 import organizationRoutes from "./modules/routes/organizationRoutes.js";
 import domainRoutes from "./modules/routes/domainRoutes.js";
 import sessionRoute from "./modules/routes/sessionRoute.js";
 import errorHandling from "./middleware/errorMiddleware.js";
 import { connectToLDAP } from "./config/ldapconfig.js";
+import { connectToAD } from "./config/adConfig.js";
 import logger from "./config/logger.js";
 import { renderRoutes } from "./modules/routes/renderRoutes.js";
 import { corsOptions, securityHeaders } from "./config/securityHeaders.js";
