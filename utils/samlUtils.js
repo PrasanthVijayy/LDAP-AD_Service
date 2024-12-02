@@ -1,4 +1,5 @@
 import fs from "fs";
+"use strict";
 
 export const samlUtils = {
   entryPoint: "https://sso.cybernexa.com/adfs/ls/idpinitiatedsignonpage.aspx",
@@ -7,7 +8,6 @@ export const samlUtils = {
   idpCert: fs.readFileSync("Certificates/idp-certificate.pem", "utf-8"),
   identifierFormat: null,
   logoutURL: "https://sso.cybernexa.com/adfs/ls/?wa=wsignout1.0",
-  URL: "https://192.168.0.145/",
 };
 
 /*  ---------- SAML CONFIG - TESTING START ---------- */
@@ -17,6 +17,7 @@ export const samlUtils = {
 //   callbackUrl: "https://remote.cybernexa.com/login/callback",
 //   idpCert: fs.readFileSync("/root/auth_app/adfs_certificate.cer", "utf-8"),
 //   identifierFormat: null,
+//   logoutURL: "https://sso.cybernexa.com/adfs/ls/?wa=wsignout1.0",
 // };
 /*  ---------- SAML CONFIG - TESTING END ---------- */
 

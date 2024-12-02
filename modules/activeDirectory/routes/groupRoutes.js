@@ -1,5 +1,5 @@
 import express from "express";
-import GroupController from "../controllers/groupController.js";
+import GroupController from "../openLdap/controllers/groupController.js";
 import { sessionMiddleware } from "../../middleware/sessionMiddleware.js";
 import apiLimiter from "../../middleware/apiLimiter.js";
 import csrfProtection from "../../UI/libs/csurfProtection.js";
