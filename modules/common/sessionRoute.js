@@ -3,6 +3,7 @@ import express from "express";
 import { sessionMiddleware } from "../../middleware/sessionMiddleware.js";
 import csrfProtection from "../../UI/libs/csurfProtection.js";
 import dotenv from "dotenv";
+import { BadRequestError } from "../../utils/error.js";
 
 dotenv.config();
 
@@ -15,6 +16,7 @@ const sessionRoute = (app) => {
     console.warn(
       `Session for user: ${req.user.username} & sessionID: ${req.sessionID}`
     );
+    console.log("Session data:", req.session);
     res.status(200).json({
       status: "success",
       sessionId: req.sessionID,
@@ -93,6 +95,23 @@ const sessionRoute = (app) => {
         .status(200)
         .json({ status: "success", message: "No active session to logout" });
     }
+  });
+
+  // Route to handle selection of authType (LDAP/AD)
+  router.post("/auth/select", (req, res) => {
+    const { authType } = req.body;
+    console.log("Checking authType:", authType);
+
+    if (!authType) {
+      throw new BadRequestError("Authentication type not provided.");
+    }
+
+    // Store the selected authType in session
+    req.session.method = {
+      authType,
+    };
+
+    res.status(200).json({ status: "success" });
   });
 };
 

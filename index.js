@@ -12,16 +12,11 @@ import https from "https";
 import passport from "passport";
 
 /* ---------- IMPORT FILES ---------- */
-import userRoutes from "./modules/openLdap/routes/userRoutes.js";
-import groupRoutes from "./modules/routes/groupRoutes.js";
-import organizationRoutes from "./modules/routes/organizationRoutes.js";
-import domainRoutes from "./modules/routes/domainRoutes.js";
-import sessionRoute from "./modules/routes/sessionRoute.js";
+import { connectRoutes } from "./modules/common/routesConnector.js";
+import sessionRoute from "./modules/common/sessionRoute.js";
 import errorHandling from "./middleware/errorMiddleware.js";
-import { connectToLDAP } from "./config/ldapconfig.js";
-import { connectToAD } from "./config/adConfig.js";
 import logger from "./config/logger.js";
-import { renderRoutes } from "./modules/routes/renderRoutes.js";
+import { renderRoutes } from "./modules/common/renderRoutes.js";
 import { corsOptions, securityHeaders } from "./config/securityHeaders.js";
 import { setupPassport } from "./config/passportConfig.js";
 
@@ -49,9 +44,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors(corsOptions)); // Enabling CORS
 securityHeaders(app); // Enabling Security headers
 
-app.use(
-  morgan(":method :url :status :res[content-length] - :response-time ms")
-);
+// app.use(
+//   morgan(":method :url :status :res[content-length] - :response-time ms")
+// );
 
 /* --------- SESSION SETUP --------- */
 
@@ -118,29 +113,24 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 /* ---------- API ROUTES SETUP  ----------*/
-userRoutes(app);
-groupRoutes(app);
-organizationRoutes(app);
-domainRoutes(app);
 sessionRoute(app);
 renderRoutes(app);
+
+app.use((req, res, next) => {
+  if (req.session?.method) {
+    return connectRoutes(req, res, next);
+  }
+  next();
+});
 
 /* ------------ ERROR HANDLING ------------ */
 app.use(errorHandling);
 
-// Expecting LDAP to start before server starts
-connectToLDAP()
-  .then(() => {
-    const PORT = 443;
-    const HOST = "0.0.0.0";
-    // Use HTTPS to create the server
-    https.createServer(credentials, app).listen(PORT, HOST, () => {
-      logger.info(`Server started and listening on https://localhost:${PORT}`);
-      logger.warn(
-        `Server running with machine IP: ${process.env.APP_LOGIN_URL}`
-      );
-    });
-  })
-  .catch((err) => {
-    console.error("Failed to connect to LDAP. Server not started.", err);
-  });
+/* ------------ SERVER START ------------ */
+const PORT = 443;
+const HOST = "0.0.0.0";
+// Use HTTPS to create the server
+https.createServer(credentials, app).listen(PORT, HOST, () => {
+  logger.info(`Server started and listening on https://localhost:${PORT}`);
+  logger.warn(`Server running with machine IP: ${process.env.APP_LOGIN_URL}`);
+});

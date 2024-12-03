@@ -1,7 +1,7 @@
 "use strict"; // Using strict mode
 
 import dotenv from "dotenv";
-import UserService from "../../services/userService.js";
+import UserService from "../../openLdap/services/userService.js";
 import {
   BadRequestError,
   ConflictError,
@@ -9,8 +9,8 @@ import {
 } from "../../../utils/error.js";
 import { search } from "../../../utils/ldapUtils.js";
 import { encryptPayload, decryptPayload } from "../../../utils/encryption.js";
-import OrganizationService from "../../services/orgainzationService.js";
-import GroupService from "../../services/groupService.js";
+import OrganizationService from "../../openLdap/services/orgainzationService.js";
+import GroupService from "../../openLdap/services/groupService.js";
 import { connectDirectory } from "../../../utils/directoryConnector.js";
 
 dotenv.config();
@@ -710,14 +710,11 @@ class UserController {
     try {
       console.log("Controller: login - Started");
 
-      const encryptedData = req.body.data; // Decrypt the encrypted data
-
-      // Decrypt the data
-      const decryptedData = decryptPayload(encryptedData);
-      const { username, password, userType, OU } = decryptedData;
-
-      await connectDirectory(req.body?.data?.authType);
-
+      const encryptedData = req.body.data;
+      const decryptedData = decryptPayload(encryptedData); // Decrypt the data
+      const { username, password, userType, OU, authType } = decryptedData;
+      
+      // Check for missing fields
       let missingFields = [];
       if (!username) missingFields.push("username");
       if (!password) missingFields.push("password");
@@ -733,9 +730,9 @@ class UserController {
       if (!["user", "admin"].includes(userType)) {
         throw new BadRequestError("User type should be either user or admin");
       }
+      await connectDirectory(authType); // Connect to the appropriate directory
 
-      // Checking the requested OU is valid
-      await this.organizationService.listOrganizaitons(`ou=${OU}`);
+      await this.organizationService.listOrganizaitons(`ou=${OU}`); // Validate the requested OU
 
       // Check if user exists
       const userExists = await search(
@@ -786,6 +783,7 @@ class UserController {
         userType,
         OU: OU || fetchedOU,
         authMethod: "Password",
+        authType,
       };
       req.session.cookie.maxAge = 30 * 60 * 1000; // 30 minutes
 
@@ -807,7 +805,7 @@ class UserController {
         message: message.message,
         sessionId: req.session.id,
         username: username,
-        OU: fetchedOU || OU, // Include the fetched OU or the provided OU
+        OU: OU || fetchedOU, // Include the fetched OU or the provided OU
       });
     } catch (error) {
       console.log("Controller: login - Error", error);

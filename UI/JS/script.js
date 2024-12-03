@@ -133,32 +133,56 @@ async function handleLogin() {
   const userType = document.querySelector(
     'input[name="userType"]:checked'
   ).value;
+  const authType = document.getElementById("authType").value;
 
-  const apiUrl = `${scriptBaseAPI}/users/authenticate`;
+  const apiUrlSelect = `${scriptBaseAPI}/session/auth/select`; // authSelect API endpoint
+  const apiUrlAuthenticate = `${scriptBaseAPI}/users/authenticate`; // authenticate API endpoint
+
+  // Encrypt data before sending
   const data = encryptData({
     username: username,
     password: password,
     userType: userType,
     OU: ouName,
+    authType: authType,
   });
 
   try {
-    const response = await fetch(apiUrl, {
+    // Calling `auth/select` API to store authType in the session
+    const selectResponse = await fetch(apiUrlSelect, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "include", // This includes the session cookie
+      credentials: "include",
+      body: JSON.stringify({ authType }),
+    });
+
+    if (!selectResponse.ok) {
+      const error = await selectResponse.json();
+      console.error("Error selecting auth type:", error.message);
+      alert(error.message || "Failed to select authentication type.");
+      return;
+    }
+
+    const selectResponsePayload = await selectResponse.json();
+    console.log("selectResponsePayload: ", selectResponsePayload);
+
+    // Proceeding with the Authenticate API call after successful authType selection
+    const authenticateResponse = await fetch(apiUrlAuthenticate, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ data }),
     });
 
-    if (response.status === 429) {
-      alert(
-        "Too many requests. Please wait a few minutes before trying again."
-      );
-      return; // Stop further execution
+    let result;
+    try {
+      result = await authenticateResponse.json(); // Try to parse JSON
+    } catch (err) {
+      console.error("Failed to parse authenticate response JSON:", err);
+      throw new Error("Unexpected server response format.");
     }
-    const result = await response.json();
 
-    if (response.ok) {
+    if (authenticateResponse.ok) {
       // Reset the login form
       document.getElementById("loginForm").reset();
       localStorage.setItem("userType", userType);
@@ -171,11 +195,12 @@ async function handleLogin() {
           ? "/directoryManagement/admin"
           : "/directoryManagement/user";
     } else {
+      console.error("Authentication failed:", result.message);
       alert(result.message || "Login failed. Please try again.");
     }
   } catch (error) {
     console.error("Error during login:", error);
-    alert("An error occurred. Please try again later.");
+    alert(error.message || "An error occurred. Please try again later.");
   }
 }
 

@@ -1,4 +1,4 @@
-import { bind, search } from "../../utils/ldapUtils.js";
+import { bind, search } from "../../../utils/ldapUtils.js";
 
 class DomainService {
   async listDCs() {

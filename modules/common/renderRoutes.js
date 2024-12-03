@@ -182,6 +182,7 @@ export const renderRoutes = (app) => {
           userType: ldapUser?.title,
           OU: ldapUser?.ou || null,
           authMethod: "SAML",
+          authType: null,
         };
 
         // Set session expiration dynamically based on SAML assertion
