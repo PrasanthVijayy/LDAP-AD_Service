@@ -1,5 +1,5 @@
-import { search, bind, add } from "../../utils/ldapUtils.js";
-import { NotFoundError } from "../../utils/error.js";
+import { search, bind, add } from "../../../utils/ldapUtils.js";
+import { NotFoundError } from "../../../utils/error.js";
 
 class OrganizationService {
   async createOrganization(payload) {

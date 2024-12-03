@@ -1,8 +1,8 @@
 import express from "express";
-import OrganizationController from "../openLdap/controllers/organizationController.js";
-import { sessionMiddleware } from "../../middleware/sessionMiddleware.js";
-import apiLimiter from "../../middleware/apiLimiter.js";
-import csrfProtection from "../../UI/libs/csurfProtection.js";
+import OrganizationController from "../../openLdap/controllers/organizationController.js";
+import { sessionMiddleware } from "../../../middleware/sessionMiddleware.js";
+import apiLimiter from "../../../middleware/apiLimiter.js";
+import csrfProtection from "../../../UI/libs/csurfProtection.js";
 
 const organizationController = new OrganizationController();
 

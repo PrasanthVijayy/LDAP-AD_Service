@@ -714,9 +714,7 @@ class UserController {
 
       // Decrypt the data
       const decryptedData = decryptPayload(encryptedData);
-      const { username, password, userType, OU } = decryptedData;
-
-      await connectDirectory(req.body?.data?.authType);
+      const { username, password, userType, OU, authType } = decryptedData;
 
       let missingFields = [];
       if (!username) missingFields.push("username");
@@ -733,6 +731,7 @@ class UserController {
       if (!["user", "admin"].includes(userType)) {
         throw new BadRequestError("User type should be either user or admin");
       }
+      await connectDirectory(authType); // Connect to the appropriate directory
 
       // Checking the requested OU is valid
       await this.organizationService.listOrganizaitons(`ou=${OU}`);
@@ -786,6 +785,7 @@ class UserController {
         userType,
         OU: OU || fetchedOU,
         authMethod: "Password",
+        // authType: authType,
       };
       req.session.cookie.maxAge = 30 * 60 * 1000; // 30 minutes
 

@@ -1,20 +1,22 @@
-"use strict"; // Using strict mode
+"use strict";
 
-// ldapConfig.js
 import ldap from "ldapjs";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const client = ldap.createClient({
-  url: process.env.LDAP_SERVER_URL,
-  reconnect: true,
-});
-
-const connectToLDAP = () => {
+const connectToLDAP = async () => {
   return new Promise((resolve, reject) => {
+    console.log("Initializing LDAP connection...");
+
+    // Create a new client for each connection attempt
+    const client = ldap.createClient({
+      url: process.env.LDAP_SERVER_URL,
+      reconnect: true, // Enable reconnect when fails
+    });
+
     client.on("connect", () => {
-      console.log("LDAP client connected successfully.");
+      console.log("LDAP connected, attempting bind...");
 
       client.bind(
         process.env.LDAP_ADMIN_DN,
@@ -25,7 +27,7 @@ const connectToLDAP = () => {
             reject(err);
           } else {
             console.log("LDAP bind successful.");
-            resolve();
+            resolve(client); // Resolve with the connected client
           }
         }
       );
@@ -36,10 +38,20 @@ const connectToLDAP = () => {
       reject(err);
     });
 
+    client.on("timeout", () => {
+      console.error("LDAP connection timeout.");
+      reject(new Error("LDAP connection timeout."));
+    });
+
     client.on("disconnect", () => {
       console.warn("LDAP client disconnected.");
     });
+
+    // Add a manual timeout in case no event is triggered
+    setTimeout(() => {
+      reject(new Error("LDAP connection attempt timed out."));
+    }, 10000); // 10 seconds timeout
   });
 };
 
-export { client, connectToLDAP };
+export { connectToLDAP };

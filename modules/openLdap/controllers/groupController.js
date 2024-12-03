@@ -1,13 +1,13 @@
 "use strict"; // Using strict mode
 
-import GroupService from "../../services/groupService.js";
+import GroupService from "../../openLdap/services/groupService.js";
 import {
   BadRequestError,
   ConflictError,
   NotFoundError,
 } from "../../../utils/error.js";
 import { search } from "../../../utils/ldapUtils.js";
-import OrganizationService from "../../services/orgainzationService.js";
+import OrganizationService from "../../openLdap/services/orgainzationService.js";
 import { encryptPayload, decryptPayload } from "../../../utils/encryption.js";
 class GroupController {
   constructor() {
