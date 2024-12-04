@@ -1,8 +1,8 @@
 import express from "express";
-import GroupController from "../openLdap/controllers/groupController.js";
-import { sessionMiddleware } from "../../middleware/sessionMiddleware.js";
-import apiLimiter from "../../middleware/apiLimiter.js";
-import csrfProtection from "../../UI/libs/csurfProtection.js";
+import GroupController from "../../activeDirectory/controllers/groupController.js";
+import { sessionMiddleware } from "../../../middleware/sessionMiddleware.js";
+import apiLimiter from "../../../middleware/apiLimiter.js";
+import csrfProtection from "../../../UI/libs/csurfProtection.js";
 
 const groupController = new GroupController();
 

@@ -1,12 +1,12 @@
 import express from "express";
-import UserController from "../openLdap/controllers/userController.js";
-import apiLimiter from "../../middleware/apiLimiter.js";
-import { sessionMiddleware } from "../../middleware/sessionMiddleware.js";
-import csrfProtection from "../../UI/libs/csurfProtection.js";
+import UserController from "../../activeDirectory/controllers/userController.js";
+import apiLimiter from "../../../middleware/apiLimiter.js";
+import { sessionMiddleware } from "../../../middleware/sessionMiddleware.js";
+import csrfProtection from "../../../UI/libs/csurfProtection.js";
 
 const userController = new UserController();
 
-const userRoutes = (app) => {
+const adUserRoutes = (app) => {
   const router = express.Router();
   app.use("/LDAP/v1/users", router);
 
@@ -29,4 +29,4 @@ const userRoutes = (app) => {
   router.post("/authenticate", apiLimiter(), userController.login); // Login
 };
 
-export default userRoutes;
+export default adUserRoutes;

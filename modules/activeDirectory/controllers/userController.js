@@ -1,7 +1,7 @@
 "use strict"; // Using strict mode
 
 import dotenv from "dotenv";
-import UserService from "../../services/userService.js";
+import UserService from "../../activeDirectory/services/userService.js";
 import {
   BadRequestError,
   ConflictError,
@@ -9,8 +9,8 @@ import {
 } from "../../../utils/error.js";
 import { search } from "../../../utils/ldapUtils.js";
 import { encryptPayload, decryptPayload } from "../../../utils/encryption.js";
-import OrganizationService from "../../services/orgainzationService.js";
-import GroupService from "../../services/groupService.js";
+import OrganizationService from "../../activeDirectory/services/orgainzationService.js";
+import GroupService from "../../activeDirectory/services/groupService.js";
 import { connectDirectory } from "../../../utils/directoryConnector.js";
 
 dotenv.config();
