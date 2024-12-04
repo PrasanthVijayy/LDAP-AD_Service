@@ -4,14 +4,14 @@ import {
   add,
   modify,
   deleteEntry,
-} from "../../utils/ldapUtils.js";
+} from "../../../utils/ldapUtils.js";
 import {
   BadRequestError,
   ConflictError,
   NotFoundError,
   UnauthorizedError,
-} from "../../utils/error.js";
-import { createSSHAHash } from "../../utils/encryption.js";
+} from "../../../utils/error.js";
+import { createSSHAHash } from "../../../utils/encryption.js";
 import { uid } from "uid";
 
 class UserService {

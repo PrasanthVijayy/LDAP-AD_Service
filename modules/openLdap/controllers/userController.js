@@ -708,7 +708,7 @@ class UserController {
   // Login - Self service
   login = async (req, res, next) => {
     try {
-      console.log("Controller: login - Started");
+      console.log("[OpenLDAP] Controller: login - Started");
 
       const encryptedData = req.body.data;
       const decryptedData = decryptPayload(encryptedData); // Decrypt the data

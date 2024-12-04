@@ -1,9 +1,9 @@
-import { bind, add, search, modify } from "../../utils/ldapUtils.js";
+import { bind, add, search, modify } from "../../../utils/ldapUtils.js";
 import {
   BadRequestError,
   ConflictError,
   NotFoundError,
-} from "../../utils/error.js";
+} from "../../../utils/error.js";
 
 class GroupService {
   async createGroup(groupName, description, groupType, groupOU) {
