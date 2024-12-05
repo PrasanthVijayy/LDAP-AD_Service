@@ -6,7 +6,7 @@ import csrfProtection from "../../../UI/libs/csurfProtection.js";
 
 const groupController = new GroupController();
 
-const groupRoutes = (app) => {
+const adGroupRoutes = (app) => {
   const router = express.Router();
   app.use("/LDAP/v1/groups", router);
 
@@ -19,4 +19,4 @@ const groupRoutes = (app) => {
   router.delete("/deleteFromAdminGroup", csrfProtection, sessionMiddleware, apiLimiter(), groupController.deleteFromAdminGroup); // Delete user from admin group
   router.delete("/deleteMemberFromGroups", csrfProtection, sessionMiddleware, apiLimiter(), groupController.deleteUserFromGroups); // Delete member from all groups
 };
-export default groupRoutes;
+export default adGroupRoutes;

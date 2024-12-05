@@ -7,11 +7,11 @@ import csrfProtection from "../../../UI/libs/csurfProtection.js";
 
 const domainController = new DomainController();
 
-const domainRoutes = (app) => {
+const adDomainRoutes = (app) => {
   const router = express.Router();
   app.use("/LDAP/v1/dc", router);
 
   router.get("/listDCs", csrfProtection, sessionMiddleware, apiLimiter(), domainController.listDCs); // list DCs
 };
 
-export default domainRoutes;
+export default adDomainRoutes;
