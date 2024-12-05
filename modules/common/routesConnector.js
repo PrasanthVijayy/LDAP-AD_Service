@@ -5,16 +5,13 @@ import url from "url"; // To help convert the path to a file URL
 import logger from "../../config/logger.js";
 import { BadRequestError } from "../../utils/error.js";
 
-export const connectRoutes = async (req, res, next) => {
+export const connectRoutes = async (app, authType) => {
   try {
-    const authType = req.session?.method?.authType;
-
     if (!authType) {
       throw new BadRequestError("Authentication type not found in session.");
     }
 
     let routesDirectory;
-
     if (authType === "ldap") {
       logger.info("Loading OpenLDAP routes...");
       routesDirectory = path.resolve("modules/openLdap/routes");
@@ -25,26 +22,23 @@ export const connectRoutes = async (req, res, next) => {
       throw new BadRequestError("Invalid authentication type.");
     }
 
-    // Read all route files in the selected directory
     const routeFiles = fs
       .readdirSync(routesDirectory)
       .filter((file) => file.endsWith("Routes.js"));
 
-    // Dynamically import and attach each route file
     for (const file of routeFiles) {
       const routePath = path.join(routesDirectory, file);
+      const { default: route } = await import(url.pathToFileURL(routePath));
 
-      // Convert the file path to a file URL (for Windows compatibility)
-      const fileUrl = url.pathToFileURL(routePath).href;
-
-      const { default: route } = await import(fileUrl);
-      route(req.app); // Attach the route to the Express app instance
+      if (typeof route === "function") {
+        // Attach route to the app (which is already passed as 'req.app')
+        route(app);
+        logger.info(`Successfully loaded route: ${file}`);
+      } else {
+        throw new Error(`Route file ${file} does not export a valid function.`);
+      }
     }
-
-    // Proceed to the next middleware
-    next();
   } catch (error) {
-    logger.error(`Failed to load routes: ${error.message}`);
-    next(error); // Pass error to the global error handler
+    next(error);
   }
 };

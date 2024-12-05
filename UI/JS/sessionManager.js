@@ -15,7 +15,6 @@ async function validateSession() {
   const isLoggedIn = loggedInCookie?.split("=")[1] === "yes";
 
   if (!isLoggedIn) {
-    console.log("User is not logged in. Redirecting to login.");
     redirectToLogin();
     document.body.style.visibility = "visible";
     return;
@@ -67,7 +66,10 @@ function redirectToLogin() {
 // Redirect to dashboard based on userType
 function redirectToDashboard(userType) {
   console.log(`Redirecting to ${userType} dashboard...`);
-  const dashboard = userType === "admin" ? "/directoryManagement/admin" : "/directoryManagement/user";
+  const dashboard =
+    userType === "admin"
+      ? "/directoryManagement/admin"
+      : "/directoryManagement/user";
   if (window.location.pathname !== dashboard) {
     window.location.href = dashboard;
   }

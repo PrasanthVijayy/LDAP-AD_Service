@@ -1,4 +1,5 @@
 "use strict";
+
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -21,7 +22,7 @@ import { corsOptions, securityHeaders } from "./config/securityHeaders.js";
 import { setupPassport } from "./config/passportConfig.js";
 
 dotenv.config();
-const app = express(); // Create express app
+const app = express();
 
 /* ---------- SSL SETUP ---------- */
 const privateKey = fs.readFileSync(
@@ -44,9 +45,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors(corsOptions)); // Enabling CORS
 securityHeaders(app); // Enabling Security headers
 
-// app.use(
-//   morgan(":method :url :status :res[content-length] - :response-time ms")
-// );
+app.use(
+  morgan(":method :url :status - :response-time ms")
+);
 
 /* --------- SESSION SETUP --------- */
 
@@ -69,7 +70,7 @@ app.use(
   })
 );
 
-/* Middleware to manage `logged_in` cookie */
+/* Middleware to manage logged_in cookie */
 app.use((req, res, next) => {
   const isUserLoggedIn = req.session && req.session.user;
   const loggedInValue = isUserLoggedIn ? "yes" : "no";
@@ -116,11 +117,27 @@ app.use(passport.session());
 sessionRoute(app);
 renderRoutes(app);
 
-app.use((req, res, next) => {
-  if (req.session?.method) {
-    return connectRoutes(req, res, next);
+app.use(async (req, res, next) => {
+  const authType = req.session?.method?.authType;
+
+  if (authType) {
+    logger.success(
+      `AuthType "${authType.toUpperCase()}" found in session. Loading respective routes.`
+    );
+    try {
+      console.warn("LOADING DYNAMIC ROUTES");
+      // Waiting for the routes to load dynamically
+      await connectRoutes(app, authType);
+      app.use(errorHandling);
+      logger.success(`Routes loaded for authType: ${authType}`);
+      next(); // Proceed to the next middleware
+    } catch (error) {
+      return next(error);
+    }
+  } else {
+    logger.error("No authType found in session, skipping route loading!.");
+    return next();
   }
-  next();
 });
 
 /* ------------ ERROR HANDLING ------------ */
