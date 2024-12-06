@@ -139,14 +139,33 @@ async function handleLogin() {
   const apiUrlAuthenticate = `${scriptBaseAPI}/users/authenticate`; // authenticate API endpoint
 
   // Encrypt data before sending
-  const data = encryptData({
-    username: username,
-    password: password,
-    userType: userType,
-    OU: ouName,
-    authType: authType,
-  });
+  // const data = encryptData({
+  //   username: username,
+  //   password: password,
+  //   userType: userType,
+  //   OU: ouName,
+  //   authType: authType,
+  // });
 
+  let data = {}; // Passing payload based on authType
+
+  if (authType === "ldap") {
+    data = encryptData({
+      username: username,
+      password: password,
+      userType: userType,
+      OU: ouName,
+      authType: authType,
+    });
+  } else if (authType === "ad") {
+    const email = document.getElementById("email").value;
+    // const adPassword = document.getElementById("adPassword").value;
+    data = encryptData({
+      email: email,
+      password: password,
+      authType: authType,
+    });
+  }
   try {
     // Calling `auth/select` API to store authType in the session
     const selectResponse = await fetch(apiUrlSelect, {

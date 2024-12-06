@@ -5,8 +5,8 @@ class OrganizationService {
   async createOrganization(payload) {
     try {
       console.log("Service: createOrganization - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const organizationDN = `ou=${payload.organizationName},${process.env.LDAP_BASE_DN}`;
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const organizationDN = `ou=${payload.organizationName},${process.env.AD_BASE_DN}`;
       const organizationAttributes = {
         ou: payload.organizationName,
         objectClass: ["top", "organizationalUnit"],
@@ -23,8 +23,8 @@ class OrganizationService {
   async listOrganizaitons(filter) {
     try {
       console.log("Service: listOrganizaitons - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const baseDN = process.env.LDAP_BASE_DN || "ou=groups,dc=example,dc=com";
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const baseDN = process.env.AD_BASE_DN || "ou=groups,dc=example,dc=com";
       const searchFilter = filter
         ? `(${filter})`
         : "(objectClass=organizationalUnit)";

@@ -1,14 +1,33 @@
 "use strict";
 import fs from "fs";
 import path from "path";
-import url from "url"; // To help convert the path to a file URL
+import url from "url";
 import logger from "../../config/logger.js";
 import { BadRequestError } from "../../utils/error.js";
+
+let currentAuthType = null; // Tracks the currently loaded authType
+let loadedRoutes = []; // Keeps track of loaded route handlers
 
 export const connectRoutes = async (app, authType) => {
   try {
     if (!authType) {
       throw new BadRequestError("Authentication type not found in session.");
+    }
+
+    if (authType === currentAuthType) {
+      logger.info(`Routes for authType "${authType}" are already loaded.`);
+      return; // Skip reloading if the same authType is requested
+    }
+
+    // Remove previously loaded routes from the Express stack
+    if (loadedRoutes.length > 0) {
+      logger.info(
+        `Unloading previously loaded routes for authType "${currentAuthType}".`
+      );
+      app._router.stack = app._router.stack.filter(
+        (layer) => !loadedRoutes.includes(layer.name)
+      );
+      loadedRoutes = []; // Clear the list of loaded routes
     }
 
     let routesDirectory;
@@ -31,14 +50,18 @@ export const connectRoutes = async (app, authType) => {
       const { default: route } = await import(url.pathToFileURL(routePath));
 
       if (typeof route === "function") {
-        // Attach route to the app (which is already passed as 'req.app')
-        route(app);
+        route(app); // Attach the routes to the Express instance
+        loadedRoutes.push(route.name); // Track loaded route for cleanup
         logger.info(`Successfully loaded route: ${file}`);
       } else {
         throw new Error(`Route file ${file} does not export a valid function.`);
       }
     }
+
+    currentAuthType = authType; // Update the current authentication type
+    logger.info(`Routes for ${authType} successfully loaded.`);
   } catch (error) {
-    next(error);
+    logger.error(`Error loading routes: ${error.message}`);
+    throw error; // Rethrow to ensure global error handling
   }
 };

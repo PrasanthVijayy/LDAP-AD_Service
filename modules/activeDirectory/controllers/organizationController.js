@@ -21,7 +21,7 @@ class OrganizationController {
         throw new BadRequestError("Missing field: organizationName");
       }
 
-      const baseDN = `${process.env.LDAP_BASE_DN}`;
+      const baseDN = `${process.env.AD_BASE_DN}`;
       const filter = `(ou=${payload.organizationName})`;
 
       // Search for existing OU
