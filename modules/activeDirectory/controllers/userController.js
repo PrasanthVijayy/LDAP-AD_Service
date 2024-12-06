@@ -12,6 +12,7 @@ import { encryptPayload, decryptPayload } from "../../../utils/encryption.js";
 import OrganizationService from "../../activeDirectory/services/orgainzationService.js";
 import GroupService from "../../activeDirectory/services/groupService.js";
 import { connectDirectory } from "../../../utils/directoryConnector.js";
+import logger from "../../../config/logger.js";
 
 dotenv.config();
 class UserController {
@@ -24,7 +25,7 @@ class UserController {
   // Add a new user to the LDAP directory
   addUser = async (req, res, next) => {
     try {
-      console.log("Controller: addUser - Started");
+      logger.info("[AD] Controller: addUser - Started");
 
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
@@ -76,7 +77,7 @@ class UserController {
 
       // Check empID uniqueness
       const empIdExists = await search(
-        `${process.env.LDAP_BASE_DN}`,
+        `${process.env.AD_BASE_DN}`,
         `(employeeNumber=${payload.employeeNumber})`
       );
 
@@ -86,7 +87,7 @@ class UserController {
 
       // Check for uniqueness
       const userExists = await search(
-        `ou=${payload.userOU},${process.env.LDAP_BASE_DN}`,
+        `ou=${payload.userOU},${process.env.AD_BASE_DN}`,
         `(cn=${payload.givenName})`
       );
 
@@ -96,7 +97,7 @@ class UserController {
 
       if (payload.telephoneNumber) {
         const phoneExist = await search(
-          `ou=${payload.userOU},${process.env.LDAP_BASE_DN}`,
+          `ou=${payload.userOU},${process.env.AD_BASE_DN}`,
           `(telephoneNumber=${payload.telephoneNumber})`
         );
         if (phoneExist.length > 0) {
@@ -111,7 +112,7 @@ class UserController {
 
       if (payload.mail) {
         const emailExist = await search(
-          `ou=${payload.userOU},${process.env.LDAP_BASE_DN}`,
+          `ou=${payload.userOU},${process.env.AD_BASE_DN}`,
           `(mail=${payload.mail})`
         );
         if (emailExist.length > 0) {
@@ -125,10 +126,10 @@ class UserController {
       }
 
       const message = await this.userService.addUser(payload);
-      console.log("Controller: addUser - Completed");
+      logger.info("[AD] Controller: addUser - Completed");
       res.status(201).json(message);
     } catch (error) {
-      console.log("Controller: addUser - Error", error);
+      logger.info("[AD] Controller: addUser - Error", error);
       next(error);
     }
   };
@@ -136,15 +137,15 @@ class UserController {
   //List users with custom attributes
   listUsers = async (req, res, next) => {
     try {
-      console.log("Controller: listUsers - Started");
+      logger.info("[AD] Controller: listUsers - Started");
       const filter = req.query.filter || "";
-      console.log("Filter", filter);
+      logger.info("Filter", filter);
       const users = await this.userService.listUsers(filter);
-      console.log("Controller: listUsers - Completed");
+      logger.info("[AD] Controller: listUsers - Completed");
       const encryptData = encryptPayload(users);
       res.status(200).json({ data: encryptData });
     } catch (error) {
-      console.log("Controller: listUsers - Error", error);
+      logger.info("[AD] Controller: listUsers - Error", error);
       next(error);
     }
   };
@@ -152,7 +153,7 @@ class UserController {
   // Reset user password based on username from LDAP directory
   resetPassword = async (req, res, next) => {
     try {
-      console.log("Controller: resetPassword - Started");
+      logger.info("[AD] Controller: resetPassword - Started");
 
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
@@ -175,7 +176,7 @@ class UserController {
       await this.organizationService.listOrganizaitons(`ou=${userOU}`);
 
       const userExists = await search(
-        `ou=${userOU},${process.env.LDAP_BASE_DN}`,
+        `ou=${userOU},${process.env.AD_BASE_DN}`,
         `(cn=${username})`
       );
 
@@ -199,10 +200,10 @@ class UserController {
         confirmPassword,
         userOU
       );
-      console.log("Controller: resetPassword - Completed");
+      logger.info("[AD] Controller: resetPassword - Completed");
       res.status(200).json(message);
     } catch (error) {
-      console.log("Controller: resetPassword - Error", error);
+      logger.info("[AD] Controller: resetPassword - Error", error);
       next(error);
     }
   };
@@ -210,7 +211,7 @@ class UserController {
   // Delete a user from the LDAP directory
   deleteUser = async (req, res, next) => {
     try {
-      console.log("Controller: deleteUser - Started");
+      logger.info("[AD] Controller: deleteUser - Started");
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
 
@@ -225,7 +226,7 @@ class UserController {
       }
 
       // const userExists = await search(
-      //   `ou=users,${process.env.LDAP_BASE_DN}`,
+      //   `ou=users,${process.env.AD_BASE_DN}`,
       //   `(cn=${username})`
       // );
       // if (userExists.length === 0) {
@@ -236,7 +237,7 @@ class UserController {
       //   throw new BadRequestError(`User is already deleted`);
       // }
 
-      // console.log("User exists", userExists[0]);
+      // logger.info("User exists", userExists[0]);
 
       const message = await this.userService.deleteUser(username, userOU);
 
@@ -245,10 +246,10 @@ class UserController {
         username,
         userOU
       );
-      console.log("Controller: deleteUser - Completed");
+      logger.info("[AD] Controller: deleteUser - Completed");
       res.status(200).json({ message, removeFromGroups });
     } catch (error) {
-      console.log("Controller: deleteUser - Error", error);
+      logger.info("[AD] Controller: deleteUser - Error", error);
       next(error);
     }
   };
@@ -256,7 +257,7 @@ class UserController {
   // Update a user in the LDAP directory
   updateUser = async (req, res, next) => {
     try {
-      console.log("Controller: updateUser - Started");
+      logger.info("[AD] Controller: updateUser - Started");
 
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
@@ -282,7 +283,7 @@ class UserController {
 
       // Check if user exists and fetch their current attributes
       const userExists = await search(
-        `ou=${userOU},${process.env.LDAP_BASE_DN}`,
+        `ou=${userOU},${process.env.AD_BASE_DN}`,
         `(cn=${username})`
       );
       if (userExists.length === 0) {
@@ -312,7 +313,7 @@ class UserController {
 
         // Check if email is already in use by another user
         const emailInUse = await search(
-          process.env.LDAP_BASE_DN,
+          process.env.AD_BASE_DN,
           `(mail=${attributes.mail})`
         );
 
@@ -335,7 +336,7 @@ class UserController {
 
         // Check if phone number is already in use by another user
         const phoneInUse = await search(
-          `ou=${userOU},${process.env.LDAP_BASE_DN}`,
+          `ou=${userOU},${process.env.AD_BASE_DN}`,
           `(telephoneNumber=${attributes.telephoneNumber})`
         );
 
@@ -351,10 +352,10 @@ class UserController {
         userOU,
         attributes
       );
-      console.log("Controller: updateUser - Completed");
+      logger.info("[AD] Controller: updateUser - Completed");
       res.status(202).json(data);
     } catch (error) {
-      console.log("Controller: updateUser - Error", error);
+      logger.info("[AD] Controller: updateUser - Error", error);
       next(error);
     }
   };
@@ -362,7 +363,7 @@ class UserController {
   //update email and phone details only.
   updateContactDetails = async (req, res, next) => {
     try {
-      console.log("Controller: changeEmailPhone - Started");
+      logger.info("[AD] Controller: changeEmailPhone - Started");
 
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
@@ -394,7 +395,7 @@ class UserController {
       }
 
       const userExist = await search(
-        `ou=${userOU},${process.env.LDAP_BASE_DN}`,
+        `ou=${userOU},${process.env.AD_BASE_DN}`,
         `(cn=${username})`
       );
       if (userExist.length === 0) {
@@ -417,7 +418,7 @@ class UserController {
 
         // Check if email is already in use by another user
         const emailInUse = await search(
-          `ou=${userOU},${process.env.LDAP_BASE_DN}`,
+          `ou=${userOU},${process.env.AD_BASE_DN}`,
           `(mail=${attributes.mail})`
         );
 
@@ -440,7 +441,7 @@ class UserController {
 
         // Check if phone number is already in use by another user
         const phoneInUse = await search(
-          `ou=${userOU},${process.env.LDAP_BASE_DN}`,
+          `ou=${userOU},${process.env.AD_BASE_DN}`,
           `(telephoneNumber=${attributes.telephoneNumber})`
         );
 
@@ -456,10 +457,10 @@ class UserController {
         userOU,
         attributes
       );
-      console.log("Controller: changeEmailPhone - Completed");
+      logger.info("[AD] Controller: changeEmailPhone - Completed");
       res.status(202).json(details);
     } catch (error) {
-      console.log("Controller: updateUserStatus - Error", error);
+      logger.info("[AD] Controller: updateUserStatus - Error", error);
       next(error);
     }
   };
@@ -467,7 +468,7 @@ class UserController {
   // Enable or disable a user
   updateUserStatus = async (req, res, next) => {
     try {
-      console.log("Controller: updateUserStatus - Started");
+      logger.info("[AD] Controller: updateUserStatus - Started");
       const { username, action, OU } = req.body;
 
       // Validate required fields
@@ -493,7 +494,7 @@ class UserController {
 
       // Check if user exists
       // const userExists = await search(
-      //   `ou=users,${process.env.LDAP_BASE_DN}`,
+      //   `ou=users,${process.env.AD_BASE_DN}`,
       //   `(cn=${username})`
       // );
       // if (userExists.length === 0) {
@@ -501,10 +502,10 @@ class UserController {
       // }
 
       const message = await this.userService.modifyUserStatus(username, action);
-      console.log("Controller: updateUserStatus - Completed");
+      logger.info("[AD] Controller: updateUserStatus - Completed");
       res.status(202).json(message);
     } catch (error) {
-      console.log("Controller: updateUserStatus - Error", error);
+      logger.info("[AD] Controller: updateUserStatus - Error", error);
       next(error);
     }
   };
@@ -512,17 +513,17 @@ class UserController {
   // Get disabled users
   getdisabledUsers = async (req, res, next) => {
     try {
-      console.log("Controller: getLockedUsers - Started");
+      logger.info("[AD] Controller: getLockedUsers - Started");
 
       const lockedUsers = await this.userService.getdisabledUsers();
 
-      console.log("Controller: getLockedUsers - Completed");
+      logger.info("[AD] Controller: getLockedUsers - Completed");
       res.status(200).json({
         message: "Disabled users fetched successfully.",
         lockedUsers: lockedUsers,
       });
     } catch (error) {
-      console.log("Controller: getLockedUsers - Error", error);
+      logger.info("[AD] Controller: getLockedUsers - Error", error);
       next(error);
     }
   };
@@ -530,7 +531,7 @@ class UserController {
   // Lock users on group basis
   lockGroupMembers = async (req, res, next) => {
     try {
-      console.log("Controller: modifyUserLockStatus - Started");
+      logger.info("[AD] Controller: modifyUserLockStatus - Started");
       // const { groupName, groupOU } = req.body;
       const encryptedData = req.body.data;
       const payload = decryptPayload(encryptedData); // Decrypt the data
@@ -543,7 +544,7 @@ class UserController {
       await this.organizationService.listOrganizaitons(`ou=${payload.groupOU}`);
 
       // const groupExists = await search(
-      //   `ou=groups,${process.env.LDAP_BASE_DN}`,
+      //   `ou=groups,${process.env.AD_BASE_DN}`,
       //   `(cn=${groupName})`
       // );
       // if (groupExists.length === 0) {
@@ -551,10 +552,10 @@ class UserController {
       // }
 
       const message = await this.userService.lockGroupMembers(payload);
-      console.log("Controller: lockUser - Completed");
+      logger.info("[AD] Controller: lockUser - Completed");
       res.status(202).json(message);
     } catch (error) {
-      console.log("Controller: lockUser - Error", error);
+      logger.info("[AD] Controller: lockUser - Error", error);
       next(error);
     }
   };
@@ -562,7 +563,7 @@ class UserController {
   // Unlock a user
   userLockAction = async (req, res, next) => {
     try {
-      console.log("Controller: modifyUserLockStatus - Started");
+      logger.info("[AD] Controller: modifyUserLockStatus - Started");
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
 
@@ -583,7 +584,7 @@ class UserController {
         throw new BadRequestError("Action should be either lock or unlock");
       }
       // const userExists = await search(
-      //   `ou=${userOU},${process.env.LDAP_BASE_DN}`,
+      //   `ou=${userOU},${process.env.AD_BASE_DN}`,
       //   `(cn=${username})`
       // );
       // if (userExists.length === 0) {
@@ -591,10 +592,10 @@ class UserController {
       // }
 
       const message = await this.userService.userLockAction(payload);
-      console.log("Controller: modifyUserLockStatus - Completed");
+      logger.info("[AD] Controller: modifyUserLockStatus - Completed");
       res.status(202).json(message);
     } catch (error) {
-      console.log("Controller: modifyUserLockStatus - Error", error);
+      logger.info("[AD] Controller: modifyUserLockStatus - Error", error);
       next(error);
     }
   };
@@ -602,17 +603,17 @@ class UserController {
   // List locked users
   listLockedUsers = async (req, res, next) => {
     try {
-      console.log("Controller: listLockedUsers - Started");
+      logger.info("[AD] Controller: listLockedUsers - Started");
 
       const lockedUsers = await this.userService.listLockedUsers();
 
-      console.log("Controller: listLockedUsers - Completed");
+      logger.info("[AD] Controller: listLockedUsers - Completed");
       res.status(200).json({
         message: "Locked users fetched successfully.",
         lockedUsers: lockedUsers,
       });
     } catch (error) {
-      console.log("Controller: listLockedUsers - Error", error);
+      logger.info("[AD] Controller: listLockedUsers - Error", error);
       next(error);
     }
   };
@@ -620,7 +621,7 @@ class UserController {
   // Search user - self service
   searchUser = async (req, res, next) => {
     try {
-      console.log("Controller: searchUser - Started");
+      logger.info("[AD] Controller: searchUser - Started");
 
       // Decrypt the incoming encrypted parameters
       const encryptedUsername = req.query.username;
@@ -636,19 +637,19 @@ class UserController {
       }
 
       // const userExists = await search(
-      //   `ou=${userOU},${process.env.LDAP_BASE_DN}`,
+      //   `ou=${userOU},${process.env.AD_BASE_DN}`,
       //   `(cn=${username})`
       // );
       // if (userExists.length === 0) {
       //   throw new NotFoundError(`User not found.`);
       // }
-      console.log("Controller: searchUser - Completed");
+      logger.info("[AD] Controller: searchUser - Completed");
       const users = await this.userService.searchUser(username, userOU);
       res
         .status(200)
         .json({ message: "User fetched successfully.", users: users });
     } catch (error) {
-      console.log("Controller: searchUser - Error", error);
+      logger.info("[AD] Controller: searchUser - Error", error);
       next(error);
     }
   };
@@ -656,7 +657,7 @@ class UserController {
   // Change Password - self service
   chpwd = async (req, res, next) => {
     try {
-      console.log("Controller: chpwd - Started");
+      logger.info("[AD] Controller: chpwd - Started");
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
 
@@ -682,7 +683,7 @@ class UserController {
       }
 
       // const userExists = await search(
-      //   `ou=users,${process.env.LDAP_BASE_DN}`,
+      //   `ou=users,${process.env.AD_BASE_DN}`,
       //   `(cn=${username})`
       // );
 
@@ -697,10 +698,10 @@ class UserController {
         confirmPassword,
         userOU
       );
-      console.log("Controller: chpwd - Completed");
+      logger.info("[AD] Controller: chpwd - Completed");
       res.status(202).json(message);
     } catch (error) {
-      console.log("Controller: chpwd - Error", error);
+      logger.info("[AD] Controller: chpwd - Error", error);
       next(error);
     }
   };
@@ -708,19 +709,19 @@ class UserController {
   // Login - Self service
   login = async (req, res, next) => {
     try {
-      console.log("Controller: login - Started");
+      logger.info("[AD] Controller: login - Started");
 
       const encryptedData = req.body.data; // Decrypt the encrypted data
 
       // Decrypt the data
       const decryptedData = decryptPayload(encryptedData);
-      const { username, password, userType, OU, authType } = decryptedData;
+      const { email, password, authType } = decryptedData;
 
       let missingFields = [];
-      if (!username) missingFields.push("username");
+      if (!email) missingFields.push("email");
       if (!password) missingFields.push("password");
-      if (!userType) missingFields.push("userType");
-      if (!OU) missingFields.push("OU");
+      // if (!userType) missingFields.push("userType");
+      // if (!OU) missingFields.push("OU");
       if (missingFields.length > 0) {
         return next(
           new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
@@ -728,68 +729,63 @@ class UserController {
       }
 
       // Validate userType
-      if (!["user", "admin"].includes(userType)) {
-        throw new BadRequestError("User type should be either user or admin");
-      }
+      // if (!["user", "admin"].includes(userType)) {
+      //   throw new BadRequestError("User type should be either user or admin");
+      // }
       await connectDirectory(authType); // Connect to the appropriate directory
 
       // Checking the requested OU is valid
-      await this.organizationService.listOrganizaitons(`ou=${OU}`);
+      // await this.organizationService.listOrganizaitons(`ou=${OU}`);
 
       // Check if user exists
-      const userExists = await search(
-        `ou=${OU},${process.env.LDAP_BASE_DN}`,
-        `(cn=${username})`
-      );
+      // const userExists = await search(
+      //   `ou=${OU},${process.env.AD_BASE_DN}`,
+      //   `(cn=${username})`
+      // );
 
-      console.log("userDetails", userExists);
+      // logger.info("userDetails", userExists);
 
-      if (userExists.length === 0) {
-        throw new NotFoundError(`User not found`);
-      }
+      // if (userExists.length === 0) {
+      //   throw new NotFoundError(`User not found`);
+      // }
 
       // Initialize fetchedOU
-      let fetchedOU;
+      // let fetchedOU;
 
-      // If OU is not provided, fetch it from the user's DN
-      if (!OU) {
-        console.log("OU not provided. Fetching from user details.");
+      // // If OU is not provided, fetch it from the user's DN
+      // if (!OU) {
+      //   logger.info("OU not provided. Fetching from user details.");
 
-        // Extract OU from user's DN
-        const userDN = userExists[0].dn; // Get the user's distinguished name
+      //   // Extract OU from user's DN
+      //   const userDN = userExists[0].dn; // Get the user's distinguished name
 
-        const ouMatch = userDN.match(/ou=([^,]+)/);
-        fetchedOU = ouMatch ? ouMatch[1] : null; // Extract the OU value, or set it to null if not found
-      } else {
-        // Validate the provided OU
-        const baseDN = process.env.LDAP_BASE_DN;
-        const filter = `(ou=${OU})`;
+      //   const ouMatch = userDN.match(/ou=([^,]+)/);
+      //   fetchedOU = ouMatch ? ouMatch[1] : null; // Extract the OU value, or set it to null if not found
+      // } else {
+      //   // Validate the provided OU
+      //   const baseDN = process.env.AD_BASE_DN;
+      //   const filter = `(ou=${OU})`;
 
-        const validOU = await search(baseDN, filter);
-        if (validOU.length === 0) {
-          throw new NotFoundError(`Invalid Organizational Unit.`);
-        }
-      }
+      //   const validOU = await search(baseDN, filter);
+      //   if (validOU.length === 0) {
+      //     throw new NotFoundError(`Invalid Organizational Unit.`);
+      //   }
+      // }
 
       // Call the login service only if OU is provided
-      const message = await this.userService.login(
-        username,
-        password,
-        userType,
-        OU // Pass the OU only if provided
-      );
+      const message = await this.userService.login(email, password, authType);
 
       // Create a session for the user
       req.session.user = {
-        username,
+        email: email,
         userType,
-        OU: OU || fetchedOU,
+        // OU: OU || fetchedOU,
         authMethod: "Password",
-        // authType: authType,
+        authType: authType,
       };
       req.session.cookie.maxAge = 30 * 60 * 1000; // 30 minutes
 
-      console.warn("Data passed to session:", req.session.user);
+      logger.warn("Data passed to session:", req.session.user);
 
       // Set the `logged_in` cookie
       res.cookie("logged_in", "yes", {
@@ -800,7 +796,7 @@ class UserController {
         maxAge: 31536000, // 1 year
       });
 
-      console.log("Controller: login - Completed");
+      logger.info("[AD] Controller: login - Completed");
 
       // Send a clearer response with the required data
       res.status(202).json({
@@ -810,7 +806,7 @@ class UserController {
         OU: fetchedOU || OU, // Include the fetched OU or the provided OU
       });
     } catch (error) {
-      console.log("Controller: login - Error", error);
+      logger.info("[AD] Controller: login - Error", error);
       next(error);
     }
   };
@@ -818,7 +814,7 @@ class UserController {
   // Get list of updated users
   listUpdatedUsers = async (req, res, next) => {
     try {
-      console.log("Controller: listUpdatedUsers - Started");
+      logger.info("[AD] Controller: listUpdatedUsers - Started");
       // const { timeStamp } = req.query;
 
       // const timeStampRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
@@ -829,13 +825,13 @@ class UserController {
       // const epochTimestamp = Math.floor(date.getTime() / 1000);
 
       const updatedUsers = await this.userService.listUpdatedUsers();
-      console.log("Controller: listUpdatedUsers - Completed");
+      logger.info("[AD] Controller: listUpdatedUsers - Completed");
       res.status(200).json({
         message: "Updated users fetched successfully.",
         updatedUsers: updatedUsers,
       });
     } catch (error) {
-      console.log("Controller: listUpdatedUsers - Error", error);
+      logger.info("[AD] Controller: listUpdatedUsers - Error", error);
       next(error);
     }
   };

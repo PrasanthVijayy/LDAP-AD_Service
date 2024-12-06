@@ -136,7 +136,7 @@ class UserController {
   //List users with custom attributes
   listUsers = async (req, res, next) => {
     try {
-      console.log("Controller: listUsers - Started");
+      console.log("[OpenLDAP] Controller: listUsers - Started");
       const filter = req.query.filter || "";
       console.log("Filter", filter);
       const users = await this.userService.listUsers(filter);

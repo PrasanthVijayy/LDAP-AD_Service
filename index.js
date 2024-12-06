@@ -45,9 +45,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors(corsOptions)); // Enabling CORS
 securityHeaders(app); // Enabling Security headers
 
-app.use(
-  morgan(":method :url :status - :response-time ms")
-);
+app.use(morgan(":method :url :status - :response-time ms"));
 
 /* --------- SESSION SETUP --------- */
 
@@ -121,6 +119,9 @@ app.use(async (req, res, next) => {
   const authType = req.session?.method?.authType;
 
   if (authType) {
+    const sessionDetails = req.session;
+    console.warn(sessionDetails);
+
     logger.success(
       `AuthType "${authType.toUpperCase()}" found in session. Loading respective routes.`
     );

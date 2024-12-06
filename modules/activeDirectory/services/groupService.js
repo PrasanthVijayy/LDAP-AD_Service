@@ -9,8 +9,8 @@ class GroupService {
   async createGroup(groupName, description, groupType, groupOU) {
     try {
       console.log("Service: createGroup - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const groupDN = `cn=${groupName},ou=${groupOU},${process.env.LDAP_BASE_DN}`;
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const groupDN = `cn=${groupName},ou=${groupOU},${process.env.AD_BASE_DN}`;
       const groupAttributes = {
         cn: groupName,
         objectClass: ["top", "groupOfNames"],
@@ -36,8 +36,8 @@ class GroupService {
   async listGroups(filter) {
     try {
       console.log("Service: listGroups - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const baseDN = process.env.LDAP_BASE_DN || "ou=groups,dc=example,dc=com";
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const baseDN = process.env.AD_BASE_DN || "ou=groups,dc=example,dc=com";
       const searchFilter = filter
         ? `(${filter})`
         : "(objectClass=groupOfNames)";
@@ -64,9 +64,9 @@ class GroupService {
   async addToGroup(groupName, member, groupOUValue, memberOUValue) {
     try {
       console.log("Service: addToGroup - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const groupDN = `cn=${groupName},ou=${groupOUValue},${process.env.LDAP_BASE_DN}`;
-      const userDN = `cn=${member},ou=${memberOUValue},${process.env.LDAP_BASE_DN}`;
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const groupDN = `cn=${groupName},ou=${groupOUValue},${process.env.AD_BASE_DN}`;
+      const userDN = `cn=${member},ou=${memberOUValue},${process.env.AD_BASE_DN}`;
 
       // Check user is valid to add to group
       console.warn("user Details", userDN);
@@ -112,9 +112,9 @@ class GroupService {
   async deleteFromGroup(groupName, groupOU, member, memberOU) {
     try {
       console.log("Service: deleteFromGroup - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const groupDN = `cn=${groupName},ou=${groupOU},${process.env.LDAP_BASE_DN}`;
-      const userDN = `cn=${member},ou=${memberOU},${process.env.LDAP_BASE_DN}`;
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const groupDN = `cn=${groupName},ou=${groupOU},${process.env.AD_BASE_DN}`;
+      const userDN = `cn=${member},ou=${memberOU},${process.env.AD_BASE_DN}`;
 
       // const groupDetails = await search(groupDN, "(objectClass=groupOfNames)");
       // const existingMember = groupDetails[0]?.member;
@@ -158,10 +158,10 @@ class GroupService {
       console.log("Service: membersInGroup - Started");
 
       // Bind with LDAP admin credentials
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
       // Construct groupDN using the provided OU (or default 'groups')
-      const groupDN = `cn=${groupName},ou=${OUValue},${process.env.LDAP_BASE_DN}`;
+      const groupDN = `cn=${groupName},ou=${OUValue},${process.env.AD_BASE_DN}`;
       const groupDetails = await search(groupDN, "(objectClass=groupOfNames)");
 
       // Extract members from the group details
@@ -190,9 +190,9 @@ class GroupService {
   async addToAdminGroup(groupName, member, groupOUValue, memberOUValue) {
     try {
       console.log("Service: addAdminGroup - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const groupDN = `cn=${groupName},ou=${groupOUValue},${process.env.LDAP_BASE_DN}`;
-      const userDN = `cn=${member},ou=${memberOUValue},${process.env.LDAP_BASE_DN}`;
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const groupDN = `cn=${groupName},ou=${groupOUValue},${process.env.AD_BASE_DN}`;
+      const userDN = `cn=${member},ou=${memberOUValue},${process.env.AD_BASE_DN}`;
 
       const groupDetails = await search(groupDN, "(objectClass=groupOfNames)");
 
@@ -228,9 +228,9 @@ class GroupService {
   async deleteFromAdminGroup(groupName, groupOUValue, member, memberOUValue) {
     try {
       console.log("Service: deleteFromGroup (Admin) - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const groupDN = `cn=${groupName},ou=${groupOUValue},${process.env.LDAP_BASE_DN}`;
-      const userDN = `cn=${member},ou=${memberOUValue},${process.env.LDAP_BASE_DN}`;
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const groupDN = `cn=${groupName},ou=${groupOUValue},${process.env.AD_BASE_DN}`;
+      const userDN = `cn=${member},ou=${memberOUValue},${process.env.AD_BASE_DN}`;
 
       // const groupDetails = await search(groupDN, "(objectClass=groupOfNames)");
       // const existingMember = groupDetails[0]?.member;
@@ -269,7 +269,7 @@ class GroupService {
   async findGroupsByMember(userDN) {
     try {
       console.log("Service: findGroupsByMember - Started");
-      const baseDN = `${process.env.LDAP_BASE_DN}`;
+      const baseDN = `${process.env.AD_BASE_DN}`;
       const groups = await search(
         baseDN,
         `(&(objectClass=groupOfNames)(member=${userDN}))`
@@ -286,7 +286,7 @@ class GroupService {
   async deleteUserFromGroups(member, memberOU) {
     try {
       console.log("Service: deleteUserFromGroups - Started");
-      const userDN = `cn=${member},ou=${memberOU},${process.env.LDAP_BASE_DN}`; // Construct the user's distinguished name (DN)
+      const userDN = `cn=${member},ou=${memberOU},${process.env.AD_BASE_DN}`; // Construct the user's distinguished name (DN)
 
       const groups = await this.findGroupsByMember(userDN); // Fetch all groups containing the member
 

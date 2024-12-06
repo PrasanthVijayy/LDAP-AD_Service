@@ -41,7 +41,7 @@ class GroupController {
         );
       }
 
-      // const baseDN = `ou=${groupOU},${process.env.LDAP_BASE_DN}`;
+      // const baseDN = `ou=${groupOU},${process.env.AD_BASE_DN}`;
       // const groupExists = await search(baseDN, `(cn=${groupName})`);
 
       // if (groupExists.length > 0) {
@@ -114,7 +114,7 @@ class GroupController {
       const memberOUValue = memberOU ? memberOU : "users";
 
       //Checking if group exists
-      // const baseDN = `ou=${groupOU},${process.env.LDAP_BASE_DN}`;
+      // const baseDN = `ou=${groupOU},${process.env.AD_BASE_DN}`;
       // const groupExists = await search(baseDN, `(cn=${groupName})`);
       // if (groupExists.length === 0) {
       //   throw new NotFoundError(`Group ${groupName} does not exist`);
@@ -128,7 +128,7 @@ class GroupController {
 
       //Checking is user exists with CN and OU
       await this.organizationService.listOrganizaitons(`ou=${memberOUValue}`);
-      const userDN = `ou=${memberOUValue},${process.env.LDAP_BASE_DN}`;
+      const userDN = `ou=${memberOUValue},${process.env.AD_BASE_DN}`;
       const userExists = await search(userDN, `cn=${member}`);
       if (userExists.length === 0) {
         throw new NotFoundError(`User ${member} does not exist`);
@@ -176,7 +176,7 @@ class GroupController {
       await this.organizationService.listOrganizaitons(`ou=${memberOU}`);
 
       //Checking if group exists
-      const baseDN = `ou=${groupOU},${process.env.LDAP_BASE_DN}`;
+      const baseDN = `ou=${groupOU},${process.env.AD_BASE_DN}`;
       const groupExists = await search(baseDN, `(cn=${groupName})`);
       console.log("groupdetails", groupExists);
       if (groupExists.length === 0) {
@@ -190,7 +190,7 @@ class GroupController {
       }
 
       //Checking if user exists
-      const userDN = `ou=${memberOU},${process.env.LDAP_BASE_DN}`;
+      const userDN = `ou=${memberOU},${process.env.AD_BASE_DN}`;
       const userExists = await search(userDN, `cn=${member}`);
       console.log("userdetails", userExists);
       if (userExists.length == 0) {
@@ -235,7 +235,7 @@ class GroupController {
       // Checks the provided OU is valid
       await this.organizationService.listOrganizaitons(`ou=${OU}`);
 
-      // const baseDN = `ou=groups,${process.env.LDAP_BASE_DN}`;
+      // const baseDN = `ou=groups,${process.env.AD_BASE_DN}`;
       // const groupExists = await search(baseDN, `(cn=${groupName})`);
       // if (groupExists.length === 0) {
       //   throw new NotFoundError(`Group does not exist`);
@@ -289,7 +289,7 @@ class GroupController {
       }
 
       //Checking if group exists
-      const baseDN = `ou=${groupOUValue},${process.env.LDAP_BASE_DN}`;
+      const baseDN = `ou=${groupOUValue},${process.env.AD_BASE_DN}`;
       console.error("baseDN", baseDN);
       const groupExists = await search(baseDN, `(cn=${groupName})`);
       if (groupExists.length === 0) {
@@ -303,7 +303,7 @@ class GroupController {
       }
 
       //Checking if user exists
-      const userDN = `ou=${memberOUValue},${process.env.LDAP_BASE_DN}`;
+      const userDN = `ou=${memberOUValue},${process.env.AD_BASE_DN}`;
       const userExists = await search(userDN, `cn=${member}`);
       if (userExists.length === 0) {
         throw new NotFoundError(`User ${member} does not exist`);
@@ -348,7 +348,7 @@ class GroupController {
       await this.organizationService.listOrganizaitons(`ou=${groupOUValue}`);
 
       //Checking if group exists
-      const baseDN = `ou=${groupOUValue},${process.env.LDAP_BASE_DN}`;
+      const baseDN = `ou=${groupOUValue},${process.env.AD_BASE_DN}`;
       const groupExists = await search(baseDN, `(cn=${groupName})`);
       if (groupExists.length === 0) {
         throw new NotFoundError(`Group ${groupName} does not exist`);
@@ -363,7 +363,7 @@ class GroupController {
       // Checks the memeberOU is valid
       await this.organizationService.listOrganizaitons(`ou=${memberOUValue}`);
       //Checking if user exists
-      const userDN = `ou=${memberOUValue},${process.env.LDAP_BASE_DN}`;
+      const userDN = `ou=${memberOUValue},${process.env.AD_BASE_DN}`;
       const userExists = await search(userDN, `cn=${member}`);
       console.log("userdetails", userExists);
       if (userExists.length === 0) {

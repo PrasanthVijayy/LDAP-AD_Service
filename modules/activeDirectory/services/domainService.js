@@ -4,9 +4,9 @@ class DomainService {
   async listDCs() {
     try {
       console.log("Service: listDCs - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
-      const baseDN = process.env.LDAP_BASE_DN;
+      const baseDN = process.env.AD_BASE_DN;
       const searchFilter = "(objectClass=dcObject)";
       const scope = "sub";
 

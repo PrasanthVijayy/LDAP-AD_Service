@@ -4,7 +4,7 @@ import {
   add,
   modify,
   deleteEntry,
-} from "../../../utils/ldapUtils.js";
+} from "../../../utils/adUtils.js";
 import {
   BadRequestError,
   ConflictError,
@@ -24,10 +24,10 @@ class UserService {
   async addUser(payload) {
     try {
       console.log("Service: addUser - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+    await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
       const organizationalUnitName = payload.userOU;
 
-      const userDN = `cn=${payload.givenName},ou=${payload.userOU},${process.env.LDAP_BASE_DN}`;
+      const userDN = `cn=${payload.givenName},ou=${payload.userOU},${process.env.AD_BASE_DN}`;
 
       const uniqueUid = uid(10); // Generate a unique UID
       if (!payload.userPassword) {
@@ -88,9 +88,9 @@ class UserService {
   async listUsers(filter) {
     try {
       console.log("Service: listUsers - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
-      const baseDN = process.env.LDAP_BASE_DN;
+      const baseDN = process.env.AD_BASE_DN;
 
       // Default to search by objectClass=person if no filter provided
       let searchFilter = "(objectClass=person)";
@@ -181,8 +181,8 @@ class UserService {
   async resetPassword(username, password, confirmPassword, userOU) {
     try {
       console.log("Service: resetPassword - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const userDN = `cn=${username},ou=${userOU},${process.env.LDAP_BASE_DN}`;
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
 
       if (password !== confirmPassword) {
         throw new BadRequestError("Passwords do not match");
@@ -216,8 +216,8 @@ class UserService {
   async deleteUser(username, userOU) {
     try {
       console.log("Service: deleteUser - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const userDN = `cn=${username},ou=${userOU},${process.env.LDAP_BASE_DN}`;
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
       // const changes = [
       //   {
       //     operation: "delete",
@@ -245,8 +245,8 @@ class UserService {
   async updateUser(username, userOU, attributes) {
     try {
       console.log("Service: updateUser - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const userDN = `cn=${username},ou=${userOU},${process.env.LDAP_BASE_DN}`;
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
 
       let changes = [];
 
@@ -299,9 +299,9 @@ class UserService {
   async updateContactDetails(username, userOU, attributes) {
     try {
       console.log("Service: updateContactDetails - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
-      const userDN = `cn=${username},ou=${userOU},${process.env.LDAP_BASE_DN}`;
+      const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
 
       let changes = [];
 
@@ -333,13 +333,13 @@ class UserService {
   async modifyUserStatus(username, action) {
     try {
       console.log(`Service: modifyUserStatus - ${action} - Started`);
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
-      const userDN = `cn=${username},ou=users,${process.env.LDAP_BASE_DN}`;
+      const userDN = `cn=${username},ou=users,${process.env.AD_BASE_DN}`;
 
       // Fetch the current 'description' field of the user
       const searchResults = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
+        `ou=users,${process.env.AD_BASE_DN}`,
         `(cn=${username})`
       );
 
@@ -399,12 +399,12 @@ class UserService {
   async getdisabledUsers() {
     try {
       console.log("Service: getLockedUsers - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
       // Search for users with the `description` attribute set to 'disabled'
       const filter = `(shadowInactive=1)`;
       const lockedUsers = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
+        `ou=users,${process.env.AD_BASE_DN}`,
         filter
       );
 
@@ -428,10 +428,10 @@ class UserService {
       );
 
       // Bind with LDAP admin credentials
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
       // Define the group's distinguished name (DN)
-      const groupDN = `cn=${payload.groupName},ou=${payload.groupOU},${process.env.LDAP_BASE_DN}`;
+      const groupDN = `cn=${payload.groupName},ou=${payload.groupOU},${process.env.AD_BASE_DN}`;
 
       // Search for all members (users) in the group
       const searchFilter = `(member=*)`; // Searches for the "member" attribute in the group
@@ -514,8 +514,8 @@ class UserService {
   async userLockAction(payload) {
     try {
       console.log(`Service: userLockAction - ${payload.action} - Started`);
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const userDN = `cn=${payload.username},ou=${payload.userOU},${process.env.LDAP_BASE_DN}`;
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const userDN = `cn=${payload.username},ou=${payload.userOU},${process.env.AD_BASE_DN}`;
 
       // Verify the user exists and fetch their details
       const userSearchResults = await search(
@@ -577,12 +577,12 @@ class UserService {
   async listLockedUsers() {
     try {
       console.log("Service: listLockedUsers - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
       // Search for users with the `title` attribute set to 'locked'
       const filter = `(shadowExpire=1)`;
       const lockedUsers = await search(
-        `ou=users,${process.env.LDAP_BASE_DN}`,
+        `ou=users,${process.env.AD_BASE_DN}`,
         filter
       );
 
@@ -603,12 +603,12 @@ class UserService {
       console.log("Service: searchUser - Started");
 
       // Bind using the LDAP admin or a service account
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
       // Define the search base, including the OU if provided
       const searchBase = userOU
-        ? `ou=${userOU},${process.env.LDAP_BASE_DN}`
-        : `${process.env.LDAP_BASE_DN}`;
+        ? `ou=${userOU},${process.env.AD_BASE_DN}`
+        : `${process.env.AD_BASE_DN}`;
 
       // Updated search filter to check both `cn` and `objectClass=person`
       const searchFilter = `(&(cn=${username})(objectClass=person))`;
@@ -647,7 +647,7 @@ class UserService {
     try {
       console.log("Service: chpwd - Started");
 
-      const userDN = `cn=${username},ou=${userOU},${process.env.LDAP_BASE_DN}`;
+      const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
 
       // Attempt to bind with the current password to verify it
       try {
@@ -707,12 +707,12 @@ class UserService {
     }
   }
 
-  async login(username, password, userType, OU) {
+  async login(email, password, authType) {
     try {
       console.log("Service: login - Started");
 
       // Construct the base DN
-      const baseDN = process.env.LDAP_BASE_DN;
+      const baseDN = process.env.AD_BASE_DN;
       let userDN;
 
       // If OU is provided, create userDN with the specified OU
@@ -784,8 +784,8 @@ class UserService {
   async listUpdatedUsers() {
     try {
       console.log("Service: listUpdatedUsers - Started");
-      await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const searchBase = `ou=users,${process.env.LDAP_BASE_DN}`;
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const searchBase = `ou=users,${process.env.AD_BASE_DN}`;
 
       // LDAP filter to get users present with shadowLastChange attribute
       const searchFilter = `(shadowLastChange=*)`;
