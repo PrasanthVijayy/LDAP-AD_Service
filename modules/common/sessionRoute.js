@@ -14,7 +14,7 @@ const sessionRoute = (app) => {
   // SESSION CHECK ROUTE
   router.get("/check", csrfProtection, sessionMiddleware, (req, res) => {
     console.warn(
-      `Session for user: ${req.user.username} & sessionID: ${req.sessionID}`
+      `Session for user: ${req.user.username || req.user.email} & sessionID: ${req.sessionID}`
     );
     console.log("Session data:", req.session);
     res.status(200).json({

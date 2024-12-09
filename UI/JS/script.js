@@ -1,4 +1,17 @@
 const scriptBaseAPI = "/LDAP/v1"; // API Base URL
+const adScriptBaseAPI = "/AD/v1"; // AD Base URL
+
+// Function to get the correct base API URL based on authType
+function getBaseAPI(authType) {
+  switch (authType) {
+    case "ldap":
+      return "/LDAP/v1"; // OpenLDAP API prefix
+    case "ad":
+      return "/AD/v1"; // AD API prefix
+    default:
+      throw new Error("Invalid authType specified.");
+  }
+}
 
 // Function to get element by ID
 function getElementById(id) {
@@ -135,8 +148,17 @@ async function handleLogin() {
   ).value;
   const authType = document.getElementById("authType").value;
 
+  let baseAPI;
+  try {
+    baseAPI = getBaseAPI(authType); // Get the API prefix based on authType
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+  
   const apiUrlSelect = `${scriptBaseAPI}/session/auth/select`; // authSelect API endpoint
-  const apiUrlAuthenticate = `${scriptBaseAPI}/users/authenticate`; // authenticate API endpoint
+  const apiUrlAuthenticate = `${baseAPI}/users/authenticate`; // authenticate API endpoint
 
   // Encrypt data before sending
   // const data = encryptData({

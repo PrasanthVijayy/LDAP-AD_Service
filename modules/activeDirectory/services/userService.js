@@ -1,10 +1,4 @@
-import {
-  bind,
-  search,
-  add,
-  modify,
-  deleteEntry,
-} from "../../../utils/adUtils.js";
+import { search, add, modify, deleteEntry } from "../../../utils/adUtils.js";
 import {
   BadRequestError,
   ConflictError,
@@ -13,6 +7,8 @@ import {
 } from "../../../utils/error.js";
 import { createSSHAHash } from "../../../utils/encryption.js";
 import { uid } from "uid";
+import logger from "../../../config/logger.js";
+import { connectToAD } from "../../../config/adConfig.js";
 
 class UserService {
   //Commenting below function as it is not used anywhere (dt: 14/10)
@@ -24,7 +20,7 @@ class UserService {
   async addUser(payload) {
     try {
       console.log("Service: addUser - Started");
-    await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
       const organizationalUnitName = payload.userOU;
 
       const userDN = `cn=${payload.givenName},ou=${payload.userOU},${process.env.AD_BASE_DN}`;
@@ -709,75 +705,87 @@ class UserService {
 
   async login(email, password, authType) {
     try {
-      console.log("Service: login - Started");
+      logger.success("[AD] Service: login - Started");
 
-      // Construct the base DN
-      const baseDN = process.env.AD_BASE_DN;
-      let userDN;
+      // Fetch the AD instance
+      const adInstance = await connectToAD(); // Ensure the AD instance is initialized
 
-      // If OU is provided, create userDN with the specified OU
-      if (OU) {
-        userDN = `cn=${username},ou=${OU},${baseDN}`;
-        try {
-          await bind(userDN, password);
-        } catch (error) {
-          console.log("Error during bind with OU:", error);
-          throw new BadRequestError("Invalid credentials.");
-        }
-      } else {
-        // If OU not provided, search for the user in all OUs
-        console.log(`Searching for user: ${username} in all OUs`);
+      // Authenticate the user using their email and password
+      return new Promise((resolve, reject) => {
+        adInstance.authenticate(email, password, async (err, auth) => {
+          if (err) {
+            logger.error(`[AD] Authentication failed: ${err.message}`);
+            // error code for invalid credentials
+            if (err.message.includes("80090308")) {
+              reject(new BadRequestError("Invalid credentials."));
+            } else {
+              reject(err);
+            }
+          } else if (!auth) {
+            logger.error("[AD] Authentication failed: Invalid credentials.");
+            reject(new BadRequestError("Invalid credentials."));
+          } else {
+            logger.success("[AD] Authentication successful.");
 
-        // Correcting the filter
-        const searchResults = await search(
-          baseDN,
-          `(&(objectClass=*)(cn=${username}))`
-        );
+            // Fetch user details after successful authentication
+            adInstance.findUser(email, (err, user) => {
+              if (err) {
+                logger.error(
+                  `[AD] Failed to fetch user details: ${err.message}`
+                );
+                reject(new NotFoundError("User not found."));
+              } else if (!user) {
+                logger.warn("[AD] No user details returned.");
+                reject(new NotFoundError("User not found."));
+              } else {
+                logger.info(
+                  `[AD] User details fetched successfully: ${JSON.stringify(
+                    user
+                  )}`
+                );
 
-        if (searchResults.length === 0) {
-          throw new NotFoundError("User not found.");
-        }
+                // Check account status based on user attributes
+                const accountControl = user.userAccountControl || 0;
+                if (accountControl & 2) {
+                  // Account disabled (bit 1)
+                  reject(
+                    new UnauthorizedError("Account disabled, contact admin.")
+                  );
+                } else if (accountControl & 16) {
+                  // Account locked (bit 4)
+                  reject(
+                    new UnauthorizedError("Account locked, contact admin.")
+                  );
+                }
 
-        userDN = searchResults[0].dn; // Extract the userDN from the search result
+                // Check if the account is expired
+                if (
+                  user.accountExpires &&
+                  new Date(user.accountExpires) < new Date()
+                ) {
+                  reject(
+                    new UnauthorizedError("Account expired, contact admin.")
+                  );
+                }
 
-        try {
-          // Attempt to bind with the found DN and provided password
-          await bind(userDN, password);
-        } catch (error) {
-          throw new BadRequestError("Invalid credentials.");
-        }
-      }
-
-      // Fetch user details to get the stored attributes
-      const userDetails = await search(userDN, "(objectClass=*)");
-      if (userDetails.length === 0) {
-        throw new NotFoundError("User not found.");
-      }
-
-      // Check if user type matches
-      const ldapUserType = userDetails[0].title;
-      if (ldapUserType !== userType) {
-        console.log("Error: userType not matched with the login user type");
-        throw new BadRequestError("Invalid credentials.");
-      }
-
-      // Check account status based on priority
-      if (userDetails[0].shadowFlag == 1) {
-        throw new UnauthorizedError("Account deleted, contact admin.");
-      } else if (userDetails[0].shadowInactive == 1) {
-        throw new UnauthorizedError("Account disabled, contact admin.");
-      } else if (userDetails[0].shadowExpire == 1) {
-        throw new UnauthorizedError("Account locked, contact admin.");
-      }
-
-      console.log("Service: login - Completed");
-      return { message: "Login successful." };
+                logger.success("[AD] Service: login - Completed");
+                resolve({ message: "Login successful.", user }); // Return success and user details
+              }
+            });
+          }
+        });
+      });
     } catch (error) {
-      console.log("Service: login - Error", error);
-      if (error.message.includes("Search operation failed: No Such Object")) {
-        throw new NotFoundError("User not found.");
+      if (
+        error.message.includes(
+          "80090308: LdapErr: DSID-0C09042A, comment: AcceptSecurityContext error, data 52e, v2580"
+        )
+      ) {
+        throw new BadRequestError("Invalid credentials.");
+      } else {
+        logger.error(`Service: login - Error ${error}`);
+        throw error;
       }
-      throw error;
     }
   }
 

@@ -8,7 +8,7 @@ const userController = new UserController();
 
 const adUserRoutes = (app) => {
   const router = express.Router();
-  app.use("/LDAP/v1/users", router);
+  app.use("/AD/v1/users", router);
 
   router.post("/addUser", csrfProtection, sessionMiddleware, apiLimiter(), userController.addUser); // Add user
   router.get("/listUsers", csrfProtection, sessionMiddleware, apiLimiter(), userController.listUsers); // List user
