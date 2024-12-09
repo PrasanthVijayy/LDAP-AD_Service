@@ -25,7 +25,9 @@ export const connectRoutes = async (app, authType) => {
         `Unloading previously loaded routes for authType "${currentAuthType}".`
       );
       app._router.stack = app._router.stack.filter(
-        (layer) => !loadedRoutes.includes(layer.name)
+        (layer) =>
+          !loadedRoutes.includes(layer.name) && // Exclude loaded routes
+          !(layer.route && layer.route.path.startsWith("/LDAP/v1")) // Exclude OpenLDAP-specific paths
       );
       loadedRoutes = []; // Clear the list of loaded routes
     }

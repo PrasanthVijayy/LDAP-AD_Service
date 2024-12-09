@@ -778,7 +778,7 @@ class UserController {
       // Create a session for the user
       req.session.user = {
         email: email,
-        userType,
+        // userType,
         // OU: OU || fetchedOU,
         authMethod: "Password",
         authType: authType,
@@ -802,8 +802,8 @@ class UserController {
       res.status(202).json({
         message: message.message,
         sessionId: req.session.id,
-        username: username,
-        OU: fetchedOU || OU, // Include the fetched OU or the provided OU
+        // username: username,
+        // OU: fetchedOU || OU, // Include the fetched OU or the provided OU
       });
     } catch (error) {
       logger.info("[AD] Controller: login - Error", error);

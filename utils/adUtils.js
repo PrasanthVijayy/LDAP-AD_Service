@@ -2,18 +2,28 @@
 
 import logger from "../config/logger.js";
 import { connectToAD } from "../config/adConfig.js";
+import { BadRequestError } from "./error.js";
+import dotenv from "dotenv";
 
-const bind = (dn, password) => {
+dotenv.config();
+
+// Function to authenticate a user in Active Directory
+const authenticate = (username, password) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const adInstance = await connectToAD(); // Get AD instance
-      adInstance.bind(dn, password, (err) => {
+      const adInstance = await connectToAD(); // Ensure AD connection is established
+
+      // Authenticate using the provided username and password
+      adInstance.authenticate(username, password, (err, auth) => {
         if (err) {
-          logger.error(`Failed to bind to AD: ${err.message}`);
-          reject(new Error("AD bind failed: " + err.message));
+          logger.error(`[AD] Authentication failed: ${err.message}`);
+          reject(new BadRequestError("Invalid credentials."));
+        } else if (!auth) {
+          logger.error("[AD] Authentication failed: Invalid credentials.");
+          reject(new BadRequestError("Invalid credentials."));
         } else {
-          logger.success(`Successfully bound to AD with DN: ${dn}`);
-          resolve(); // Binding succeeded
+          logger.success("[AD] Authentication successful.");
+          resolve(auth); // Resolve on successful authentication
         }
       });
     } catch (error) {
@@ -109,4 +119,4 @@ const deleteEntry = (dn) => {
   });
 };
 
-export { bind, search, add, modify, deleteEntry };
+export { authenticate, search, add, modify, deleteEntry };

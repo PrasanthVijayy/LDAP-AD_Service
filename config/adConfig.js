@@ -19,29 +19,17 @@ let adInstance = null; // Holds the AD instance
 const connectToAD = async () => {
   return new Promise((resolve, reject) => {
     if (adInstance) {
-      // If already connected, return the instance
+      // If already connected, reuse the instance
       logger.info("Reusing existing Active Directory connection...");
       return resolve(adInstance);
     }
 
+    // Initialize the Active Directory connection
     logger.info("Initializing Active Directory connection...");
-
     try {
-      // Create the AD instance
+      // Create the AD instance (no binding or authentication here)
       adInstance = new ActiveDirectory(AD_Config);
-
-      // Attempt to authenticate and bind with the admin credentials
-      adInstance.findUser(AD_Config.username, (err, user) => {
-        if (err) {
-          logger.error("Active Directory bind failed:", err);
-          reject(err);
-        } else {
-          logger.success(
-            `Active Directory bind successful for user: ${user.sAMAccountName}`
-          );
-          resolve(adInstance); // Return the connected instance
-        }
-      });
+      resolve(adInstance); // Resolve with the created AD instance without binding
     } catch (error) {
       logger.error("Error initializing Active Directory connection:", error);
       reject(error);
