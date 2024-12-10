@@ -6,9 +6,9 @@ import {
   ConflictError,
   NotFoundError,
 } from "../../../utils/error.js";
-import { search } from "../../../utils/ldapUtils.js";
 import OrganizationService from "../../activeDirectory/services/orgainzationService.js";
 import { encryptPayload, decryptPayload } from "../../../utils/encryption.js";
+import logger from "../../../config/logger.js";
 class GroupController {
   constructor() {
     this.groupService = new GroupService();
@@ -17,16 +17,15 @@ class GroupController {
 
   createGroup = async (req, res, next) => {
     try {
-      console.log("Controller: createGroup - Started");
+      logger.info("[AD] Controller: createGroup - Started");
 
-      const encryptedData = req.body.data; // Decrypt the encrypted data
-      const payload = decryptPayload(encryptedData); // Decrypt the data
-
-      const { groupName, description, groupType, groupOU } = payload;
+      const { groupName, description, groupType, groupOU, groupScope } =
+        req.body; // Extracting payload
       let missingFields = [];
       if (!groupName) missingFields.push("groupName");
       if (!groupType) missingFields.push("groupType");
       if (!groupOU) missingFields.push("groupOU");
+      if (!groupScope) missingFields.push("groupScope");
 
       if (missingFields.length > 0) {
         return next(
@@ -41,32 +40,51 @@ class GroupController {
         );
       }
 
-      // const baseDN = `ou=${groupOU},${process.env.AD_BASE_DN}`;
-      // const groupExists = await search(baseDN, `(cn=${groupName})`);
+      // Validate `groupScope` (must be 'domainLocal', 'universal', or 'global')
+      if (!["Domain local", "Universal", "Global"].includes(groupScope)) {
+        return next(new BadRequestError("Invalid group scope."));
+      }
 
-      // if (groupExists.length > 0) {
-      //   throw new ConflictError(`Group name already exists`);
-      // }
-
+      // Validate `groupName` format
       const groupNamePattern = /^[a-zA-Z0-9_-]+$/;
       if (!groupNamePattern.test(groupName)) {
         return next(
           new BadRequestError(
-            "Group name cannot contain spaces and special characters."
+            "Group name cannot contain spaces or special characters."
           )
         );
       }
 
+      await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
+
+      const GROUP_TYPES = {
+        admin: 0x80000000, // Security group
+        general: 0x00000000, // Distribution group
+      };
+
+      const GROUP_SCOPES = {
+        "Domain local": 0x4,
+        Universal: 0x8,
+        Global: 0x2,
+      };
+
+      const typeValue = GROUP_TYPES[groupType];
+      const scopeValue = GROUP_SCOPES[groupScope];
+      const groupValue = typeValue | scopeValue; // Combine using bitwise OR
+      console.warn(
+        `typeValue: ${typeValue}, scopeValue: ${scopeValue}, groupValue: ${groupValue}`
+      );
       const group = await this.groupService.createGroup(
         groupName,
         description,
-        groupType,
+        groupValue,
         groupOU
       );
-      console.log("Controller: createGroup - Completed");
+
+      logger.info("[AD] Controller: createGroup - Completed");
       res.status(201).json(group);
     } catch (error) {
-      console.log("Controller: createGroup - Error", error);
+      console.error("[AD] Controller: createGroup - Error", error);
       next(error);
     }
   };
@@ -219,8 +237,7 @@ class GroupController {
       const encryptedOU = req.query.OU;
 
       const groupName = decryptPayload(encryptedGroupName);
-      const OU = decryptPayload(encryptedOU);    
-
+      const OU = decryptPayload(encryptedOU);
 
       let missingFields = [];
       if (!groupName) missingFields.push("groupName");
