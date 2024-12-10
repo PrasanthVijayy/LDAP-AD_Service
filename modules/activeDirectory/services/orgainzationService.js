@@ -1,38 +1,52 @@
-import { search, bind, add } from "../../../utils/ldapUtils.js";
-import { NotFoundError } from "../../../utils/error.js";
+import { search, add, bind } from "../../../utils/adUtils.js";
+import { NotFoundError, ConflictError } from "../../../utils/error.js";
+import { connectToAD } from "../../../config/adConfig.js";
+import logger from "../../../config/logger.js";
 
 class OrganizationService {
-  async createOrganization(payload) {
+  async createOrganization(organizationName, description) {
     try {
-      console.log("Service: createOrganization - Started");
+      logger.info("[AD] Service: createOrganization - Started");
+
+      await connectToAD(); // Ensure AD instance is initialized
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-      const organizationDN = `ou=${payload.organizationName},${process.env.AD_BASE_DN}`;
+      const baseDN = process.env.AD_BASE_DN;
+
+      // Construct the Distinguished Name (DN)
+      const organizationDN = `OU=${organizationName},${baseDN}`;
       const organizationAttributes = {
-        ou: payload.organizationName,
+        ou: organizationName,
         objectClass: ["top", "organizationalUnit"],
-        description: payload.description || "Default organization",
+        description: description || "Default organization",
       };
+      // Add the new organization
       await add(organizationDN, organizationAttributes);
-      console.log("Service: createOrganization - Completed");
+
+      logger.info("[AD] Service: createOrganization - Completed");
       return { message: "Organization created successfully." };
     } catch (error) {
-      console.log("Service: createOrganization - Error", error);
-      throw error;
+      console.error("Service: createOrganization - Error", error);
+      if (error.message.includes("00002071")) {
+        throw new ConflictError("Organization already exists.");
+      } else {
+        throw error;
+      }
     }
   }
+
   async listOrganizaitons(filter) {
     try {
-      console.log("Service: listOrganizaitons - Started");
+      logger.info("[AD] Service: listOrganizaitons - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-      const baseDN = process.env.AD_BASE_DN || "ou=groups,dc=example,dc=com";
+      const baseDN = process.env.AD_BASE_DN;
       const searchFilter = filter
         ? `(${filter})`
         : "(objectClass=organizationalUnit)";
       const scope = "sub";
       const rawOrganizations = await search(baseDN, searchFilter, scope);
 
-      console.log("filter", filter);
-      console.log("Service: listOrganizaitons - Completed");
+      console.log("filter:", filter || null);
+      logger.info("[AD] Service: listOrganizaitons - Completed");
       const organizations = rawOrganizations.map((organization) => ({
         dn: organization.dn,
         organizationDN: organization.ou || null,
@@ -43,7 +57,7 @@ class OrganizationService {
       }
       return { Count: organizations.length, organizations };
     } catch (error) {
-      console.log("Service: listOrganizaitons - Error", error);
+      console.error("Service: listOrganizaitons - Error", error);
       throw error;
     }
   }

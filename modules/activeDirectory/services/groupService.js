@@ -1,32 +1,38 @@
-import { bind, add, search, modify } from "../../../utils/ldapUtils.js";
+import { bind, add, search, modify } from "../../../utils/adUtils.js";
 import {
   BadRequestError,
   ConflictError,
   NotFoundError,
 } from "../../../utils/error.js";
+import logger from "../../../config/logger.js";
 
 class GroupService {
-  async createGroup(groupName, description, groupType, groupOU) {
+  async createGroup(groupName, description, groupValue, groupOU) {
     try {
       console.log("Service: createGroup - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
       const groupDN = `cn=${groupName},ou=${groupOU},${process.env.AD_BASE_DN}`;
       const groupAttributes = {
         cn: groupName,
-        objectClass: ["top", "groupOfNames"],
-        member: "",
-        businessCategory: groupType === "admin" ? "admin" : "general",
+        objectClass: ["top", "group"],
+        member: [],
+        groupType: Number(groupValue),
         description: description || "Default group",
       };
 
+      console.log("Attributes", groupAttributes);
+
       await add(groupDN, groupAttributes);
+
+      logger.info("[AD] Service: createGroup - Completed");
       return { message: "Group created successfully." };
     } catch (error) {
-      console.log("Service: createGroup - Error", error);
+      console.log("[AD] Service: createGroup - Error", error);
+
       if (error.message.includes("Entry Already Exists")) {
         throw new ConflictError(`Group ${groupName} already exists.`);
       } else if (error.message.includes("LDAP add failed: No Such Object")) {
-        throw new NotFoundError(`OU ${OU} does not exist.`);
+        throw new NotFoundError(`OU ${groupOU} does not exist.`);
       } else {
         throw error;
       }
