@@ -8,7 +8,7 @@ const organizationController = new OrganizationController();
 
 const adOrganizationRoutes = (app) => {
   const router = express.Router();
-  app.use("/LDAP/v1/organizations", router);
+  app.use("/AD/v1/organizations", router);
 
   router.post("/createOrganization", csrfProtection, sessionMiddleware, apiLimiter(), organizationController.createOrganization); // Create organization - additional
   router.get("/listOrganizations", csrfProtection, sessionMiddleware, apiLimiter(), organizationController.listOrganizaitons); // List organizations

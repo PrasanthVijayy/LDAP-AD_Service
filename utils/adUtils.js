@@ -1,11 +1,21 @@
 "use strict"; // Use strict mode
 
+import ldap from "ldapjs";
 import logger from "../config/logger.js";
 import { connectToAD } from "../config/adConfig.js";
 import { BadRequestError } from "./error.js";
 import dotenv from "dotenv";
 
 dotenv.config();
+
+const ldapClient = ldap.createClient({
+  url: process.env.AD_SERVER_URL,
+});
+
+// General Error Handler for LDAP Client
+ldapClient.on("error", (err) => {
+  console.error("LDAP Client Error:", err); // To track client-level issues
+});
 
 // Function to authenticate a user in Active Directory
 const authenticate = (username, password) => {
@@ -37,16 +47,50 @@ const authenticate = (username, password) => {
 const search = (baseDN, filter, scope = "sub") => {
   return new Promise(async (resolve, reject) => {
     try {
-      const adInstance = await connectToAD(); // Ensure AD connection is established
-      adInstance.find(baseDN, filter, { scope }, (err, result) => {
+      await connectToAD();
+      ldapClient.search(baseDN, { filter, scope }, (err, res) => {
         if (err) {
-          logger.error(`Active Directory search failed: ${err.message}`);
-          reject(new Error("AD search failed: " + err.message));
+          console.error(`LDAP search error: ${err.message}`);
+          reject(new Error("LDAP search failed: " + err.message));
+          return;
+        }
+
+        const entries = [];
+        res.on("searchEntry", (entry) => {
+          logger.info(`Found entry: ${entry.objectName}`);
+          entries.push(entry.object);
+        });
+
+        res.on("end", () => {
+          logger.info(`Search completed with ${entries.length} entries found.`);
+          resolve(entries);
+        });
+
+        res.on("error", (err) => {
+          console.error(`Search operation error: ${err.message}`);
+          reject(new Error("Search operation failed: " + err.message));
+        });
+      });
+    } catch (error) {
+      console.error("Error connecting to Active Directory:", error.message);
+      reject(error);
+    }
+  });
+};
+
+// Function to bind user to Active Directoryq
+const bind = (dn, password) => {
+  return new Promise(async (resolve, reject) => {
+    logger.info(`Attempting to bind to DN: ${dn}`);
+    try {
+      await connectToAD();
+      ldapClient.bind(dn, password, (err) => {
+        if (err) {
+          console.error(`LDAP bind error: ${err.message}`);
+          reject(new Error("LDAP bind failed: " + err.message));
         } else {
-          logger.info(
-            `Search completed. Found entries: ${JSON.stringify(result)}`
-          );
-          resolve(result); // Return search result
+          logger.info(`Successfully bound to ${dn}`);
+          resolve();
         }
       });
     } catch (error) {
@@ -60,8 +104,8 @@ const search = (baseDN, filter, scope = "sub") => {
 const add = (dn, attributes) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const adInstance = await connectToAD(); // Ensure AD connection is established
-      adInstance.add(dn, attributes, (err) => {
+      await connectToAD(); // Ensure AD connection is established
+      ldapClient.add(dn, attributes, (err) => {
         if (err) {
           logger.error(`Failed to add entry to AD: ${err.message}`);
           reject(new Error("AD add failed: " + err.message));
@@ -119,4 +163,4 @@ const deleteEntry = (dn) => {
   });
 };
 
-export { authenticate, search, add, modify, deleteEntry };
+export { authenticate, bind, search, add, modify, deleteEntry };

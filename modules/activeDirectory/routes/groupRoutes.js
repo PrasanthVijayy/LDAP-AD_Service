@@ -8,7 +8,7 @@ const groupController = new GroupController();
 
 const adGroupRoutes = (app) => {
   const router = express.Router();
-  app.use("/LDAP/v1/groups", router);
+  app.use("/AD/v1/groups", router);
 
   router.post("/createGroup", csrfProtection, sessionMiddleware, apiLimiter(), groupController.createGroup); // Create group 
   router.get("/listGroups", csrfProtection, sessionMiddleware, apiLimiter(),  groupController.listGroups); // List groups - additional

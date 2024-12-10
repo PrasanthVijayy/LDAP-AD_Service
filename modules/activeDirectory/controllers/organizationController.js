@@ -2,9 +2,8 @@
 
 import OrganizationService from "../../activeDirectory/services/orgainzationService.js";
 import { BadRequestError, ConflictError } from "../../../utils/error.js";
-import { search } from "../../../utils/ldapUtils.js";
 import { encryptPayload, decryptPayload } from "../../../utils/encryption.js";
-
+import logger from "../../../config/logger.js";
 class OrganizationController {
   constructor() {
     this.organizationService = new OrganizationService();
@@ -12,47 +11,44 @@ class OrganizationController {
 
   createOrganization = async (req, res, next) => {
     try {
-      console.log("Controller: createOrganization - Started");
+      logger.success("[AD] Controller: createOrganization - Started");
 
-      const encryptedData = req.body.data; // Decrypt the encrypted data
-      const payload = decryptPayload(encryptedData); // Decrypt the data
+      const { organizationName, description } = req.body;
 
-      if (!payload.organizationName) {
+      // const encryptedData = req.body.data;
+      // const payload = decryptPayload(encryptedData); // Decrypt input data
+
+      // Validate required fields
+      if (!organizationName) {
         throw new BadRequestError("Missing field: organizationName");
       }
 
-      const baseDN = `${process.env.AD_BASE_DN}`;
-      const filter = `(ou=${payload.organizationName})`;
-
-      // Search for existing OU
-      // const organizationExists = await search(baseDN, filter);
-      // if (organizationExists.length > 0) {
-      //   throw new ConflictError(`Organization already exists.`);
-      // }
-
-      const organization = await this.organizationService.createOrganization(
-        payload
+      // Delegate to the service layer
+      const result = await this.organizationService.createOrganization(
+        organizationName, description
       );
-      console.log("Controller: createOrganization - Completed");
-      res.status(201).json(organization);
+
+      logger.success("[AD] Controller: createOrganization - Completed");
+      res.status(201).json(result); // Send success response
     } catch (error) {
-      console.log("Controller: createOrganization - Error", error);
-      next(error);
+      console.error("[AD] Controller: createOrganization - Error", error);
+      next(error); // Forward errors to error middleware
     }
   };
 
   listOrganizaitons = async (req, res, next) => {
     try {
-      console.log("Controller: listOrganizaitons - Started");
+      logger.info("[AD] Controller: listOrganizaitons - Started");
       const filter = req.query.filter || "";
       const organizations = await this.organizationService.listOrganizaitons(
         filter
       );
-      const encryptData = encryptPayload(organizations);
-      console.log("Controller: listOrganizaitons - Completed");
-      res.status(200).json({ data: encryptData });
+      // const encryptData = encryptPayload(organizations);
+      logger.info("[AD] Controller: listOrganizaitons - Completed");
+      res.status(200).json(organizations);
+      // res.status(200).json({ data: encryptData });
     } catch (error) {
-      console.log("Controller: listOrganizaitons - Error", error);
+      console.error("[AD] Controller: listOrganizaitons - Error", error);
       next(error);
     }
   };
