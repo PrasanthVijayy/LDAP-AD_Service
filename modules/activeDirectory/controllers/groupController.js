@@ -9,6 +9,7 @@ import {
 import OrganizationService from "../../activeDirectory/services/orgainzationService.js";
 import { encryptPayload, decryptPayload } from "../../../utils/encryption.js";
 import logger from "../../../config/logger.js";
+import { search } from "../../../utils/adUtils.js";
 class GroupController {
   constructor() {
     this.groupService = new GroupService();
@@ -94,14 +95,15 @@ class GroupController {
     try {
       logger.info("[AD] Controller: listGroups - Started");
       const filter = req.query.filter;
-      console.log("Filter", filter);
+      console.log("Filter:", filter || null);
       const groups = await this.groupService.listGroups(filter);
-      const encryptData = encryptPayload(groups);
+      // const encryptData = encryptPayload(groups);
       logger.info("[AD] Controller: listGroups - Completed");
       // if (groups.count === 0) {
       //   res.status(204).end();
       // }
-      res.status(200).json({ data: encryptData });
+      // res.status(200).json({ data: encryptData });
+      res.status(200).json(groups);
     } catch (error) {
       console.log("Controller: listGroups - Error", error);
       next(error);
@@ -129,39 +131,23 @@ class GroupController {
       await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
 
       // Setting default values to both OU's if not provided
-      const groupOUValue = groupOU ? groupOU : "groups";
-      const memberOUValue = memberOU ? memberOU : "users";
-
-      //Checking if group exists
-      // const baseDN = `ou=${groupOU},${process.env.AD_BASE_DN}`;
-      // const groupExists = await search(baseDN, `(cn=${groupName})`);
-      // if (groupExists.length === 0) {
-      //   throw new NotFoundError(`Group ${groupName} does not exist`);
-      // }
-
-      //Checking the group is nonAdmin
-      // const nonAdminGroup = groupExists[0]?.businessCategory;
-      // if (nonAdminGroup === "admin") {
-      //   throw new NotFoundError(`Group ${groupName} is not a nonAdmin group`);
-      // }
-
       //Checking is user exists with CN and OU
-      await this.organizationService.listOrganizaitons(`ou=${memberOUValue}`);
-      const userDN = `ou=${memberOUValue},${process.env.AD_BASE_DN}`;
+      await this.organizationService.listOrganizaitons(`ou=${memberOU}`);
+      const userDN = `ou=${memberOU},${process.env.AD_BASE_DN}`;
       const userExists = await search(userDN, `cn=${member}`);
-      if (userExists.length === 0) {
-        throw new NotFoundError(`User ${member} does not exist`);
-      }
+      // if (userExists.length === 0) {
+      //   throw new NotFoundError(`User ${member} does not exist`);
+      // }
 
-      if (userExists[0].shadowExpire == 1) {
-        throw new NotFoundError(`User ${member} is locked`);
-      }
+      // if (userExists[0].shadowExpire == 1) {
+      //   throw new NotFoundError(`User ${member} is locked`);
+      // }
       console.warn("User data:", userExists[0]);
       const group = await this.groupService.addToGroup(
         groupName,
         member,
-        groupOUValue,
-        memberOUValue
+        groupOU,
+        memberOU
       );
       console.log("Controller: addToGroup - Completed");
       res.status(200).json(group);

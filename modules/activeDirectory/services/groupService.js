@@ -40,22 +40,34 @@ class GroupService {
   //   }
   // }
 
+  // Fucntion to return the group type name based on bitwise value stored
+  static mapGroupType(groupType) {
+    const groupTypeNames = {
+      2: "Global distribution group",
+      4: "Domain local distribution group",
+      8: "Universal distribution group",
+      "-2147483646": "Global security group",
+      "-2147483644": "Domain local security group",
+      "-2147483640": "Universal security group",
+      "-2147483643": "Builtin group",
+    };
+    return groupTypeNames[groupType] || "Unknown Group";
+  }
+
   async listGroups(filter) {
     try {
-      console.log("Service: listGroups - Started");
+      logger.info("[AD] Service: listGroups - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-      const baseDN = process.env.AD_BASE_DN || "ou=groups,dc=example,dc=com";
-      const searchFilter = filter
-        ? `(${filter})`
-        : "(objectClass=groupOfNames)";
+      const baseDN = process.env.AD_BASE_DN;
+      const searchFilter = filter ? `(${filter})` : "(objectClass=group)";
       const scope = "sub";
       const rawGroups = await search(baseDN, searchFilter, scope);
-      console.log("Service: listGroups - Completed");
+      logger.info("[AD] Service: listGroups - Completed");
       const groups = rawGroups.map((group) => ({
         dn: group.dn,
         groupName: group.cn,
         description: group.description,
-        groupType: group.businessCategory || null,
+        groupType: GroupService.mapGroupType(group.groupType),
       }));
 
       if (groups.length === 0) {
@@ -68,28 +80,15 @@ class GroupService {
     }
   }
 
-  async addToGroup(groupName, member, groupOUValue, memberOUValue) {
+  async addToGroup(groupName, member, groupOU, memberOU) {
     try {
-      console.log("Service: addToGroup - Started");
+      logger.info("[AD] Service: addToGroup - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-      const groupDN = `cn=${groupName},ou=${groupOUValue},${process.env.AD_BASE_DN}`;
-      const userDN = `cn=${member},ou=${memberOUValue},${process.env.AD_BASE_DN}`;
+      const groupDN = `cn=${groupName},ou=${groupOU},${process.env.AD_BASE_DN}`;
+      const userDN = `cn=${member},ou=${memberOU},${process.env.AD_BASE_DN}`;
 
       // Check user is valid to add to group
       console.warn("user Details", userDN);
-
-      // const groupDetails = await search(groupDN, "(objectClass=groupOfNames)");
-      // console.log("groupDetails", groupDetails);
-      // const existingMember = groupDetails[0]?.member;
-
-      // console.log("existingMember", existingMember);
-
-      // // Check if the user is already a member of the group
-      // if (existingMember.includes(userDN)) {
-      //   throw new ConflictError(
-      //     `User ${member} is already a member of the group.`
-      //   );
-      // }
 
       const changes = [
         {
@@ -100,15 +99,15 @@ class GroupService {
         },
       ];
       await modify(groupDN, changes);
-      console.log("Service: addToGroup - Completed");
+      logger.info("[AD] Service: addToGroup - Completed");
       return { message: "User added to group successfully." };
     } catch (error) {
       console.log("Service: addToGroup - Error", error);
-      if (error.message.includes("No Such Object")) {
+      if (error.message.includes("0000208D")) {
         throw new NotFoundError(`Group ${groupName} does not exist.`);
-      } else if (
-        error.message.includes("modify/add: member: value #0 already exists")
-      ) {
+      } else if (error.message.includes("00000525")) {
+        throw new NotFoundError(`User ${member} does not exist.`);
+      } else if (error.message.includes("00000562")) {
         throw new ConflictError(`User '${member}' already exists in group.`);
       } else {
         throw error;
@@ -118,7 +117,7 @@ class GroupService {
 
   async deleteFromGroup(groupName, groupOU, member, memberOU) {
     try {
-      console.log("Service: deleteFromGroup - Started");
+      logger.info("[AD] Service: deleteFromGroup - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
       const groupDN = `cn=${groupName},ou=${groupOU},${process.env.AD_BASE_DN}`;
       const userDN = `cn=${member},ou=${memberOU},${process.env.AD_BASE_DN}`;
@@ -138,7 +137,7 @@ class GroupService {
         },
       ];
       await modify(groupDN, changes);
-      console.log("Service: deleteFromGroup - Completed");
+      logger.info("[AD] Service: deleteFromGroup - Completed");
       return {
         message: "User deleted from group successfully.",
         groupName: groupName,
@@ -162,7 +161,7 @@ class GroupService {
 
   async membersInGroup(groupName, OUValue) {
     try {
-      console.log("Service: membersInGroup - Started");
+      logger.info("[AD] Service: membersInGroup - Started");
 
       // Bind with LDAP admin credentials
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
@@ -181,11 +180,11 @@ class GroupService {
       // Trimming empty / whitespace members (default stored in LDAP server)
       members = members.filter((member) => member && member.trim() !== "");
 
-      console.log("Service: membersInGroup - Completed");
+      logger.info("[AD] Service: membersInGroup - Completed");
 
       return { count: members.length, members };
     } catch (error) {
-      console.log("Service: membersInGroup - Error", error);
+      console.log("[AD] Service: membersInGroup - Error", error);
       if (error.message.includes("No Such Object")) {
         throw new NotFoundError(`Group ${groupName} does not exist.`);
       } else {
@@ -196,14 +195,14 @@ class GroupService {
 
   async addToAdminGroup(groupName, member, groupOUValue, memberOUValue) {
     try {
-      console.log("Service: addAdminGroup - Started");
+      logger.info("[AD] Service: addAdminGroup - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
       const groupDN = `cn=${groupName},ou=${groupOUValue},${process.env.AD_BASE_DN}`;
       const userDN = `cn=${member},ou=${memberOUValue},${process.env.AD_BASE_DN}`;
 
       const groupDetails = await search(groupDN, "(objectClass=groupOfNames)");
 
-      console.log("groupDetails", groupDetails);
+      logger.info("[AD] groupDetails", groupDetails);
       const existingMember = groupDetails[0]?.member;
 
       console.warn("existingMember", existingMember);
@@ -224,7 +223,7 @@ class GroupService {
         },
       ];
       await modify(groupDN, changes);
-      console.log("Service: addAdminGroup - Completed");
+      console.log("[AD] Service: addAdminGroup - Completed");
       return { message: "User added to admin group successfully." };
     } catch (error) {
       console.log("Service: addAdminGroup - Error", error);
@@ -234,7 +233,7 @@ class GroupService {
 
   async deleteFromAdminGroup(groupName, groupOUValue, member, memberOUValue) {
     try {
-      console.log("Service: deleteFromGroup (Admin) - Started");
+      logger.info("[AD] Service: deleteFromGroup (Admin) - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
       const groupDN = `cn=${groupName},ou=${groupOUValue},${process.env.AD_BASE_DN}`;
       const userDN = `cn=${member},ou=${memberOUValue},${process.env.AD_BASE_DN}`;
@@ -254,14 +253,14 @@ class GroupService {
         },
       ];
       await modify(groupDN, changes);
-      console.log("Service: deleteFromGroup (Admin) - Completed");
+      logger.info("[AD] Service: deleteFromGroup (Admin) - Completed");
       return {
         message: "User deleted from group successfully.",
         groupName: groupName,
         groupOU: groupOUValue,
       };
     } catch (error) {
-      console.log("Service: deleteFromGroup (Admin) - Error", error);
+      console.log("[AD] Service: deleteFromGroup (Admin) - Error", error);
       //Error to inform member is not in group
       if (error.message.includes("modify/delete: member: no such value")) {
         throw new BadRequestError(
@@ -275,24 +274,24 @@ class GroupService {
 
   async findGroupsByMember(userDN) {
     try {
-      console.log("Service: findGroupsByMember - Started");
+      logger.info("[AD] Service: findGroupsByMember - Started");
       const baseDN = `${process.env.AD_BASE_DN}`;
       const groups = await search(
         baseDN,
         `(&(objectClass=groupOfNames)(member=${userDN}))`
       );
 
-      console.log("Service: findGroupsByMember - Completed");
+      logger.info("[AD] Service: findGroupsByMember - Completed");
       return groups; // Returns an array of groups where the user is a member
     } catch (error) {
-      console.log("Service: findGroupsByMember - Error", error);
+      console.log("[AD] Service: findGroupsByMember - Error", error);
       throw new Error("Error fetching groups for the member.");
     }
   }
 
   async deleteUserFromGroups(member, memberOU) {
     try {
-      console.log("Service: deleteUserFromGroups - Started");
+      logger.info("[AD] Service: deleteUserFromGroups - Started");
       const userDN = `cn=${member},ou=${memberOU},${process.env.AD_BASE_DN}`; // Construct the user's distinguished name (DN)
 
       const groups = await this.findGroupsByMember(userDN); // Fetch all groups containing the member
@@ -315,7 +314,7 @@ class GroupService {
         const groupOU = group.dn.match(/ou=([^,]+)/)[1]; // Extract only the value after "ou="
         const businessCategory = group.businessCategory; // Fetch the business category from the group
 
-        console.warn(
+        logger.warn(
           `S.No:${groupCount}, Groupname:${groupName}, GroupOU:${groupOU}, BusinessCategory:${businessCategory}`
         );
 
@@ -346,14 +345,14 @@ class GroupService {
         console.warn(`Result: ${JSON.stringify(result)}`);
       }
 
-      console.log("Service: deleteUserFromGroups - Completed");
+      logger.info("[AD] Service: deleteUserFromGroups - Completed");
       return {
         message: `User ${member} removed from groups successfully.`,
         groupCount: groupCount,
         results: deleteResults,
       };
     } catch (error) {
-      console.log("Service: deleteUserFromGroups - Error", error);
+      console.log("[AD] Service: deleteUserFromGroups - Error", error);
       throw new Error("Error fetching groups for the member.");
     }
   }

@@ -125,22 +125,33 @@ const add = (dn, attributes) => {
 
 // Function to modify an existing AD entry
 const modify = (dn, changes) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const adInstance = await connectToAD(); // Ensure AD connection is established
-      adInstance.modify(dn, changes, (err) => {
-        if (err) {
-          logger.error(`Failed to modify entry in AD: ${err.message}`);
-          reject(new Error("AD modify failed: " + err.message));
-        } else {
-          logger.success(`Successfully modified entry: ${dn}`);
-          resolve(); // Successfully modified entry
-        }
+  logger.info(`Attempting to modify entry: ${dn}`);
+
+  const ldapChanges = [];
+
+  for (const change of changes) {
+    if (change.operation && change.modification) {
+      ldapChanges.push({
+        operation: change.operation,
+        modification: change.modification,
       });
-    } catch (error) {
-      logger.error("Error connecting to Active Directory: " + error.message);
-      reject(error); // Reject if the connection fails
+    } else {
+      throw new Error(
+        "Invalid change object: operation and modification required"
+      );
     }
+  }
+
+  return new Promise((resolve, reject) => {
+    ldapClient.modify(dn, ldapChanges, (err) => {
+      if (err) {
+        console.error(`LDAP modify error: ${err.message}`);
+        reject(new Error("LDAP modify failed: " + err.message));
+      } else {
+        logger.info(`Successfully modified entry: ${dn}`);
+        resolve();
+      }
+    });
   });
 };
 
