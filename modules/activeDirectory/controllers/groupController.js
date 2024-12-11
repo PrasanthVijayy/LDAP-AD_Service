@@ -19,7 +19,7 @@ class GroupController {
   /* NOT WORKING WITH AD -> SUBU SIR INFORMED TO USE AD-UI (dt:11/12) */
   // createGroup = async (req, res, next) => {
   //   try {
-  //     logger.info("[AD] Controller: createGroup - Started");
+  //     logger.success("[AD] Controller: createGroup - Started");
 
   //     const { groupName, description, groupType, groupOU, groupScope } =
   //       req.body; // Extracting payload
@@ -72,7 +72,10 @@ class GroupController {
 
   //     const typeValue = GROUP_TYPES[groupType];
   //     const scopeValue = GROUP_SCOPES[groupScope];
-  //     const groupValue = typeValue | scopeValue; // Combine using bitwise OR
+  //     const bitWiseValue = typeValue | scopeValue; // Combine using bitwise OR
+  //     const groupValue = bitWiseValue.toString();
+
+  //     console.warn("groupValue", groupValue);
   //     console.warn(
   //       `typeValue: ${typeValue}, scopeValue: ${scopeValue}, groupValue: ${groupValue}`
   //     );
@@ -83,7 +86,7 @@ class GroupController {
   //       groupOU
   //     );
 
-  //     logger.info("[AD] Controller: createGroup - Completed");
+  //     logger.success("[AD] Controller: createGroup - Completed");
   //     res.status(201).json(group);
   //   } catch (error) {
   //     console.error("[AD] Controller: createGroup - Error", error);
@@ -93,12 +96,12 @@ class GroupController {
 
   listGroups = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: listGroups - Started");
+      logger.success("[AD] Controller: listGroups - Started");
       const filter = req.query.filter;
       console.log("Filter:", filter || null);
       const groups = await this.groupService.listGroups(filter);
       // const encryptData = encryptPayload(groups);
-      logger.info("[AD] Controller: listGroups - Completed");
+      logger.success("[AD] Controller: listGroups - Completed");
       // if (groups.count === 0) {
       //   res.status(204).end();
       // }
@@ -128,11 +131,25 @@ class GroupController {
       }
 
       // Checks the provided OU is valid
-      await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
-
-      // Setting default values to both OU's if not provided
+      if (groupOU) {
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            error.message = `Invalid groupOU: ${groupOU}`;
+          }
+        }
+      }
       //Checking is user exists with CN and OU
-      await this.organizationService.listOrganizaitons(`ou=${memberOU}`);
+      if (memberOU) {
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${memberOU}`);
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            error.message = `Invalid memberOU: ${memberOU}`;
+          }
+        }
+      }
       const userDN = `ou=${memberOU},${process.env.AD_BASE_DN}`;
       const userExists = await search(userDN, `cn=${member}`);
       // if (userExists.length === 0) {
@@ -159,7 +176,7 @@ class GroupController {
 
   deleteFromGroup = async (req, res, next) => {
     try {
-      console.log("Controller: deleteFromGroup - Started");
+      logger.success("[AD] Controller: deleteFromGroup - Started");
       const { groupName, member, groupOU, memberOU } = req.body;
 
       let missingFields = [];
@@ -175,33 +192,28 @@ class GroupController {
       }
 
       // Checks the provided groupOU is valid
-      await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
+      if (groupOU) {
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            error.message = `Invalid groupOU: ${groupOU}`;
+          }
+          throw error;
+        }
+      }
 
       // Checks the provided memberOU is valid
-      await this.organizationService.listOrganizaitons(`ou=${memberOU}`);
-
-      //Checking if group exists
-      const baseDN = `ou=${groupOU},${process.env.AD_BASE_DN}`;
-      const groupExists = await search(baseDN, `(cn=${groupName})`);
-      console.log("groupdetails", groupExists);
-      if (groupExists.length === 0) {
-        throw new NotFoundError(`Group ${groupName} does not exist`);
+      if (memberOU) {
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${memberOU}`);
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            error.message = `Invalid memberOU: ${memberOU}`;
+          }
+          throw error;
+        }
       }
-
-      //Checking the group is nonAdmin
-      const nonAdminGroup = groupExists[0]?.businessCategory;
-      if (nonAdminGroup === "admin") {
-        throw new NotFoundError(`Group ${groupName} a Admin group`);
-      }
-
-      //Checking if user exists
-      const userDN = `ou=${memberOU},${process.env.AD_BASE_DN}`;
-      const userExists = await search(userDN, `cn=${member}`);
-      console.log("userdetails", userExists);
-      if (userExists.length == 0) {
-        throw new NotFoundError(`User ${member} does not exist`);
-      }
-
       const group = await this.groupService.deleteFromGroup(
         groupName,
         groupOU,
@@ -218,13 +230,13 @@ class GroupController {
 
   membersInGroup = async (req, res, next) => {
     try {
-      console.log("Controller: membersInGroup - Started");
-      // const { groupName, OU } = req.query;
-      const encryptedGroupName = req.query.groupName;
-      const encryptedOU = req.query.OU;
+      logger.success("[AD] Controller: membersInGroup - Started");
+      const { groupName, OU } = req.query;
+      // const encryptedGroupName = req.query.groupName;
+      // const encryptedOU = req.query.OU;
 
-      const groupName = decryptPayload(encryptedGroupName);
-      const OU = decryptPayload(encryptedOU);
+      // const groupName = decryptPayload(encryptedGroupName);
+      // const OU = decryptPayload(encryptedOU);
 
       let missingFields = [];
       if (!groupName) missingFields.push("groupName");
@@ -237,23 +249,25 @@ class GroupController {
       }
 
       // Checks the provided OU is valid
-      await this.organizationService.listOrganizaitons(`ou=${OU}`);
+      if (OU) {
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${OU}`);
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            error.message = `Invalid groupOU: ${OU}`;
+          }
+          throw error;
+        }
+      }
 
-      // const baseDN = `ou=groups,${process.env.AD_BASE_DN}`;
-      // const groupExists = await search(baseDN, `(cn=${groupName})`);
-      // if (groupExists.length === 0) {
-      //   throw new NotFoundError(`Group does not exist`);
-      // }
 
-      const OUValue = OU ? OU : "groups";
+      const group = await this.groupService.membersInGroup(groupName, OU);
+      // const encryptData = encryptPayload(group);
 
-      const group = await this.groupService.membersInGroup(groupName, OUValue);
-      const encryptData = encryptPayload(group);
+      logger.success("[AD] Controller: membersInGroup - Completed");
+      res.status(200).json(group);
 
-      console.log("Controller: membersInGroup - Completed");
-      // res.status(200).json(group);
-
-      res.status(200).json({ data: encryptData });
+      // res.status(200).json({ data: encryptData });
     } catch (error) {
       console.log("Controller: membersInGroup - Error", error);
       next(error);
@@ -262,7 +276,7 @@ class GroupController {
 
   addToAdminGroup = async (req, res, next) => {
     try {
-      console.log("Controller: addAdminGroup - Started");
+      logger.success("[AD] Controller: addAdminGroup - Started");
       const { groupName, member, groupOU, memberOU } = req.body;
 
       let missingFields = [];
@@ -277,59 +291,47 @@ class GroupController {
         );
       }
 
-      // Setting default values to both OU's if not provided
-      const groupOUValue = groupOU ? groupOU : "groups";
-      const memberOUValue = memberOU ? memberOU : "users";
-
       // Checks the provided admin OU is valid
-      if (groupOUValue) {
-        console.warn("Checking OU for admin group");
-        await this.organizationService.listOrganizaitons(`ou=${groupOUValue}`);
+      if (groupOU) {
+        console.warn("Checking admin group OU");
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            error.message = `Invalid groupOU: ${groupOU}`;
+          }
+        }
       }
 
-      if (memberOUValue) {
-        console.warn("Checking OU for admin group");
-        await this.organizationService.listOrganizaitons(`ou=${memberOUValue}`);
+      if (memberOU) {
+        console.warn("Checking member OU");
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${memberOU}`);
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            error.message = `Invalid memberOU: ${memberOU}`;
+          }
+        }
       }
 
-      //Checking if group exists
-      const baseDN = `ou=${groupOUValue},${process.env.AD_BASE_DN}`;
-      console.error("baseDN", baseDN);
-      const groupExists = await search(baseDN, `(cn=${groupName})`);
-      if (groupExists.length === 0) {
-        throw new NotFoundError(`Group ${groupName} does not exist`);
-      }
-
-      //Checking the group is admin
-      const adminGroup = groupExists[0]?.businessCategory;
-      if (adminGroup !== "admin") {
-        throw new NotFoundError(`Group ${groupName} is not an admin group`);
-      }
-
-      //Checking if user exists
-      const userDN = `ou=${memberOUValue},${process.env.AD_BASE_DN}`;
-      const userExists = await search(userDN, `cn=${member}`);
-      if (userExists.length === 0) {
-        throw new NotFoundError(`User ${member} does not exist`);
-      }
 
       const group = await this.groupService.addToAdminGroup(
         groupName,
         member,
-        groupOUValue,
-        memberOUValue
+        groupOU,
+        memberOU
       );
-      console.log("Controller: addAdminGroup - Completed");
+      logger.success("[AD] Controller: addAdminGroup - Completed");
       res.status(200).json(group);
     } catch (error) {
-      console.log("Controller: addAdminGroup - Error", error);
+      console.log("[AD] Controller: addAdminGroup - Error", error);
       next(error);
     }
   };
 
   deleteFromAdminGroup = async (req, res, next) => {
     try {
-      console.log("Controller: deleteFromAdminGroup - Started");
+      logger.success("[AD] Controller: deleteFromAdminGroup - Started");
       const { groupName, member, groupOU, memberOU } = req.body;
 
       let missingFields = [];
@@ -344,53 +346,49 @@ class GroupController {
         );
       }
 
-      // Setting default values to both OU's if not provided
-      const groupOUValue = groupOU ? groupOU : "groups";
-      const memberOUValue = memberOU ? memberOU : "users";
-
       // Checks the provided OU is valid
-      await this.organizationService.listOrganizaitons(`ou=${groupOUValue}`);
 
-      //Checking if group exists
-      const baseDN = `ou=${groupOUValue},${process.env.AD_BASE_DN}`;
-      const groupExists = await search(baseDN, `(cn=${groupName})`);
-      if (groupExists.length === 0) {
-        throw new NotFoundError(`Group ${groupName} does not exist`);
+      if (groupOU) {
+        console.warn("Checking admin group OU");
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            error.message = `Invalid groupOU: ${groupOU}`;
+          }
+          throw error;
+        }
       }
 
-      //Checking the group is nonAdmin
-      const nonAdminGroup = groupExists[0]?.businessCategory;
-      if (nonAdminGroup !== "admin") {
-        throw new NotFoundError(`Group ${groupName} is not a Admin group`);
-      }
-
-      // Checks the memeberOU is valid
-      await this.organizationService.listOrganizaitons(`ou=${memberOUValue}`);
-      //Checking if user exists
-      const userDN = `ou=${memberOUValue},${process.env.AD_BASE_DN}`;
-      const userExists = await search(userDN, `cn=${member}`);
-      console.log("userdetails", userExists);
-      if (userExists.length === 0) {
-        throw new NotFoundError(`User ${member} does not exist`);
+      if (memberOU) {
+        console.warn("Checking member OU");
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${memberOU}`);
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            error.message = `Invalid memberOU: ${memberOU}`;
+          }
+          throw error;
+        }
       }
 
       const group = await this.groupService.deleteFromAdminGroup(
         groupName,
-        groupOUValue,
+        groupOU,
         member,
-        memberOUValue
+        memberOU
       );
-      console.log("Controller: deleteFromAdminGroup - Completed");
+      logger.success("[AD] Controller: deleteFromAdminGroup - Completed");
       res.status(200).json(group);
     } catch (error) {
-      console.log("Controller: deleteFromAdminGroup - Error", error);
+      console.log("[AD] Controller: deleteFromAdminGroup - Error", error);
       next(error);
     }
   };
 
   deleteUserFromGroups = async (req, res, next) => {
     try {
-      console.log("Controller: deleteUserFromGroups - Started");
+      logger.success("[AD] Controller: deleteUserFromGroups - Started");
       const { member, memberOU } = req.body;
 
       // Check for missing fields
@@ -404,19 +402,28 @@ class GroupController {
         );
       }
 
-      await this.organizationService.listOrganizaitons(`ou=${memberOU}`); // Validate the provided OU
+      if (memberOU) {
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${memberOU}`); // Validate the provided OU
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            error.message = `Invalid memberOU: ${memberOU}`;
+          }
+          throw error;
+        }
+      }
 
       const result = await this.groupService.deleteUserFromGroups(
         member,
         memberOU
       );
 
-      const encryptData = encryptPayload(result);
-      console.log("Controller: deleteUserFromGroups - Completed");
-      // res.status(200).json(result);
-      res.status(200).json({ data: encryptData });
+      // const encryptData = encryptPayload(result);
+      logger.success("[AD] Controller: deleteUserFromGroups - Completed");
+      res.status(200).json(result);
+      // res.status(200).json({ data: encryptData });
     } catch (error) {
-      console.log("Controller: deleteUserFromGroups - Error", error);
+      console.log("[AD] Controller: deleteUserFromGroups - Error", error);
       next(error);
     }
   };
