@@ -14,7 +14,9 @@ const ldapClient = ldap.createClient({
 
 // General Error Handler for LDAP Client
 ldapClient.on("error", (err) => {
-  console.error("LDAP Client Error:", err); // To track client-level issues
+  if (ldapClient.connected) {
+    console.error("AD Client Error:", err); // To track client-level issues
+  }
 });
 
 // Function to authenticate a user in Active Directory

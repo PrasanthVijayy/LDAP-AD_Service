@@ -3,6 +3,7 @@
 import { connectToAD } from "../config/adConfig.js";
 import { connectToLDAP } from "../config/ldapconfig.js";
 import logger from "../config/logger.js";
+import { BadRequestError } from "./error.js";
 
 export const connectDirectory = async (authType) => {
   try {
@@ -21,6 +22,8 @@ export const connectDirectory = async (authType) => {
     }
   } catch (error) {
     logger.error(`Error connecting to ${authType.toUpperCase()}:`, error);
-    throw new Error(`Failed to connect to ${authType.toUpperCase()}.`);
+    throw new BadRequestError(
+      `Failed to connect to ${authType.toUpperCase()}.`
+    );
   }
 };
