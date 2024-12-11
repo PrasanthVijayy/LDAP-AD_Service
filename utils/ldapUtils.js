@@ -12,9 +12,10 @@ const ldapClient = ldap.createClient({
 
 // General Error Handler for LDAP Client
 ldapClient.on("error", (err) => {
-  console.error("LDAP Client Error:", err); // To track client-level issues
+  if (ldapClient.connected) {
+    console.error("LDAP Client Error:", err); // To track client-level issues
+  }
 });
-
 // Function to bind/connect to LDAP directory
 const bind = (dn, password) => {
   return new Promise((resolve, reject) => {

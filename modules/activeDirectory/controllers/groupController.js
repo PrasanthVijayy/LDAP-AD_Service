@@ -9,98 +9,101 @@ import {
 import OrganizationService from "../../activeDirectory/services/orgainzationService.js";
 import { encryptPayload, decryptPayload } from "../../../utils/encryption.js";
 import logger from "../../../config/logger.js";
+import { search } from "../../../utils/adUtils.js";
 class GroupController {
   constructor() {
     this.groupService = new GroupService();
     this.organizationService = new OrganizationService();
   }
 
-  createGroup = async (req, res, next) => {
-    try {
-      logger.info("[AD] Controller: createGroup - Started");
+  /* NOT WORKING WITH AD -> SUBU SIR INFORMED TO USE AD-UI (dt:11/12) */
+  // createGroup = async (req, res, next) => {
+  //   try {
+  //     logger.info("[AD] Controller: createGroup - Started");
 
-      const { groupName, description, groupType, groupOU, groupScope } =
-        req.body; // Extracting payload
-      let missingFields = [];
-      if (!groupName) missingFields.push("groupName");
-      if (!groupType) missingFields.push("groupType");
-      if (!groupOU) missingFields.push("groupOU");
-      if (!groupScope) missingFields.push("groupScope");
+  //     const { groupName, description, groupType, groupOU, groupScope } =
+  //       req.body; // Extracting payload
+  //     let missingFields = [];
+  //     if (!groupName) missingFields.push("groupName");
+  //     if (!groupType) missingFields.push("groupType");
+  //     if (!groupOU) missingFields.push("groupOU");
+  //     if (!groupScope) missingFields.push("groupScope");
 
-      if (missingFields.length > 0) {
-        return next(
-          new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
-        );
-      }
+  //     if (missingFields.length > 0) {
+  //       return next(
+  //         new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
+  //       );
+  //     }
 
-      //validation for groupType while creating
-      if (!["admin", "general"].includes(groupType)) {
-        return next(
-          new BadRequestError("Group type must be 'admin' or 'general'.")
-        );
-      }
+  //     //validation for groupType while creating
+  //     if (!["admin", "general"].includes(groupType)) {
+  //       return next(
+  //         new BadRequestError("Group type must be 'admin' or 'general'.")
+  //       );
+  //     }
 
-      // Validate `groupScope` (must be 'domainLocal', 'universal', or 'global')
-      if (!["Domain local", "Universal", "Global"].includes(groupScope)) {
-        return next(new BadRequestError("Invalid group scope."));
-      }
+  //     // Validate `groupScope` (must be 'domainLocal', 'universal', or 'global')
+  //     if (!["Domain local", "Universal", "Global"].includes(groupScope)) {
+  //       return next(new BadRequestError("Invalid group scope."));
+  //     }
 
-      // Validate `groupName` format
-      const groupNamePattern = /^[a-zA-Z0-9_-]+$/;
-      if (!groupNamePattern.test(groupName)) {
-        return next(
-          new BadRequestError(
-            "Group name cannot contain spaces or special characters."
-          )
-        );
-      }
+  //     // Validate `groupName` format
+  //     const groupNamePattern = /^[a-zA-Z0-9_-]+$/;
+  //     if (!groupNamePattern.test(groupName)) {
+  //       return next(
+  //         new BadRequestError(
+  //           "Group name cannot contain spaces or special characters."
+  //         )
+  //       );
+  //     }
 
-      await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
+  //     await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
 
-      const GROUP_TYPES = {
-        admin: 0x80000000, // Security group
-        general: 0x00000000, // Distribution group
-      };
+  //     const GROUP_TYPES = {
+  //       admin: 0x80000000, // Security group
+  //       general: 0x00000000, // Distribution group
+  //     };
 
-      const GROUP_SCOPES = {
-        "Domain local": 0x4,
-        Universal: 0x8,
-        Global: 0x2,
-      };
+  //     const GROUP_SCOPES = {
+  //       "Domain local": 0x4,
+  //       Universal: 0x8,
+  //       Global: 0x2,
+  //     };
 
-      const typeValue = GROUP_TYPES[groupType];
-      const scopeValue = GROUP_SCOPES[groupScope];
-      const groupValue = typeValue | scopeValue; // Combine using bitwise OR
-      console.warn(
-        `typeValue: ${typeValue}, scopeValue: ${scopeValue}, groupValue: ${groupValue}`
-      );
-      const group = await this.groupService.createGroup(
-        groupName,
-        description,
-        groupValue,
-        groupOU
-      );
+  //     const typeValue = GROUP_TYPES[groupType];
+  //     const scopeValue = GROUP_SCOPES[groupScope];
+  //     const groupValue = typeValue | scopeValue; // Combine using bitwise OR
+  //     console.warn(
+  //       `typeValue: ${typeValue}, scopeValue: ${scopeValue}, groupValue: ${groupValue}`
+  //     );
+  //     const group = await this.groupService.createGroup(
+  //       groupName,
+  //       description,
+  //       groupValue,
+  //       groupOU
+  //     );
 
-      logger.info("[AD] Controller: createGroup - Completed");
-      res.status(201).json(group);
-    } catch (error) {
-      console.error("[AD] Controller: createGroup - Error", error);
-      next(error);
-    }
-  };
+  //     logger.info("[AD] Controller: createGroup - Completed");
+  //     res.status(201).json(group);
+  //   } catch (error) {
+  //     console.error("[AD] Controller: createGroup - Error", error);
+  //     next(error);
+  //   }
+  // };
 
   listGroups = async (req, res, next) => {
     try {
-      console.log("Controller: listGroups - Started");
+      logger.info("[AD] Controller: listGroups - Started");
       const filter = req.query.filter;
-      console.log("Filter", filter);
+      console.log("Filter:", filter || null);
       const groups = await this.groupService.listGroups(filter);
-      const encryptData = encryptPayload(groups);
-      console.log("Controller: listGroups - Completed");
+      // const encryptData = encryptPayload(groups);
+      logger.info("[AD] Controller: listGroups - Completed");
       // if (groups.count === 0) {
       //   res.status(204).end();
       // }
-      res.status(200).json({ data: encryptData });
+      // res.status(200).json({ data: encryptData });
+      res.status(200).json(groups);
     } catch (error) {
       console.log("Controller: listGroups - Error", error);
       next(error);
@@ -128,39 +131,23 @@ class GroupController {
       await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
 
       // Setting default values to both OU's if not provided
-      const groupOUValue = groupOU ? groupOU : "groups";
-      const memberOUValue = memberOU ? memberOU : "users";
-
-      //Checking if group exists
-      // const baseDN = `ou=${groupOU},${process.env.AD_BASE_DN}`;
-      // const groupExists = await search(baseDN, `(cn=${groupName})`);
-      // if (groupExists.length === 0) {
-      //   throw new NotFoundError(`Group ${groupName} does not exist`);
-      // }
-
-      //Checking the group is nonAdmin
-      // const nonAdminGroup = groupExists[0]?.businessCategory;
-      // if (nonAdminGroup === "admin") {
-      //   throw new NotFoundError(`Group ${groupName} is not a nonAdmin group`);
-      // }
-
       //Checking is user exists with CN and OU
-      await this.organizationService.listOrganizaitons(`ou=${memberOUValue}`);
-      const userDN = `ou=${memberOUValue},${process.env.AD_BASE_DN}`;
+      await this.organizationService.listOrganizaitons(`ou=${memberOU}`);
+      const userDN = `ou=${memberOU},${process.env.AD_BASE_DN}`;
       const userExists = await search(userDN, `cn=${member}`);
-      if (userExists.length === 0) {
-        throw new NotFoundError(`User ${member} does not exist`);
-      }
+      // if (userExists.length === 0) {
+      //   throw new NotFoundError(`User ${member} does not exist`);
+      // }
 
-      if (userExists[0].shadowExpire == 1) {
-        throw new NotFoundError(`User ${member} is locked`);
-      }
+      // if (userExists[0].shadowExpire == 1) {
+      //   throw new NotFoundError(`User ${member} is locked`);
+      // }
       console.warn("User data:", userExists[0]);
       const group = await this.groupService.addToGroup(
         groupName,
         member,
-        groupOUValue,
-        memberOUValue
+        groupOU,
+        memberOU
       );
       console.log("Controller: addToGroup - Completed");
       res.status(200).json(group);
