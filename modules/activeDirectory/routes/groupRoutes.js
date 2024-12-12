@@ -1,3 +1,4 @@
+"use strict";
 import express from "express";
 import GroupController from "../../activeDirectory/controllers/groupController.js";
 import { sessionMiddleware } from "../../../middleware/sessionMiddleware.js";
@@ -10,7 +11,7 @@ const adGroupRoutes = (app) => {
   const router = express.Router();
   app.use("/AD/v1/groups", router);
 
-  // router.post("/createGroup", csrfProtection, sessionMiddleware, apiLimiter(), groupController.createGroup); // Not working in AD
+  router.post("/createGroup", csrfProtection, sessionMiddleware, apiLimiter(), groupController.createGroup); // Group create
   router.get("/listGroups", csrfProtection, sessionMiddleware, apiLimiter(),  groupController.listGroups); // List groups - additional
   router.post("/addToGroup", csrfProtection, sessionMiddleware, apiLimiter(), groupController.addToGroup); // Add user to group
   router.delete("/deleteFromGroup", csrfProtection, sessionMiddleware, apiLimiter(),  groupController.deleteFromGroup); // Delete user from group

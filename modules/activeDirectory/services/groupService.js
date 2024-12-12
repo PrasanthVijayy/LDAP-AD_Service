@@ -7,38 +7,38 @@ import {
 import logger from "../../../config/logger.js";
 
 class GroupService {
-  /* NOT WORKING WITH AD -> SUBU SIR successRMED TO USE AD-UI (dt:11/12) */
-  // async createGroup(groupName, description, groupValue, groupOU) {
-  //   try {
-  //     console.log("Service: createGroup - Started");
-  //     await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-  //     const groupDN = `cn=${groupName},ou=${groupOU},${process.env.AD_BASE_DN}`;
-  //     const groupAttributes = {
-  //       cn: groupName,
-  //       objectClass: ["top", "group"],
-  //       member: [],
-  //       groupType: groupValue,
-  //       description: description || "Default group",
-  //     };
+  async createGroup(groupName, description, groupValue, groupOU) {
+    try {
+      console.log("Service: createGroup - Started");
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const groupDN = `cn=${groupName},ou=${groupOU},${process.env.AD_BASE_DN}`;
+      const groupAttributes = {
+        cn: groupName,
+        objectClass: ["top", "group"],
+        groupType: 22,
+        description: description || "Default group",
+      };
 
-  //     console.log("Attributes", groupAttributes);
+      console.log("Attributes", groupAttributes);
 
-  //     await add(groupDN, groupAttributes);
+      await add(groupDN, groupAttributes);
 
-  //     logger.success("[AD] Service: createGroup - Completed");
-  //     return { message: "Group created successfully." };
-  //   } catch (error) {
-  //     console.log("[AD] Service: createGroup - Error", error);
+      logger.success("[AD] Service: createGroup - Completed");
+      return { message: "Group created successfully." };
+    } catch (error) {
+      console.log("[AD] Service: createGroup - Error", error);
 
-  //     if (error.message.includes("Entry Already Exists")) {
-  //       throw new ConflictError(`Group ${groupName} already exists.`);
-  //     } else if (error.message.includes("LDAP add failed: No Such Object")) {
-  //       throw new NotFoundError(`OU ${groupOU} does not exist.`);
-  //     } else {
-  //       throw error;
-  //     }
-  //   }
-  // }
+      if (error.message.includes("00002071")) {
+        throw new ConflictError(`Group ${groupName} already exists.`);
+      } else if (error.message.includes("0000208D")) {
+        throw new NotFoundError(`OU ${groupOU} does not exist.`);
+      } else if (error.message.includes("00002141")) {
+        throw new BadRequestError(`Invalid group type`);
+      } else {
+        throw error;
+      }
+    }
+  }
 
   // Fucntion to return the group type name based on bitwise value stored
   static mapGroupType(groupType) {
@@ -364,7 +364,7 @@ class GroupService {
       for (const group of groups) {
         groupCount++; // Increment the group count
         const groupName = group.cn; // Group name
-        const groupOU = group.dn.match(/OU=([^,]+)/)[1] ; // Extract OU
+        const groupOU = group.dn.match(/OU=([^,]+)/)[1]; // Extract OU
         console.log("Group OU after slicing", groupOU);
         const groupType = group.groupType || null; // Group type from the group object
 

@@ -16,83 +16,91 @@ class GroupController {
     this.organizationService = new OrganizationService();
   }
 
-  /* NOT WORKING WITH AD -> SUBU SIR INFORMED TO USE AD-UI (dt:11/12) */
-  // createGroup = async (req, res, next) => {
-  //   try {
-  //     logger.success("[AD] Controller: createGroup - Started");
+  createGroup = async (req, res, next) => {
+    try {
+      logger.success("[AD] Controller: createGroup - Started");
 
-  //     const { groupName, description, groupType, groupOU, groupScope } =
-  //       req.body; // Extracting payload
-  //     let missingFields = [];
-  //     if (!groupName) missingFields.push("groupName");
-  //     if (!groupType) missingFields.push("groupType");
-  //     if (!groupOU) missingFields.push("groupOU");
-  //     if (!groupScope) missingFields.push("groupScope");
+      const { groupName, description, groupType, groupOU, groupScope } =
+        req.body; // Extracting payload
+      let missingFields = [];
+      if (!groupName) missingFields.push("groupName");
+      if (!groupType) missingFields.push("groupType");
+      if (!groupOU) missingFields.push("groupOU");
+      if (!groupScope) missingFields.push("groupScope");
 
-  //     if (missingFields.length > 0) {
-  //       return next(
-  //         new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
-  //       );
-  //     }
+      if (missingFields.length > 0) {
+        return next(
+          new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
+        );
+      }
 
-  //     //validation for groupType while creating
-  //     if (!["admin", "general"].includes(groupType)) {
-  //       return next(
-  //         new BadRequestError("Group type must be 'admin' or 'general'.")
-  //       );
-  //     }
+      //validation for groupType while creating
+      if (!["admin", "general"].includes(groupType)) {
+        return next(
+          new BadRequestError("Group type must be 'admin' or 'general'.")
+        );
+      }
 
-  //     // Validate `groupScope` (must be 'domainLocal', 'universal', or 'global')
-  //     if (!["Domain local", "Universal", "Global"].includes(groupScope)) {
-  //       return next(new BadRequestError("Invalid group scope."));
-  //     }
+      // Validate `groupScope` (must be 'domainLocal', 'universal', or 'global')
+      if (!["Domain local", "Universal", "Global"].includes(groupScope)) {
+        return next(new BadRequestError("Invalid group scope."));
+      }
 
-  //     // Validate `groupName` format
-  //     const groupNamePattern = /^[a-zA-Z0-9_-]+$/;
-  //     if (!groupNamePattern.test(groupName)) {
-  //       return next(
-  //         new BadRequestError(
-  //           "Group name cannot contain spaces or special characters."
-  //         )
-  //       );
-  //     }
+      // Validate `groupName` format
+      const groupNamePattern = /^[a-zA-Z0-9_-]+$/;
+      if (!groupNamePattern.test(groupName)) {
+        return next(
+          new BadRequestError(
+            "Group name cannot contain spaces or special characters."
+          )
+        );
+      }
 
-  //     await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
+      if (groupOU) {
+        
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            error.message = `Invalid groupOU - ${groupOU}`;
+          }
+          throw error;
+        }
+      }
 
-  //     const GROUP_TYPES = {
-  //       admin: 0x80000000, // Security group
-  //       general: 0x00000000, // Distribution group
-  //     };
+      const GROUP_TYPES = {
+        admin: 0x80000000, // Security group
+        general: 0x00000000, // Distribution group
+      };
 
-  //     const GROUP_SCOPES = {
-  //       "Domain local": 0x4,
-  //       Universal: 0x8,
-  //       Global: 0x2,
-  //     };
+      const GROUP_SCOPES = {
+        "Domain local": 0x4,
+        Universal: 0x8,
+        Global: 0x2,
+      };
 
-  //     const typeValue = GROUP_TYPES[groupType];
-  //     const scopeValue = GROUP_SCOPES[groupScope];
-  //     const bitWiseValue = typeValue | scopeValue; // Combine using bitwise OR
-  //     const groupValue = bitWiseValue.toString();
+      const typeValue = GROUP_TYPES[groupType];
+      const scopeValue = GROUP_SCOPES[groupScope];
+      const groupValue = typeValue | scopeValue; // Combine using bitwise OR
 
-  //     console.warn("groupValue", groupValue);
-  //     console.warn(
-  //       `typeValue: ${typeValue}, scopeValue: ${scopeValue}, groupValue: ${groupValue}`
-  //     );
-  //     const group = await this.groupService.createGroup(
-  //       groupName,
-  //       description,
-  //       groupValue,
-  //       groupOU
-  //     );
+      console.warn("groupValue", groupValue);
+      console.warn(
+        `typeValue: ${typeValue}, scopeValue: ${scopeValue}, groupValue: ${groupValue}`
+      );
+      const group = await this.groupService.createGroup(
+        groupName,
+        description,
+        groupValue,
+        groupOU
+      );
 
-  //     logger.success("[AD] Controller: createGroup - Completed");
-  //     res.status(201).json(group);
-  //   } catch (error) {
-  //     console.error("[AD] Controller: createGroup - Error", error);
-  //     next(error);
-  //   }
-  // };
+      logger.success("[AD] Controller: createGroup - Completed");
+      res.status(201).json(group);
+    } catch (error) {
+      console.error("[AD] Controller: createGroup - Error", error);
+      next(error);
+    }
+  };
 
   listGroups = async (req, res, next) => {
     try {
@@ -260,7 +268,6 @@ class GroupController {
         }
       }
 
-
       const group = await this.groupService.membersInGroup(groupName, OU);
       // const encryptData = encryptPayload(group);
 
@@ -313,7 +320,6 @@ class GroupController {
           }
         }
       }
-
 
       const group = await this.groupService.addToAdminGroup(
         groupName,
