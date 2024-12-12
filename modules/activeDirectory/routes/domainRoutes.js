@@ -1,9 +1,9 @@
+"use strict";
 import express from "express";
 import DomainController from "../../activeDirectory/controllers/domainController.js";
 import apiLimiter from "../../../middleware/apiLimiter.js";
 import { sessionMiddleware } from "../../../middleware/sessionMiddleware.js";
 import csrfProtection from "../../../UI/libs/csurfProtection.js";
-
 
 const domainController = new DomainController();
 

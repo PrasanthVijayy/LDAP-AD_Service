@@ -1,3 +1,4 @@
+"use strict";
 import express from "express";
 import OrganizationController from "../../activeDirectory/controllers/organizationController.js";
 import { sessionMiddleware } from "../../../middleware/sessionMiddleware.js";

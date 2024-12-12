@@ -1,3 +1,4 @@
+"use strict";
 import express from "express";
 import DomainController from "../../openLdap/controllers/domainController.js";
 import apiLimiter from "../../../middleware/apiLimiter.js";
