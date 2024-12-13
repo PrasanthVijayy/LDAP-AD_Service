@@ -5,11 +5,13 @@ import logger from "../config/logger.js";
 import { connectToAD } from "../config/adConfig.js";
 import { BadRequestError } from "./error.js";
 import dotenv from "dotenv";
-
 dotenv.config();
 
 const ldapClient = ldap.createClient({
   url: process.env.AD_SERVER_URL,
+  tlsOptions: {
+    rejectUnauthorized: false, // Disable certificate temporarily
+  },
 });
 
 // General Error Handler for LDAP Client
@@ -20,12 +22,12 @@ ldapClient.on("error", (err) => {
 });
 
 // Function to authenticate a user in Active Directory
-const authenticate = (username, password) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const adInstance = await connectToAD(); // Ensure AD connection is established
+const authenticate = async (username, password) => {
+  try {
+    const adInstance = await connectToAD(); // Ensure AD connection is established
 
-      // Authenticate using the provided username and password
+    // Authenticate using the provided username and password
+    const auth = await new Promise((resolve, reject) => {
       adInstance.authenticate(username, password, (err, auth) => {
         if (err) {
           logger.error(`[AD] Authentication failed: ${err.message}`);
@@ -38,18 +40,51 @@ const authenticate = (username, password) => {
           resolve(auth); // Resolve on successful authentication
         }
       });
-    } catch (error) {
-      logger.error("Error connecting to Active Directory: " + error.message);
-      reject(error); // Reject if the connection fails
-    }
-  });
+    });
+
+    // After successful authentication, fetch the user's details
+    const user = await findUser(username);
+
+    return user; // Return user details after successful authentication
+  } catch (error) {
+    logger.error(
+      "Error during authentication and user fetch: " + error.message
+    );
+    throw error; // Reject if there is an error during authentication or user fetching
+  }
+};
+
+const findUser = async (username) => {
+  try {
+    const adInstance = await connectToAD();
+    return new Promise((resolve, reject) => {
+      adInstance.findUser(username, (err, user) => {
+        if (err) {
+          logger.error(`[AD] Failed to fetch user details: ${err.message}`);
+          reject(new Error("User not found"));
+        } else if (!user) {
+          logger.warn("[AD] No user details returned");
+          reject(new Error("User not found"));
+        } else {
+          logger.info(
+            `[AD] User details fetched successfully: ${JSON.stringify(user)}`
+          );
+          resolve(user);
+        }
+      });
+    });
+  } catch (error) {
+    logger.error(`Error finding user in AD: ${error.message}`);
+    throw error;
+  }
 };
 
 // Function to search Active Directory for entries
-const search = (baseDN, filter, scope = "sub") => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      await connectToAD();
+const search = async (baseDN, filter, scope = "sub") => {
+  try {
+    await connectToAD();
+
+    return new Promise((resolve, reject) => {
       ldapClient.search(baseDN, { filter, scope }, (err, res) => {
         if (err) {
           console.error(`LDAP search error: ${err.message}`);
@@ -73,19 +108,20 @@ const search = (baseDN, filter, scope = "sub") => {
           reject(new Error("Search operation failed: " + err.message));
         });
       });
-    } catch (error) {
-      console.error("Error connecting to Active Directory:", error.message);
-      reject(error);
-    }
-  });
+    });
+  } catch (error) {
+    console.error("Error connecting to Active Directory:", error.message);
+    throw error; // Re-throw the error after logging
+  }
 };
 
 // Function to bind user to Active Directoryq
-const bind = (dn, password) => {
-  return new Promise(async (resolve, reject) => {
+const bind = async (dn, password) => {
+  try {
     logger.info(`Attempting to bind to DN: ${dn}`);
-    try {
-      await connectToAD();
+    await connectToAD();
+
+    return new Promise((resolve, reject) => {
       ldapClient.bind(dn, password, (err) => {
         if (err) {
           console.error(`LDAP bind error: ${err.message}`);
@@ -95,18 +131,19 @@ const bind = (dn, password) => {
           resolve();
         }
       });
-    } catch (error) {
-      logger.error("Error connecting to Active Directory: " + error.message);
-      reject(error); // Reject if the connection fails
-    }
-  });
+    });
+  } catch (error) {
+    logger.error("Error connecting to Active Directory: " + error.message);
+    throw error;
+  }
 };
 
 // Function to add a new user/entry to Active Directory
-const add = (dn, attributes) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      await connectToAD(); // Ensure AD connection is established
+const add = async (dn, attributes) => {
+  try {
+    await connectToAD(); // Ensure AD connection is established
+
+    return new Promise((resolve, reject) => {
       ldapClient.add(dn, attributes, (err) => {
         if (err) {
           logger.error(`Failed to add entry to AD: ${err.message}`);
@@ -116,64 +153,69 @@ const add = (dn, attributes) => {
           resolve(); // Successfully added entry
         }
       });
-    } catch (error) {
-      logger.error("Error connecting to Active Directory: " + error.message);
-      reject(error); // Reject if the connection fails
-    }
-  });
+    });
+  } catch (error) {
+    logger.error("Error connecting to Active Directory: " + error.message);
+    throw error;
+  }
 };
 
 // Function to modify an existing AD entry
-const modify = (dn, changes) => {
+const modify = async (dn, changes) => {
   logger.info(`Attempting to modify entry: ${dn}`);
 
-  const ldapChanges = [];
-
-  for (const change of changes) {
+  const ldapChanges = changes.map((change) => {
     if (change.operation && change.modification) {
-      ldapChanges.push({
+      return {
         operation: change.operation,
         modification: change.modification,
-      });
+      };
     } else {
       throw new Error(
         "Invalid change object: operation and modification required"
       );
     }
-  }
-
-  return new Promise((resolve, reject) => {
-    ldapClient.modify(dn, ldapChanges, (err) => {
-      if (err) {
-        console.error(`LDAP modify error: ${err.message}`);
-        reject(new Error("LDAP modify failed: " + err.message));
-      } else {
-        logger.info(`Successfully modified entry: ${dn}`);
-        resolve();
-      }
-    });
   });
+
+  try {
+    return new Promise((resolve, reject) => {
+      ldapClient.modify(dn, ldapChanges, (err) => {
+        if (err) {
+          console.error(`LDAP modify error: ${err.message}`);
+          reject(new Error("LDAP modify failed: " + err.message));
+        } else {
+          logger.info(`Successfully modified entry: ${dn}`);
+          resolve();
+        }
+      });
+    });
+  } catch (error) {
+    console.error("Error modifying entry:", error.message);
+    throw error;
+  }
 };
 
 // Function to delete an entry from Active Directory
-const deleteEntry = (dn) => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const adInstance = await connectToAD(); // Ensure AD connection is established
-      adInstance.delete(dn, (err) => {
+const deleteEntry = async (dn) => {
+  logger.info(`Attempting to delete entry: ${dn}`);
+  try {
+    await connectToAD(); // Ensure AD connection is established
+
+    return new Promise((resolve, reject) => {
+      ldapClient.del(dn, (err) => {
         if (err) {
-          logger.error(`Failed to delete entry from AD: ${err.message}`);
-          reject(new Error("AD delete failed: " + err.message));
+          console.error(`LDAP delete error: ${err.message}`);
+          reject(new Error("LDAP delete operation failed: " + err.message));
         } else {
-          logger.success(`Successfully deleted entry: ${dn}`);
+          logger.info(`Successfully deleted entry: ${dn}`);
           resolve(); // Successfully deleted entry
         }
       });
-    } catch (error) {
-      logger.error("Error connecting to Active Directory: " + error.message);
-      reject(error); // Reject if the connection fails
-    }
-  });
+    });
+  } catch (error) {
+    logger.error("Error connecting to Active Directory: " + error.message);
+    throw error;
+  }
 };
 
-export { authenticate, bind, search, add, modify, deleteEntry };
+export { authenticate, findUser, bind, search, add, modify, deleteEntry };

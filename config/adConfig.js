@@ -2,6 +2,7 @@
 import logger from "./logger.js";
 import ActiveDirectory from "activedirectory2";
 import dotenv from "dotenv";
+import fs from "fs";
 
 dotenv.config();
 
@@ -11,6 +12,9 @@ const AD_Config = {
   baseDN: process.env.AD_BASE_DN,
   username: process.env.AD_ADMIN_DN,
   password: process.env.AD_ADMIN_PASSWORD,
+  tlsOptions: {
+    rejectUnauthorized: false,
+  },
 };
 
 let adInstance = null; // Holds the AD instance

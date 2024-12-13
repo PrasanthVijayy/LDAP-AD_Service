@@ -7,15 +7,15 @@ import { BadRequestError } from "./error.js";
 
 export const connectDirectory = async (authType) => {
   try {
-    logger.info(`Connecting to ${authType.toUpperCase()} directory...`);
+    logger.success(`Connecting to ${authType.toUpperCase()} directory...`);
 
     if (authType === "ldap") {
       const ldapClient = await connectToLDAP(); // Establish LDAP connection
-      logger.info("Connected to LDAP successfully.");
+      logger.success("Connected to LDAP successfully.");
       return ldapClient; // Return connected client for further use
     } else if (authType === "ad") {
       const adClient = await connectToAD(); // Establish AD connection
-      logger.info("Connected to AD successfully.");
+      logger.success("Connected to AD successfully.");
       return adClient; // Return connected client for further use
     } else {
       throw new Error("Unsupported authentication type.");

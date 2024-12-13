@@ -1,4 +1,11 @@
-import { search, add, modify, deleteEntry } from "../../../utils/adUtils.js";
+import {
+  authenticate,
+  bind,
+  search,
+  add,
+  modify,
+  deleteEntry,
+} from "../../../utils/adUtils.js";
 import {
   BadRequestError,
   ConflictError,
@@ -6,7 +13,6 @@ import {
   UnauthorizedError,
 } from "../../../utils/error.js";
 import { createSSHAHash } from "../../../utils/encryption.js";
-import { uid } from "uid";
 import logger from "../../../config/logger.js";
 import { connectToAD } from "../../../config/adConfig.js";
 
@@ -19,13 +25,13 @@ class UserService {
 
   async addUser(payload) {
     try {
-      console.log("Service: addUser - Started");
+      logger.success("[AD] Service: addUser - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-      const organizationalUnitName = payload.userOU;
+      // const organizationalUnitName = payload.userOU;
 
       const userDN = `cn=${payload.givenName},ou=${payload.userOU},${process.env.AD_BASE_DN}`;
 
-      const uniqueUid = uid(10); // Generate a unique UID
+      // const uniqueUid = uid(10); // Generate a unique UID
       if (!payload.userPassword) {
         throw new BadRequestError("Missing password field");
       }
@@ -33,32 +39,24 @@ class UserService {
       const hashedPassword = createSSHAHash(payload.userPassword);
 
       const userAttributes = {
-        uid: uniqueUid,
+        // uid: uniqueUid,
         cn: payload.givenName,
-        gn: payload.firstName,
         sn: payload.lastName,
-        objectClass: [
-          "top",
-          "person",
-          "organizationalPerson",
-          "inetOrgPerson",
-          "shadowAccount",
-        ],
-        // givenName: payload.givenName,
+        objectClass: ["top", "person", "organizationalPerson", "user"],
+        givenName: payload.firstName, // Unique
+        displayName: `${payload.firstName} ${payload.lastName}`,
+        userPrincipalName: payload.mail,
+        sAMAccountName: payload.mail.split("@")[0], // Unique
         userPassword: hashedPassword,
-        telephoneNumber: payload.telephoneNumber || "",
-        mail: payload.mail || `${payload.givenName}@example.com`,
-        registeredAddress: payload.registeredAddress || "",
-        postalCode: payload.postalCode || "",
-        // description: "enabled",
-        shadowExpire: 0, // Set to accountLock
-        shadowFlag: 0, // Set to
-        title: payload.title || "user",
-        ou: organizationalUnitName, // Storing the OU for easy retrieval
-        employeeNumber: payload.employeeNumber || "Error", // Setting error for testing
+        telephoneNumber: payload.telephoneNumber,
+        streetAddress: payload.registeredAddress,
+        postalCode: payload.postalCode,
+        // description: payload.description || "Regular User",
+        // title: payload.title || "user",
+        ou: payload.userOU, // Storing the OU for easy retrieval
       };
 
-      console.log("Service: addUser - Completed");
+      logger.success("[AD] Service: addUser - Completed");
 
       // if (payload.userPassword) {
       //   const hashedPassword = createSSHAHash(payload.userPassword);
@@ -70,20 +68,30 @@ class UserService {
       //   throw new BadRequestError("missing password field");
       // }
 
-      console.log("userDetails", userAttributes);
+      logger.success("[AD] userDetails", userAttributes);
 
       await add(userDN, userAttributes);
-      console.log("Service: addUser - Completed");
+      logger.success("[AD] Service: addUser - Completed");
       return { message: "User added successfully." };
     } catch (error) {
-      console.log("Service: addUser - Error", error);
-      throw error;
+      console.log("[AD] Service: addUser - Error", error);
+      if (error.message.includes("00002071")) {
+        throw new BadRequestError("Username already created");
+      } else if (error.message.includes("0000208D")) {
+        throw new BadRequestError("Invalid OU");
+      } else if (error.message.includes("00000524")) {
+        throw new BadRequestError("Email already exists (samAccountName)");
+      } else if (error.message.includes("00000526")) {
+        throw new BadRequestError("Email username already in use");
+      } else {
+        throw error;
+      }
     }
   }
 
   async listUsers(filter) {
     try {
-      console.log("Service: listUsers - Started");
+      logger.success("[AD] Service: listUsers - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
       const baseDN = process.env.AD_BASE_DN;
@@ -119,10 +127,10 @@ class UserService {
         }
       }
 
-      console.log("Searching for users with filter:", searchFilter);
+      logger.success("[AD] Searching for users with filter:", searchFilter);
       const scope = "sub"; // Scope to search within subordinates
       const rawUsers = await search(baseDN, searchFilter, scope);
-      console.log("Service: listUsers - Completed");
+      logger.success("[AD] Service: listUsers - Completed");
 
       // Map and process user data
       let users = rawUsers.map((user) => {
@@ -169,14 +177,14 @@ class UserService {
 
       return { count: users.length, users };
     } catch (error) {
-      console.log("Service: listUsers - Error", error);
+      console.log("[AD] Service: listUsers - Error", error);
       throw error;
     }
   }
 
   async resetPassword(username, password, confirmPassword, userOU) {
     try {
-      console.log("Service: resetPassword - Started");
+      logger.success("[AD] Service: resetPassword - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
       const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
 
@@ -197,10 +205,10 @@ class UserService {
         await modify(userDN, changes);
       }
 
-      console.log("Service: resetPassword - Completed");
+      logger.success("[AD] Service: resetPassword - Completed");
       return { message: "Password reset successfully." };
     } catch (error) {
-      console.log("Service: resetPassword - Error", error);
+      console.log("[AD] Service: resetPassword - Error", error);
       if (error.message.includes("No Such Object")) {
         throw new NotFoundError("User not found");
       } else {
@@ -211,7 +219,7 @@ class UserService {
 
   async deleteUser(username, userOU) {
     try {
-      console.log("Service: deleteUser - Started");
+      logger.success("[AD] Service: deleteUser - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
       const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
       // const changes = [
@@ -226,21 +234,21 @@ class UserService {
       // await modify(userDN, changes);
 
       await deleteEntry(userDN); // Delete user from LDAP (initally it was just flag within a attribute)
-      console.log("Service: deleteUser - Completed");
+      logger.success("[AD] Service: deleteUser - Completed");
 
       return { message: "User deleted successfully." };
     } catch (error) {
       if (error.message.includes("No Such Object")) {
         throw new NotFoundError("User not found");
       }
-      console.log("Service: deleteUser - Error", error);
+      console.log("[AD] Service: deleteUser - Error", error);
       throw error;
     }
   }
 
   async updateUser(username, userOU, attributes) {
     try {
-      console.log("Service: updateUser - Started");
+      logger.success("[AD] Service: updateUser - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
       const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
 
@@ -284,17 +292,17 @@ class UserService {
       });
 
       await modify(userDN, changes);
-      console.log("Service: updateUser - Completed");
+      logger.success("[AD] Service: updateUser - Completed");
       return { message: "User updated successfully." };
     } catch (error) {
-      console.log("Service: updateUser - Error", error);
+      console.log("[AD] Service: updateUser - Error", error);
       throw error;
     }
   }
 
   async updateContactDetails(username, userOU, attributes) {
     try {
-      console.log("Service: updateContactDetails - Started");
+      logger.success("[AD] Service: updateContactDetails - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
       const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
@@ -318,10 +326,10 @@ class UserService {
       // Applying changes to the user
       await modify(userDN, changes);
 
-      console.log("Service: updateContactDetails - Completed");
+      logger.success("[AD] Service: updateContactDetails - Completed");
       return { message: "Contact details updated successfully." };
     } catch (error) {
-      console.log("Service: updateContactDetails - Error", error);
+      console.log("[AD] Service: updateContactDetails - Error", error);
       throw error;
     }
   }
@@ -394,7 +402,7 @@ class UserService {
 
   async getdisabledUsers() {
     try {
-      console.log("Service: getLockedUsers - Started");
+      logger.success("[AD] Service: getLockedUsers - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
       // Search for users with the `description` attribute set to 'disabled'
@@ -404,7 +412,7 @@ class UserService {
         filter
       );
 
-      console.log("Service: getLockedUsers - Completed");
+      logger.success("[AD] Service: getLockedUsers - Completed");
 
       return lockedUsers.map((user) => ({
         username: user.cn,
@@ -412,7 +420,7 @@ class UserService {
         status: "disabled",
       }));
     } catch (error) {
-      console.log("Service: getLockedUsers - Error", error);
+      console.log("[AD] Service: getLockedUsers - Error", error);
       throw error;
     }
   }
@@ -565,14 +573,14 @@ class UserService {
       if (error.message.includes("No Such Object")) {
         throw new NotFoundError(`User not found.`);
       }
-      console.log("Service: userLockAction - Error", error);
+      console.log("[AD] Service: userLockAction - Error", error);
       throw error;
     }
   }
 
   async listLockedUsers() {
     try {
-      console.log("Service: listLockedUsers - Started");
+      logger.success("[AD] Service: listLockedUsers - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
       // Search for users with the `title` attribute set to 'locked'
@@ -582,21 +590,21 @@ class UserService {
         filter
       );
 
-      console.log("Service: listLockedUsers - Completed");
+      logger.success("[AD] Service: listLockedUsers - Completed");
       return lockedUsers.map((user) => ({
         username: user.cn,
         mail: user.mail,
         status: "locked",
       }));
     } catch (error) {
-      console.log("Service: listLockedUsers - Error", error);
+      console.log("[AD] Service: listLockedUsers - Error", error);
       throw error;
     }
   }
 
   async searchUser(username, userOU) {
     try {
-      console.log("Service: searchUser - Started");
+      logger.success("[AD] Service: searchUser - Started");
 
       // Bind using the LDAP admin or a service account
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
@@ -616,7 +624,7 @@ class UserService {
         throw new NotFoundError("User not found.");
       }
 
-      console.log("Service: searchUser - Completed");
+      logger.success("[AD] Service: searchUser - Completed");
 
       // Return user details in the desired format
       return userExists.map((user) => ({
@@ -633,7 +641,7 @@ class UserService {
       if (error.message.includes("Search operation failed: No Such Object")) {
         throw new NotFoundError("User not found.");
       } else {
-        console.log("Service: searchUser - Error", error);
+        console.log("[AD] Service: searchUser - Error", error);
         throw error;
       }
     }
@@ -641,7 +649,7 @@ class UserService {
 
   async chpwd(username, currentPassword, newPassword, confirmPassword, userOU) {
     try {
-      console.log("Service: chpwd - Started");
+      logger.success("[AD] Service: chpwd - Started");
 
       const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
 
@@ -690,7 +698,7 @@ class UserService {
 
       await modify(userDN, changes);
 
-      console.log("Service: chpwd - Completed");
+      logger.success("[AD] Service: chpwd - Completed");
       return {
         message: "Password changed successfully.",
       };
@@ -698,83 +706,37 @@ class UserService {
       if (error.message.includes("No Such Object")) {
         throw new NotFoundError("User not found.");
       }
-      console.log("Service: chpwd - Error", error);
+      console.log("[AD] Service: chpwd - Error", error);
       throw error;
     }
   }
 
-  async login(email, password, authType) {
+  async login(email, password) {
     try {
       logger.success("[AD] Service: login - Started");
 
-      // Fetch the AD instance
-      const adInstance = await connectToAD(); // Ensure the AD instance is initialized
+      // Use the authenticate function from adUtils to authenticate the user
+      const user = await authenticate(email, password);
 
-      // Authenticate the user using their email and password
-      return new Promise((resolve, reject) => {
-        adInstance.authenticate(email, password, async (err, auth) => {
-          if (err) {
-            logger.error(`[AD] Authentication failed: ${err.message}`);
-            // error code for invalid credentials
-            if (err.message.includes("80090308")) {
-              reject(new BadRequestError("Invalid credentials."));
-            } else {
-              reject(err);
-            }
-          } else if (!auth) {
-            logger.error("[AD] Authentication failed: Invalid credentials.");
-            reject(new BadRequestError("Invalid credentials."));
-          } else {
-            logger.success("[AD] Authentication successful.");
+      // Now user details are available after successful authentication
+      // You can now handle any user-specific logic like checking account status
 
-            // Fetch user details after successful authentication
-            adInstance.findUser(email, (err, user) => {
-              if (err) {
-                logger.error(
-                  `[AD] Failed to fetch user details: ${err.message}`
-                );
-                reject(new NotFoundError("User not found."));
-              } else if (!user) {
-                logger.warn("[AD] No user details returned.");
-                reject(new NotFoundError("User not found."));
-              } else {
-                logger.info(
-                  `[AD] User details fetched successfully: ${JSON.stringify(
-                    user
-                  )}`
-                );
+      const accountControl = user.userAccountControl || 0;
+      if (accountControl & 2) {
+        // Account disabled (bit 1)
+        throw new UnauthorizedError("Account disabled, contact admin.");
+      } else if (accountControl & 16) {
+        // Account locked (bit 4)
+        throw new UnauthorizedError("Account locked, contact admin.");
+      }
 
-                // Check account status based on user attributes
-                const accountControl = user.userAccountControl || 0;
-                if (accountControl & 2) {
-                  // Account disabled (bit 1)
-                  reject(
-                    new UnauthorizedError("Account disabled, contact admin.")
-                  );
-                } else if (accountControl & 16) {
-                  // Account locked (bit 4)
-                  reject(
-                    new UnauthorizedError("Account locked, contact admin.")
-                  );
-                }
+      // Check if the account is expired
+      if (user.accountExpires && new Date(user.accountExpires) < new Date()) {
+        throw new UnauthorizedError("Account expired, contact admin.");
+      }
 
-                // Check if the account is expired
-                if (
-                  user.accountExpires &&
-                  new Date(user.accountExpires) < new Date()
-                ) {
-                  reject(
-                    new UnauthorizedError("Account expired, contact admin.")
-                  );
-                }
-
-                logger.success("[AD] Service: login - Completed");
-                resolve({ message: "Login successful.", user }); // Return success and user details
-              }
-            });
-          }
-        });
-      });
+      logger.success("[AD] Service: login - Completed");
+      return { message: "Login successful.", user }; // Return success and user details
     } catch (error) {
       if (
         error.message.includes(
@@ -791,7 +753,7 @@ class UserService {
 
   async listUpdatedUsers() {
     try {
-      console.log("Service: listUpdatedUsers - Started");
+      logger.success("[AD] Service: listUpdatedUsers - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
       const searchBase = `ou=users,${process.env.AD_BASE_DN}`;
 
@@ -799,7 +761,7 @@ class UserService {
       const searchFilter = `(shadowLastChange=*)`;
 
       const updatedUsers = await search(searchBase, searchFilter);
-      console.log("Service: listUpdatedUsers - Completed");
+      logger.success("[AD] Service: listUpdatedUsers - Completed");
 
       // Map the raw user data into a usable format
       const users = updatedUsers.map((user) => ({
@@ -813,7 +775,7 @@ class UserService {
 
       return { count: users.length, users };
     } catch (error) {
-      console.log("Service: listUpdatedUsers - Error", error);
+      console.log("[AD] Service: listUpdatedUsers - Error", error);
       throw error;
     }
   }
