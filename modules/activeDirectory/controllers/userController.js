@@ -7,7 +7,7 @@ import {
   ConflictError,
   NotFoundError,
 } from "../../../utils/error.js";
-import { search } from "../../../utils/ldapUtils.js";
+import { bind, search } from "../../../utils/adUtils.js";
 import { encryptPayload, decryptPayload } from "../../../utils/encryption.js";
 import OrganizationService from "../../activeDirectory/services/orgainzationService.js";
 import GroupService from "../../activeDirectory/services/groupService.js";
@@ -25,11 +25,11 @@ class UserController {
   // Add a new user to the LDAP directory
   addUser = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: addUser - Started");
+      logger.success("[AD] Controller: addUser - Started");
 
-      const encryptedData = req.body.data; // Decrypt the encrypted data
-      const payload = decryptPayload(encryptedData); // Decrypt the data
-
+      // const encryptedData = req.body.data; // Decrypt the encrypted data
+      // const payload = decryptPayload(encryptedData); // Decrypt the data
+      const payload = req.body;
       let missingFields = [];
       if (!payload.firstName) missingFields.push("firstName");
       if (!payload.lastName) missingFields.push("lastName");
@@ -53,83 +53,54 @@ class UserController {
       }
 
       // Checking if OU exists
-      await this.organizationService.listOrganizaitons(`ou=${payload.userOU}`);
-
-      // Fetch the existing users from LDAP
-      const userData = await this.userService.listUsers();
-
-      // Extract all existing empID numbers
-      const existingEmpIds = userData.users
-        .filter((user) => user.empID) // Filter out users that do not have an empID
-        .map((user) => parseInt(user.empID.replace("EMP", ""))); // Extract the numeric part and convert to an integer
-
-      console.warn("existingEmpIds", existingEmpIds);
-      // Determine the next employee number (increment the highest empID found)
-      const nextEmpIdNumber =
-        existingEmpIds.length > 0 ? Math.max(...existingEmpIds) + 1 : 1;
-
-      console.warn("NExt emp id:", nextEmpIdNumber);
-
-      // Format the new empID (e.g., EMP001, EMP002, ...)
-      payload.employeeNumber = `EMP${nextEmpIdNumber
-        .toString()
-        .padStart(3, "0")}`;
-
-      // Check empID uniqueness
-      const empIdExists = await search(
-        `${process.env.AD_BASE_DN}`,
-        `(employeeNumber=${payload.employeeNumber})`
-      );
-
-      if (empIdExists.length > 0) {
-        throw new ConflictError(`Employee ID already exists.`);
-      }
-
-      // Check for uniqueness
-      const userExists = await search(
-        `ou=${payload.userOU},${process.env.AD_BASE_DN}`,
-        `(cn=${payload.givenName})`
-      );
-
-      if (userExists.length > 0) {
-        throw new ConflictError(`User already exists`);
-      }
-
-      if (payload.telephoneNumber) {
-        const phoneExist = await search(
-          `ou=${payload.userOU},${process.env.AD_BASE_DN}`,
-          `(telephoneNumber=${payload.telephoneNumber})`
-        );
-        if (phoneExist.length > 0) {
-          throw new ConflictError(`Phone number already exists.`);
-        }
-
-        const validPhone = /^\d{10}$/;
-        if (!validPhone.test(payload.telephoneNumber)) {
-          throw new BadRequestError("Invalid phone number.");
+      if (payload.userOU) {
+        try {
+          await this.organizationService.listOrganizaitons(
+            `ou=${payload.userOU}`
+          );
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            error.message = `Invalid user OU: ${payload.userOU}`;
+          }
+          throw error;
         }
       }
 
-      if (payload.mail) {
-        const emailExist = await search(
-          `ou=${payload.userOU},${process.env.AD_BASE_DN}`,
-          `(mail=${payload.mail})`
-        );
-        if (emailExist.length > 0) {
-          throw new ConflictError(`Email already exists.`);
-        }
+      // if (payload.telephoneNumber) {
+      //   const phoneExist = await search(
+      //     `ou=${payload.userOU},${process.env.AD_BASE_DN}`,
+      //     `(telephoneNumber=${payload.telephoneNumber})`
+      //   );
+      //   if (phoneExist.length > 0) {
+      //     throw new ConflictError(`Phone number already exists.`);
+      //   }
 
-        const validEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        if (!validEmail.test(payload.mail)) {
-          throw new BadRequestError("Invalid email address.");
-        }
-      }
+      //   const validPhone = /^\d{10}$/;
+      //   if (!validPhone.test(payload.telephoneNumber)) {
+      //     throw new BadRequestError("Invalid phone number.");
+      //   }
+      // }
+
+      // if (payload.mail) {
+      //   const emailExist = await search(
+      //     `ou=${payload.userOU},${process.env.AD_BASE_DN}`,
+      //     `(mail=${payload.mail})`
+      //   );
+      //   if (emailExist.length > 0) {
+      //     throw new ConflictError(`Email already exists.`);
+      //   }
+
+      //   const validEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      //   if (!validEmail.test(payload.mail)) {
+      //     throw new BadRequestError("Invalid email address.");
+      //   }
+      // }
 
       const message = await this.userService.addUser(payload);
-      logger.info("[AD] Controller: addUser - Completed");
+      logger.success("[AD] Controller: addUser - Completed");
       res.status(201).json(message);
     } catch (error) {
-      logger.info("[AD] Controller: addUser - Error", error);
+      logger.success("[AD] Controller: addUser - Error", error);
       next(error);
     }
   };
@@ -137,15 +108,15 @@ class UserController {
   //List users with custom attributes
   listUsers = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: listUsers - Started");
+      logger.success("[AD] Controller: listUsers - Started");
       const filter = req.query.filter || "";
-      logger.info("Filter", filter);
+      logger.success("Filter", filter);
       const users = await this.userService.listUsers(filter);
-      logger.info("[AD] Controller: listUsers - Completed");
+      logger.success("[AD] Controller: listUsers - Completed");
       const encryptData = encryptPayload(users);
       res.status(200).json({ data: encryptData });
     } catch (error) {
-      logger.info("[AD] Controller: listUsers - Error", error);
+      logger.success("[AD] Controller: listUsers - Error", error);
       next(error);
     }
   };
@@ -153,7 +124,7 @@ class UserController {
   // Reset user password based on username from LDAP directory
   resetPassword = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: resetPassword - Started");
+      logger.success("[AD] Controller: resetPassword - Started");
 
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
@@ -200,10 +171,10 @@ class UserController {
         confirmPassword,
         userOU
       );
-      logger.info("[AD] Controller: resetPassword - Completed");
+      logger.success("[AD] Controller: resetPassword - Completed");
       res.status(200).json(message);
     } catch (error) {
-      logger.info("[AD] Controller: resetPassword - Error", error);
+      logger.success("[AD] Controller: resetPassword - Error", error);
       next(error);
     }
   };
@@ -211,7 +182,7 @@ class UserController {
   // Delete a user from the LDAP directory
   deleteUser = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: deleteUser - Started");
+      logger.success("[AD] Controller: deleteUser - Started");
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
 
@@ -237,7 +208,7 @@ class UserController {
       //   throw new BadRequestError(`User is already deleted`);
       // }
 
-      // logger.info("User exists", userExists[0]);
+      // logger.success("User exists", userExists[0]);
 
       const message = await this.userService.deleteUser(username, userOU);
 
@@ -246,10 +217,10 @@ class UserController {
         username,
         userOU
       );
-      logger.info("[AD] Controller: deleteUser - Completed");
+      logger.success("[AD] Controller: deleteUser - Completed");
       res.status(200).json({ message, removeFromGroups });
     } catch (error) {
-      logger.info("[AD] Controller: deleteUser - Error", error);
+      logger.success("[AD] Controller: deleteUser - Error", error);
       next(error);
     }
   };
@@ -257,7 +228,7 @@ class UserController {
   // Update a user in the LDAP directory
   updateUser = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: updateUser - Started");
+      logger.success("[AD] Controller: updateUser - Started");
 
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
@@ -352,10 +323,10 @@ class UserController {
         userOU,
         attributes
       );
-      logger.info("[AD] Controller: updateUser - Completed");
+      logger.success("[AD] Controller: updateUser - Completed");
       res.status(202).json(data);
     } catch (error) {
-      logger.info("[AD] Controller: updateUser - Error", error);
+      logger.success("[AD] Controller: updateUser - Error", error);
       next(error);
     }
   };
@@ -363,7 +334,7 @@ class UserController {
   //update email and phone details only.
   updateContactDetails = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: changeEmailPhone - Started");
+      logger.success("[AD] Controller: changeEmailPhone - Started");
 
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
@@ -457,10 +428,10 @@ class UserController {
         userOU,
         attributes
       );
-      logger.info("[AD] Controller: changeEmailPhone - Completed");
+      logger.success("[AD] Controller: changeEmailPhone - Completed");
       res.status(202).json(details);
     } catch (error) {
-      logger.info("[AD] Controller: updateUserStatus - Error", error);
+      logger.success("[AD] Controller: updateUserStatus - Error", error);
       next(error);
     }
   };
@@ -468,7 +439,7 @@ class UserController {
   // Enable or disable a user
   updateUserStatus = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: updateUserStatus - Started");
+      logger.success("[AD] Controller: updateUserStatus - Started");
       const { username, action, OU } = req.body;
 
       // Validate required fields
@@ -502,10 +473,10 @@ class UserController {
       // }
 
       const message = await this.userService.modifyUserStatus(username, action);
-      logger.info("[AD] Controller: updateUserStatus - Completed");
+      logger.success("[AD] Controller: updateUserStatus - Completed");
       res.status(202).json(message);
     } catch (error) {
-      logger.info("[AD] Controller: updateUserStatus - Error", error);
+      logger.success("[AD] Controller: updateUserStatus - Error", error);
       next(error);
     }
   };
@@ -513,17 +484,17 @@ class UserController {
   // Get disabled users
   getdisabledUsers = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: getLockedUsers - Started");
+      logger.success("[AD] Controller: getLockedUsers - Started");
 
       const lockedUsers = await this.userService.getdisabledUsers();
 
-      logger.info("[AD] Controller: getLockedUsers - Completed");
+      logger.success("[AD] Controller: getLockedUsers - Completed");
       res.status(200).json({
         message: "Disabled users fetched successfully.",
         lockedUsers: lockedUsers,
       });
     } catch (error) {
-      logger.info("[AD] Controller: getLockedUsers - Error", error);
+      logger.success("[AD] Controller: getLockedUsers - Error", error);
       next(error);
     }
   };
@@ -531,7 +502,7 @@ class UserController {
   // Lock users on group basis
   lockGroupMembers = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: modifyUserLockStatus - Started");
+      logger.success("[AD] Controller: modifyUserLockStatus - Started");
       // const { groupName, groupOU } = req.body;
       const encryptedData = req.body.data;
       const payload = decryptPayload(encryptedData); // Decrypt the data
@@ -552,10 +523,10 @@ class UserController {
       // }
 
       const message = await this.userService.lockGroupMembers(payload);
-      logger.info("[AD] Controller: lockUser - Completed");
+      logger.success("[AD] Controller: lockUser - Completed");
       res.status(202).json(message);
     } catch (error) {
-      logger.info("[AD] Controller: lockUser - Error", error);
+      logger.success("[AD] Controller: lockUser - Error", error);
       next(error);
     }
   };
@@ -563,7 +534,7 @@ class UserController {
   // Unlock a user
   userLockAction = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: modifyUserLockStatus - Started");
+      logger.success("[AD] Controller: modifyUserLockStatus - Started");
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
 
@@ -592,10 +563,10 @@ class UserController {
       // }
 
       const message = await this.userService.userLockAction(payload);
-      logger.info("[AD] Controller: modifyUserLockStatus - Completed");
+      logger.success("[AD] Controller: modifyUserLockStatus - Completed");
       res.status(202).json(message);
     } catch (error) {
-      logger.info("[AD] Controller: modifyUserLockStatus - Error", error);
+      logger.success("[AD] Controller: modifyUserLockStatus - Error", error);
       next(error);
     }
   };
@@ -603,17 +574,17 @@ class UserController {
   // List locked users
   listLockedUsers = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: listLockedUsers - Started");
+      logger.success("[AD] Controller: listLockedUsers - Started");
 
       const lockedUsers = await this.userService.listLockedUsers();
 
-      logger.info("[AD] Controller: listLockedUsers - Completed");
+      logger.success("[AD] Controller: listLockedUsers - Completed");
       res.status(200).json({
         message: "Locked users fetched successfully.",
         lockedUsers: lockedUsers,
       });
     } catch (error) {
-      logger.info("[AD] Controller: listLockedUsers - Error", error);
+      logger.success("[AD] Controller: listLockedUsers - Error", error);
       next(error);
     }
   };
@@ -621,7 +592,7 @@ class UserController {
   // Search user - self service
   searchUser = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: searchUser - Started");
+      logger.success("[AD] Controller: searchUser - Started");
 
       // Decrypt the incoming encrypted parameters
       const encryptedUsername = req.query.username;
@@ -643,13 +614,13 @@ class UserController {
       // if (userExists.length === 0) {
       //   throw new NotFoundError(`User not found.`);
       // }
-      logger.info("[AD] Controller: searchUser - Completed");
+      logger.success("[AD] Controller: searchUser - Completed");
       const users = await this.userService.searchUser(username, userOU);
       res
         .status(200)
         .json({ message: "User fetched successfully.", users: users });
     } catch (error) {
-      logger.info("[AD] Controller: searchUser - Error", error);
+      logger.success("[AD] Controller: searchUser - Error", error);
       next(error);
     }
   };
@@ -657,7 +628,7 @@ class UserController {
   // Change Password - self service
   chpwd = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: chpwd - Started");
+      logger.success("[AD] Controller: chpwd - Started");
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
 
@@ -698,10 +669,10 @@ class UserController {
         confirmPassword,
         userOU
       );
-      logger.info("[AD] Controller: chpwd - Completed");
+      logger.success("[AD] Controller: chpwd - Completed");
       res.status(202).json(message);
     } catch (error) {
-      logger.info("[AD] Controller: chpwd - Error", error);
+      logger.success("[AD] Controller: chpwd - Error", error);
       next(error);
     }
   };
@@ -709,14 +680,16 @@ class UserController {
   // Login - Self service
   login = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: login - Started");
+      logger.success("[AD] Controller: login - Started");
 
-      const encryptedData = req.body.data; // Decrypt the encrypted data
+      // const encryptedData = req.body.data; // Decrypt the encrypted data
 
       // Decrypt the data
-      const decryptedData = decryptPayload(encryptedData);
-      const { email, password, authType } = decryptedData;
+      // const decryptedData = decryptPayload(encryptedData);
+      // const { email, password, authType } = decryptedData;
+      const { email, password, authType } = req.body;
 
+      console.warn(`req.body: ${JSON.stringify(req.body)}`);
       let missingFields = [];
       if (!email) missingFields.push("email");
       if (!password) missingFields.push("password");
@@ -728,52 +701,9 @@ class UserController {
         );
       }
 
-      // Validate userType
-      // if (!["user", "admin"].includes(userType)) {
-      //   throw new BadRequestError("User type should be either user or admin");
-      // }
       await connectDirectory(authType); // Connect to the appropriate directory
 
-      // Checking the requested OU is valid
-      // await this.organizationService.listOrganizaitons(`ou=${OU}`);
-
-      // Check if user exists
-      // const userExists = await search(
-      //   `ou=${OU},${process.env.AD_BASE_DN}`,
-      //   `(cn=${username})`
-      // );
-
-      // logger.info("userDetails", userExists);
-
-      // if (userExists.length === 0) {
-      //   throw new NotFoundError(`User not found`);
-      // }
-
-      // Initialize fetchedOU
-      // let fetchedOU;
-
-      // // If OU is not provided, fetch it from the user's DN
-      // if (!OU) {
-      //   logger.info("OU not provided. Fetching from user details.");
-
-      //   // Extract OU from user's DN
-      //   const userDN = userExists[0].dn; // Get the user's distinguished name
-
-      //   const ouMatch = userDN.match(/ou=([^,]+)/);
-      //   fetchedOU = ouMatch ? ouMatch[1] : null; // Extract the OU value, or set it to null if not found
-      // } else {
-      //   // Validate the provided OU
-      //   const baseDN = process.env.AD_BASE_DN;
-      //   const filter = `(ou=${OU})`;
-
-      //   const validOU = await search(baseDN, filter);
-      //   if (validOU.length === 0) {
-      //     throw new NotFoundError(`Invalid Organizational Unit.`);
-      //   }
-      // }
-
-      // Call the login service only if OU is provided
-      const message = await this.userService.login(email, password, authType);
+      const message = await this.userService.login(email, password);
 
       // Create a session for the user
       req.session.user = {
@@ -796,17 +726,17 @@ class UserController {
         maxAge: 31536000, // 1 year
       });
 
-      logger.info("[AD] Controller: login - Completed");
+      logger.success("[AD] Controller: login - Completed");
 
       // Send a clearer response with the required data
       res.status(202).json({
         message: message.message,
         sessionId: req.session.id,
-        // username: username,
+        email: email,
         // OU: fetchedOU || OU, // Include the fetched OU or the provided OU
       });
     } catch (error) {
-      logger.info("[AD] Controller: login - Error", error);
+      logger.success("[AD] Controller: login - Error", error);
       next(error);
     }
   };
@@ -814,7 +744,7 @@ class UserController {
   // Get list of updated users
   listUpdatedUsers = async (req, res, next) => {
     try {
-      logger.info("[AD] Controller: listUpdatedUsers - Started");
+      logger.success("[AD] Controller: listUpdatedUsers - Started");
       // const { timeStamp } = req.query;
 
       // const timeStampRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
@@ -825,13 +755,13 @@ class UserController {
       // const epochTimestamp = Math.floor(date.getTime() / 1000);
 
       const updatedUsers = await this.userService.listUpdatedUsers();
-      logger.info("[AD] Controller: listUpdatedUsers - Completed");
+      logger.success("[AD] Controller: listUpdatedUsers - Completed");
       res.status(200).json({
         message: "Updated users fetched successfully.",
         updatedUsers: updatedUsers,
       });
     } catch (error) {
-      logger.info("[AD] Controller: listUpdatedUsers - Error", error);
+      logger.success("[AD] Controller: listUpdatedUsers - Error", error);
       next(error);
     }
   };

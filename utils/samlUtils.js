@@ -31,4 +31,5 @@ export const samlUtils = {
 // openssl x509 -in idp-certificate.pem -text -noout
 
 // Convert file format from crt to pem ⚠️
-// openssl x509 -inform DER -in certificate.crt -outform PEM -out certificate.pem
+// openssl x509 -in cybernexa.crt -out cybernexa1.pem -outform PEM
+// openssl x509 -inform DER -in certificate.crt -outform PEM -out certificate.pem 
