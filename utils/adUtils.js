@@ -3,7 +3,7 @@
 import ldap from "ldapjs";
 import logger from "../config/logger.js";
 import { connectToAD } from "../config/adConfig.js";
-import { BadRequestError } from "./error.js";
+import { BadRequestError, UnauthorizedError } from "./error.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -26,8 +26,20 @@ const authenticate = async (username, password) => {
   try {
     const adInstance = await connectToAD(); // Ensure AD connection is established
 
-    // Authenticate using the provided username and password
-    const auth = await new Promise((resolve, reject) => {
+    // Fetch user details first to check account status
+    const user = await findUser(username);
+
+    const accountControl = user?.userAccountControl; // Gets user account control
+    logger.info(`Account Control Flags for ${username}: ${accountControl}`);
+
+    // Check if the account is disabled (bit 1 indicates disabled account)
+    if (accountControl == 514) {
+      logger.error(`User account disabled.`);
+      throw new UnauthorizedError("Account is disabled, please contact admin.");
+    }
+
+    // Proceed with authentication if the account is not disabled
+    await new Promise((resolve, reject) => {
       adInstance.authenticate(username, password, (err, auth) => {
         if (err) {
           logger.error(`[AD] Authentication failed: ${err.message}`);
@@ -41,9 +53,6 @@ const authenticate = async (username, password) => {
         }
       });
     });
-
-    // After successful authentication, fetch the user's details
-    const user = await findUser(username);
 
     return user; // Return user details after successful authentication
   } catch (error) {
@@ -64,7 +73,7 @@ const findUser = async (username) => {
           reject(new Error("User not found"));
         } else if (!user) {
           logger.warn("[AD] No user details returned");
-          reject(new Error("User not found"));
+          reject(new BadRequestError("User not found / Invalid Crendentials"));
         } else {
           logger.info(
             `[AD] User details fetched successfully: ${JSON.stringify(user)}`
@@ -114,6 +123,8 @@ const search = async (baseDN, filter, scope = "sub") => {
     throw error; // Re-throw the error after logging
   }
 };
+
+
 
 // Function to bind user to Active Directoryq
 const bind = async (dn, password) => {

@@ -19,9 +19,9 @@ import { connectToAD } from "../../../config/adConfig.js";
 class UserService {
   //Commenting below function as it is not used anywhere (dt: 14/10)
 
-  // static encodePassword(password) {
-  //   return Buffer.from(password, "utf8").toString("base64");
-  // }
+  static encodePassword(password) {
+    return new Buffer.from('"' + password + '"', "utf16le");
+  }
 
   async addUser(payload) {
     try {
@@ -47,15 +47,16 @@ class UserService {
         displayName: `${payload.firstName} ${payload.lastName}`,
         userPrincipalName: payload.mail,
         sAMAccountName: payload.mail.split("@")[0], // Unique
-        userPassword: hashedPassword,
+        unicodePwd: UserService.encodePassword(payload.userPassword),
         telephoneNumber: payload.telephoneNumber,
         streetAddress: payload.registeredAddress,
         postalCode: payload.postalCode,
+        userAccountControl: "512",
         // description: payload.description || "Regular User",
         // title: payload.title || "user",
         ou: payload.userOU, // Storing the OU for easy retrieval
       };
-
+      console.log("userAttributes", userAttributes);
       logger.success("[AD] Service: addUser - Completed");
 
       // if (payload.userPassword) {
@@ -72,7 +73,14 @@ class UserService {
 
       await add(userDN, userAttributes);
       logger.success("[AD] Service: addUser - Completed");
-      return { message: "User added successfully." };
+      return {
+        message: "User added successfully.",
+        userDetails: {
+          displayName: userAttributes?.displayName,
+          userPrincipalName: userAttributes?.userPrincipalName,
+          sAMAccountName: userAttributes?.sAMAccountName,
+        },
+      };
     } catch (error) {
       console.log("[AD] Service: addUser - Error", error);
       if (error.message.includes("00002071")) {
@@ -222,23 +230,13 @@ class UserService {
       logger.success("[AD] Service: deleteUser - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
       const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
-      // const changes = [
-      //   {
-      //     operation: "delete",
-      //     modification: {
-      //       cn: username,
-      //     },
-      //   },
-      // ];
-
-      // await modify(userDN, changes);
 
       await deleteEntry(userDN); // Delete user from LDAP (initally it was just flag within a attribute)
       logger.success("[AD] Service: deleteUser - Completed");
 
       return { message: "User deleted successfully." };
     } catch (error) {
-      if (error.message.includes("No Such Object")) {
+      if (error.message.includes("0000208D")) {
         throw new NotFoundError("User not found");
       }
       console.log("[AD] Service: deleteUser - Error", error);
@@ -715,39 +713,14 @@ class UserService {
     try {
       logger.success("[AD] Service: login - Started");
 
-      // Use the authenticate function from adUtils to authenticate the user
-      const user = await authenticate(email, password);
-
-      // Now user details are available after successful authentication
-      // You can now handle any user-specific logic like checking account status
-
-      const accountControl = user.userAccountControl || 0;
-      if (accountControl & 2) {
-        // Account disabled (bit 1)
-        throw new UnauthorizedError("Account disabled, contact admin.");
-      } else if (accountControl & 16) {
-        // Account locked (bit 4)
-        throw new UnauthorizedError("Account locked, contact admin.");
-      }
-
-      // Check if the account is expired
-      if (user.accountExpires && new Date(user.accountExpires) < new Date()) {
-        throw new UnauthorizedError("Account expired, contact admin.");
-      }
+      // Call the authenticate function
+      await authenticate(email, password);
 
       logger.success("[AD] Service: login - Completed");
-      return { message: "Login successful.", user }; // Return success and user details
+      return { message: "Login successful." }; // Return success and user details
     } catch (error) {
-      if (
-        error.message.includes(
-          "80090308: LdapErr: DSID-0C09042A, comment: AcceptSecurityContext error, data 52e, v2580"
-        )
-      ) {
-        throw new BadRequestError("Invalid credentials.");
-      } else {
-        logger.error(`Service: login - Error ${error}`);
-        throw error;
-      }
+      logger.error(`[AD] Service: login - Error ${error}`);
+      throw error;
     }
   }
 
