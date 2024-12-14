@@ -183,11 +183,11 @@ class UserController {
   deleteUser = async (req, res, next) => {
     try {
       logger.success("[AD] Controller: deleteUser - Started");
-      const encryptedData = req.body.data; // Decrypt the encrypted data
-      const payload = decryptPayload(encryptedData); // Decrypt the data
+      // const encryptedData = req.body.data; // Decrypt the encrypted data
+      // const payload = decryptPayload(encryptedData); // Decrypt the data
 
-      const { username, password, confirmPassword, userOU } = payload;
-
+      // const { username, password, confirmPassword, userOU } = payload;
+      const { username, userOU } = req.body;
       let missingFields = [];
       if (!username) missingFields.push("username");
       if (!userOU) missingFields.push("userOU");
@@ -196,20 +196,16 @@ class UserController {
         throw new BadRequestError(`Missing ${missingFields.join(", ")}`);
       }
 
-      // const userExists = await search(
-      //   `ou=users,${process.env.AD_BASE_DN}`,
-      //   `(cn=${username})`
-      // );
-      // if (userExists.length === 0) {
-      //   throw new NotFoundError(`User not found.`);
-      // }
-
-      // if (userExists[0].shadowFlag == 1) {
-      //   throw new BadRequestError(`User is already deleted`);
-      // }
-
-      // logger.success("User exists", userExists[0]);
-
+      // returns error if userOU is invalid
+      if (userOU) {
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${userOU}`);
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            throw new NotFoundError(`Invalid userOU - ${userOU}`);
+          }
+        }
+      }
       const message = await this.userService.deleteUser(username, userOU);
 
       // Deleting users from all users (if present)
