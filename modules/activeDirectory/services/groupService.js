@@ -15,7 +15,7 @@ class GroupService {
       const groupAttributes = {
         cn: groupName,
         objectClass: ["top", "group"],
-        groupType: 22,
+        groupType: groupValue,
         description: description || "Default group",
       };
 
@@ -312,112 +312,6 @@ class GroupService {
       } else {
         throw error;
       }
-    }
-  }
-
-  async findGroupsByMember(userDN) {
-    try {
-      logger.success("[AD] Service: findGroupsByMember - Started");
-      const baseDN = `${process.env.AD_BASE_DN}`;
-      const groups = await search(
-        baseDN,
-        `(&(objectClass=group)(member=${userDN}))`
-      );
-
-      logger.success("[AD] Service: findGroupsByMember - Completed");
-      return groups; // Returns an array of groups where the user is a member
-    } catch (error) {
-      console.log("[AD] Service: findGroupsByMember - Error", error);
-      throw new Error("Error fetching groups for the member.");
-    }
-  }
-
-  async deleteUserFromGroups(member, memberOU) {
-    try {
-      logger.success("[AD] Service: deleteUserFromGroups - Started");
-
-      const userDN = `cn=${member},ou=${memberOU},${process.env.AD_BASE_DN}`; // Construct the user's DN
-
-      // Fetch all groups containing the member
-      const groups = await this.findGroupsByMember(userDN);
-
-      if (groups.length === 0) {
-        return {
-          message: `User ${member} is not a member of any group.`,
-          groupCount: 0,
-        };
-      }
-
-      // Non-admin group types
-      const allowedNonAdminGroups = ["2", "4", "8"];
-      // Admin group types
-      const allowedAdminGroups = [
-        "-2147483646",
-        "-2147483644",
-        "-2147483640",
-        "-2147483643",
-      ];
-      const deleteResults = [];
-      let groupCount = 0;
-
-      // Iterate through each group to process the deletion
-      for (const group of groups) {
-        groupCount++; // Increment the group count
-        const groupName = group.cn; // Group name
-        const groupOU = group.dn.match(/OU=([^,]+)/)[1]; // Extract OU
-        console.log("Group OU after slicing", groupOU);
-        const groupType = group.groupType || null; // Group type from the group object
-
-        logger.warn(
-          `Processing group ${groupCount}: Name=${groupName}, OU=${groupOU}, Type=${groupType}`
-        );
-
-        let result;
-
-        if (allowedAdminGroups.includes(groupType)) {
-          // Admin group handling
-          logger.info(
-            `Group ${groupName} identified as admin group. Proceeding with admin group deletion logic.`
-          );
-          result = await this.deleteFromAdminGroup(
-            groupName,
-            groupOU,
-            member,
-            memberOU
-          );
-        } else if (allowedNonAdminGroups.includes(groupType)) {
-          // Non-admin group handling
-          logger.info(
-            `Group ${groupName} identified as non-admin group. Proceeding with non-admin group deletion logic.`
-          );
-          result = await this.deleteFromGroup(
-            groupName,
-            groupOU,
-            member,
-            memberOU
-          );
-        } else {
-          // Log and skip unknown group types
-          logger.warn(
-            `Group ${groupName} has an unrecognized type (${groupType}). Skipping.`
-          );
-          continue;
-        }
-
-        deleteResults.push(result); // Record the deletion result
-        logger.success(`User removed from group: ${groupName}`);
-      }
-
-      logger.success("[AD] Service: deleteUserFromGroups - Completed");
-
-      return {
-        message: `User ${member} removed from ${groupCount} groups successfully.`,
-        groupCount: groupCount,
-        results: deleteResults,
-      };
-    } catch (error) {
-      logger.error("[AD] Service: deleteUserFromGroups - Error", error);
-      throw new Error("Error while processing groups for the member.");
     }
   }
 }
