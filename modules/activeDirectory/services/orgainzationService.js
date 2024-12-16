@@ -4,25 +4,25 @@ import { connectToAD } from "../../../config/adConfig.js";
 import logger from "../../../config/logger.js";
 
 class OrganizationService {
-  async createOrganization(organizationName, description) {
+  async createOrganization(payload) {
     try {
-      logger.info("[AD] Service: createOrganization - Started");
+      logger.success("[AD] Service: createOrganization - Started");
 
       await connectToAD(); // Ensure AD instance is initialized
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
       const baseDN = process.env.AD_BASE_DN;
 
       // Construct the Distinguished Name (DN)
-      const organizationDN = `OU=${organizationName},${baseDN}`;
+      const organizationDN = `OU=${payload.organizationName},${baseDN}`;
       const organizationAttributes = {
-        ou: organizationName,
+        ou: payload.organizationName,
         objectClass: ["top", "organizationalUnit"],
-        description: description || "Default organization",
+        description: payload.description || "Default organization",
       };
       // Add the new organization
       await add(organizationDN, organizationAttributes);
 
-      logger.info("[AD] Service: createOrganization - Completed");
+      logger.success("[AD] Service: createOrganization - Completed");
       return { message: "Organization created successfully." };
     } catch (error) {
       console.error("Service: createOrganization - Error", error);
@@ -36,7 +36,7 @@ class OrganizationService {
 
   async listOrganizaitons(filter) {
     try {
-      logger.info("[AD] Service: listOrganizaitons - Started");
+      logger.success("[AD] Service: listOrganizaitons - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
       const baseDN = process.env.AD_BASE_DN;
       const searchFilter = filter
@@ -46,7 +46,7 @@ class OrganizationService {
       const rawOrganizations = await search(baseDN, searchFilter, scope);
 
       console.log("filter:", filter || null);
-      logger.info("[AD] Service: listOrganizaitons - Completed");
+      logger.success("[AD] Service: listOrganizaitons - Completed");
       const organizations = rawOrganizations.map((organization) => ({
         dn: organization.dn,
         organizationDN: organization.ou || null,

@@ -73,7 +73,7 @@ const findUser = async (username) => {
           reject(new Error("User not found"));
         } else if (!user) {
           logger.warn("[AD] No user details returned");
-          reject(new BadRequestError("User not found / Invalid Crendentials"));
+          reject(new BadRequestError("User not found"));
         } else {
           logger.info(
             `[AD] User details fetched successfully: ${JSON.stringify(user)}`
@@ -227,4 +227,47 @@ const deleteEntry = async (dn) => {
   }
 };
 
-export { authenticate, findUser, bind, search, add, modify, deleteEntry };
+const groupList = async (username) => {
+  logger.success(`Fetching group list for user ${username}`);
+  try {
+    const adInstance = await connectToAD();
+
+    return new Promise((resolve, reject) => {
+      let resolved = false; // Guard flag to prevent multiple invocations
+
+      adInstance.getGroupMembershipForUser(username, (err, groups) => {
+        if (resolved) return; // If already resolved/rejected, ignore
+        resolved = true;
+
+        if (err) {
+          logger.error(
+            `Error fetching groups for user ${username}: ${err.message}`
+          );
+          reject(new Error("Failed to fetch group membership."));
+        } else if (!groups || groups.length === 0) {
+          logger.warn(`No groups found for user: ${username}`);
+          resolve([]); // Return an empty array if no groups
+        } else {
+          logger.info(
+            `Groups fetched for user ${username}: ${JSON.stringify(groups)}`
+          );
+          resolve(groups); // Return the fetched groups
+        }
+      });
+    });
+  } catch (error) {
+    logger.error(`Error in groupList: ${error.message}`);
+    throw error;
+  }
+};
+
+export {
+  authenticate,
+  findUser,
+  bind,
+  search,
+  add,
+  modify,
+  deleteEntry,
+  groupList,
+};

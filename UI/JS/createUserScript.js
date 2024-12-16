@@ -3,6 +3,18 @@
 const createUserBaseApiUrl = "/LDAP/v1"; // API Base URL
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV stage alone
 const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
+const authType = localStorage.getItem("authType");
+
+function getBaseAPI(authType) {
+  switch (authType) {
+    case "ldap":
+      return "/LDAP/v1"; // OpenLDAP API prefix
+    case "ad":
+      return "/AD/v1"; // AD API prefix
+    default:
+      throw new Error("Invalid authType specified.");
+  }
+}
 
 // Function to encrypt payload
 function encryptedData(data) {
@@ -21,10 +33,18 @@ function decryptPayload(cipherText) {
 }
 
 $(document).ready(function () {
+  let baseAPI;
+  try {
+    baseAPI = getBaseAPI(authType); // Get the API prefix based on authType
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
   // Fetch organizations and populate OU dropdown
   async function fetchOrganizations() {
     try {
-      const apiUrl = `${createUserBaseApiUrl}/organizations/listOrganizations`;
+      const apiUrl = `${baseAPI}/organizations/listOrganizations`;
       const response = await fetch(apiUrl, {
         method: "GET",
         headers: {
@@ -149,6 +169,15 @@ $(document).ready(function () {
       return; // Stop submission if validation fails
     }
 
+    let baseAPI;
+    try {
+      baseAPI = getBaseAPI(authType); // Get the API prefix based on authType
+    } catch (error) {
+      console.error("Error determining base API URL:", error.message);
+      alert("Invalid authentication type selected.");
+      return;
+    }
+
     // Gather form data if validation passes
     const userData = encryptedData({
       title: $("#title").val(),
@@ -164,7 +193,7 @@ $(document).ready(function () {
     });
 
     try {
-      const apiUrl = `${createUserBaseApiUrl}/users/addUser`;
+      const apiUrl = `${baseAPI}/users/addUser`;
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: {

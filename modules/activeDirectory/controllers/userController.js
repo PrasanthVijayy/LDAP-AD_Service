@@ -27,9 +27,9 @@ class UserController {
     try {
       logger.success("[AD] Controller: addUser - Started");
 
-      // const encryptedData = req.body.data; // Decrypt the encrypted data
-      // const payload = decryptPayload(encryptedData); // Decrypt the data
-      const payload = req.body;
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
+      // const payload = req.body;
       let missingFields = [];
       if (!payload.firstName) missingFields.push("firstName");
       if (!payload.lastName) missingFields.push("lastName");
@@ -48,9 +48,9 @@ class UserController {
       }
 
       // Validate title
-      if (!["user", "admin"].includes(payload.title)) {
-        throw new BadRequestError("Title should be either user or admin");
-      }
+      // if (!["user", "admin"].includes(payload.title)) {
+      //   throw new BadRequestError("Title should be either user or admin");
+      // }
 
       // Checking if OU exists
       if (payload.userOU) {
@@ -115,6 +115,7 @@ class UserController {
       logger.success("[AD] Controller: listUsers - Completed");
       const encryptData = encryptPayload(users);
       res.status(200).json({ data: encryptData });
+      // res.status(200).json(users);
     } catch (error) {
       logger.success("[AD] Controller: listUsers - Error", error);
       next(error);
@@ -131,6 +132,8 @@ class UserController {
 
       const { username, password, confirmPassword, userOU } = payload;
 
+      // const { username, password, confirmPassword, userOU } = req.body;
+
       let missingFields = [];
       if (!username) missingFields.push("username");
       if (!password) missingFields.push("password");
@@ -144,16 +147,25 @@ class UserController {
       }
 
       // Checking the OU is valid
-      await this.organizationService.listOrganizaitons(`ou=${userOU}`);
-
-      const userExists = await search(
-        `ou=${userOU},${process.env.AD_BASE_DN}`,
-        `(cn=${username})`
-      );
-
-      if (userExists.length === 0) {
-        throw new BadRequestError(`User not found.`);
+      if (userOU) {
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${userOU}`);
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            error.message = `Invalid user OU: ${userOU}`;
+          }
+          throw error;
+        }
       }
+
+      // const userExists = await search(
+      //   `ou=${userOU},${process.env.AD_BASE_DN}`,
+      //   `(cn=${username})`
+      // );
+
+      // if (userExists.length === 0) {
+      //   throw new BadRequestError(`User not found.`);
+      // }
 
       // const passwordPattern =
       //   /^(?=.*[0-9])(?=.*[!@#$%^&*()_+[\]{};':"\\|,.<>/?]).{6,}$/;
@@ -206,15 +218,11 @@ class UserController {
           }
         }
       }
+      // In openLdap we need to delete user from all groups, AD itself do that internally.
       const message = await this.userService.deleteUser(username, userOU);
 
-      // Deleting users from all users (if present)
-      const removeFromGroups = await this.groupService.deleteUserFromGroups(
-        username,
-        userOU
-      );
       logger.success("[AD] Controller: deleteUser - Completed");
-      res.status(200).json({ message, removeFromGroups });
+      res.status(200).json({ message });
     } catch (error) {
       logger.success("[AD] Controller: deleteUser - Error", error);
       next(error);
@@ -226,11 +234,11 @@ class UserController {
     try {
       logger.success("[AD] Controller: updateUser - Started");
 
-      const encryptedData = req.body.data; // Decrypt the encrypted data
-      const payload = decryptPayload(encryptedData); // Decrypt the data
+      // const encryptedData = req.body.data; // Decrypt the encrypted data
+      // const payload = decryptPayload(encryptedData); // Decrypt the data
 
-      const { username, userOU, attributes } = payload;
-      // const { username, userOU, attributes } = req.body;
+      // const { username, userOU, attributes } = payload;
+      const { username, userOU, attributes } = req.body;
 
       let missingFields = [];
       if (!username) missingFields.push("username");
@@ -242,6 +250,19 @@ class UserController {
         );
       }
 
+      if (userOU) {
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${userOU}`);
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            throw new NotFoundError(`Invalid userOU - ${userOU}`);
+          }
+          throw error;
+        }
+      }
+      // Before fetching the data from AD, need to bind with the admin user
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+
       // Prevent updating username - feature can be used in future
 
       // if (attributes.username || attributes.sn || attributes.cn) {
@@ -249,22 +270,22 @@ class UserController {
       // }
 
       // Check if user exists and fetch their current attributes
-      const userExists = await search(
-        `ou=${userOU},${process.env.AD_BASE_DN}`,
-        `(cn=${username})`
-      );
-      if (userExists.length === 0) {
-        throw new NotFoundError("User not found");
-      }
+      // const userExists = await search(
+      //   `ou=${userOU},${process.env.AD_BASE_DN}`,
+      //   `(cn=${username})`
+      // );
+      // if (userExists.length === 0) {
+      //   throw new NotFoundError("User not found");
+      // }
 
-      const currentUser = userExists[0];
+      // const currentUser = userExists[0];
 
-      // Validate the account state
-      if (currentUser.shadowFlag == 1) {
-        throw new BadRequestError("Cannot update a deleted user");
-      } else if (currentUser.shadowInactive == 1) {
-        throw new BadRequestError("Cannot update an inactive user");
-      }
+      // // Validate the account state
+      // if (currentUser.shadowFlag == 1) {
+      //   throw new BadRequestError("Cannot update a deleted user");
+      // } else if (currentUser.shadowInactive == 1) {
+      //   throw new BadRequestError("Cannot update an inactive user");
+      // }
 
       // Validate and check if email is different
       if (attributes.mail) {
@@ -281,7 +302,7 @@ class UserController {
         // Check if email is already in use by another user
         const emailInUse = await search(
           process.env.AD_BASE_DN,
-          `(mail=${attributes.mail})`
+          `(userPrincipleName=${attributes.mail})`
         );
 
         if (emailInUse.length > 0 && emailInUse[0].cn !== username) {
@@ -332,12 +353,12 @@ class UserController {
     try {
       logger.success("[AD] Controller: changeEmailPhone - Started");
 
-      const encryptedData = req.body.data; // Decrypt the encrypted data
-      const payload = decryptPayload(encryptedData); // Decrypt the data
+      // const encryptedData = req.body.data; // Decrypt the encrypted data
+      // const payload = decryptPayload(encryptedData); // Decrypt the data
 
-      const { username, userOU, attributes } = payload;
+      // const { username, userOU, attributes } = payload;
 
-      // const { username, userOU, attributes } = req.body;
+      const { username, userOU, attributes } = req.body;
 
       let missingFields = [];
       if (!username) missingFields.push("username");
@@ -351,6 +372,17 @@ class UserController {
         );
       }
 
+      if (userOU) {
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${userOU}`);
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            throw new NotFoundError(`Invalid userOU - ${userOU}`);
+          }
+          throw error;
+        }
+      }
+
       // Ensure only 'mail' and 'telephoneNumber' are allowed
       const validFields = ["mail", "telephoneNumber"];
       const invalidFields = Object.keys(attributes).filter(
@@ -361,15 +393,18 @@ class UserController {
         throw new BadRequestError("Only mail and telephoneNumber are allowed");
       }
 
-      const userExist = await search(
-        `ou=${userOU},${process.env.AD_BASE_DN}`,
-        `(cn=${username})`
-      );
-      if (userExist.length === 0) {
-        throw new NotFoundError("User not found");
-      }
+      // Before fetching the data from AD, need to bind with the admin user
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
-      const currentUser = userExist[0];
+      // const userExist = await search(
+      //   `ou=${userOU},${process.env.AD_BASE_DN}`,
+      //   `(cn=${username})`
+      // );
+      // if (userExist.length === 0) {
+      //   throw new NotFoundError("User not found");
+      // }
+
+      // const currentUser = userExist[0];
 
       // Validate and check if email is different
       if (attributes.mail) {
@@ -386,7 +421,7 @@ class UserController {
         // Check if email is already in use by another user
         const emailInUse = await search(
           `ou=${userOU},${process.env.AD_BASE_DN}`,
-          `(mail=${attributes.mail})`
+          `(userPrincipleName=${attributes.mail})`
         );
 
         if (emailInUse.length > 0 && emailInUse[0].cn !== username) {
@@ -450,7 +485,16 @@ class UserController {
       }
 
       // Check if OU exists
-      await this.organizationService.listOrganizaitons(`ou=${OU}`);
+      if (OU) {
+        try {
+          await this.organizationService.listOrganizaitons(`ou=${OU}`);
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            error.message = `Invalid userOU - ${OU}`;
+          }
+          throw error;
+        }
+      }
 
       // Validate action
       if (!["enable", "disable"].includes(action)) {
@@ -468,7 +512,11 @@ class UserController {
       //   throw new NotFoundError(`User not found.`);
       // }
 
-      const message = await this.userService.modifyUserStatus(username, action);
+      const message = await this.userService.modifyUserStatus(
+        username,
+        OU,
+        action
+      );
       logger.success("[AD] Controller: updateUserStatus - Completed");
       res.status(202).json(message);
     } catch (error) {
@@ -591,17 +639,21 @@ class UserController {
       logger.success("[AD] Controller: searchUser - Started");
 
       // Decrypt the incoming encrypted parameters
-      const encryptedUsername = req.query.username;
-      const encryptedUserOU = req.query.userOU;
+      // const encryptedUsername = req.query.username;
+      // const encryptedUserOU = req.query.userOU;
 
       // Decrypt the values
-      const username = decryptPayload(encryptedUsername);
-      const userOU = encryptedUserOU ? decryptPayload(encryptedUserOU) : null;
+      // const username = decryptPayload(encryptedUsername);
+      // const userOU = encryptedUserOU ? decryptPayload(encryptedUserOU) : null;
 
+      const { username, userOU } = req.query;
       // Check for missing fields after decryption
       if (!username) {
         return next(new BadRequestError("Missing fields: username"));
       }
+      //  if(!userOU){
+      //   return next(new BadRequestError("Missing fields: userOU"));
+      //  }
 
       // const userExists = await search(
       //   `ou=${userOU},${process.env.AD_BASE_DN}`,
@@ -678,12 +730,12 @@ class UserController {
     try {
       logger.success("[AD] Controller: login - Started");
 
-      // const encryptedData = req.body.data; // Decrypt the encrypted data
+      const encryptedData = req.body.data; // Decrypt the encrypted data
 
       // Decrypt the data
-      // const decryptedData = decryptPayload(encryptedData);
-      // const { email, password, authType } = decryptedData;
-      const { email, password, authType } = req.body;
+      const decryptedData = decryptPayload(encryptedData);
+      const { email, password, authType } = decryptedData;
+      // const { email, password, authType } = req.body;
 
       console.warn(`req.body: ${JSON.stringify(req.body)}`);
       let missingFields = [];
@@ -704,7 +756,7 @@ class UserController {
       // Create a session for the user
       req.session.user = {
         email: email,
-        // userType,
+        userType: "admin",
         // OU: OU || fetchedOU,
         authMethod: "Password",
         authType: authType,

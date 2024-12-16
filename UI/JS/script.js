@@ -1,5 +1,6 @@
 const scriptBaseAPI = "/LDAP/v1"; // API Base URL
 const adScriptBaseAPI = "/AD/v1"; // AD Base URL
+const authType = localStorage.getItem("authType");
 
 // Function to get the correct base API URL based on authType
 function getBaseAPI(authType) {
@@ -148,6 +149,8 @@ async function handleLogin() {
   ).value;
   const authType = document.getElementById("authType").value;
 
+  localStorage.setItem("authType", authType); // Storing the authType for routes dynamic access
+
   let baseAPI;
   try {
     baseAPI = getBaseAPI(authType); // Get the API prefix based on authType
@@ -156,7 +159,7 @@ async function handleLogin() {
     alert("Invalid authentication type selected.");
     return;
   }
-  
+
   const apiUrlSelect = `${scriptBaseAPI}/session/auth/select`; // authSelect API endpoint
   const apiUrlAuthenticate = `${baseAPI}/users/authenticate`; // authenticate API endpoint
 
@@ -250,7 +253,17 @@ window.usersData = [];
 
 // Fetch users from the API
 async function fetchUsers() {
-  const apiUrl = `${scriptBaseAPI}/users/listUsers`;
+  // Dynamic setup for API prefix
+  let baseAPI;
+  try {
+    baseAPI = getBaseAPI(authType); // Get the API prefix based on authType
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
+  const apiUrl = `${baseAPI}/users/listUsers`;
   const csrfToken = document.querySelector('input[name="_csrf"]').value;
 
   try {
@@ -320,8 +333,18 @@ async function searchUsers() {
 
   const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
 
+  // Dynamic setup for API prefix
+  let baseAPI;
   try {
-    const apiUrl = `${scriptBaseAPI}/users/listUsers?filter=${encodeURIComponent(
+    baseAPI = getBaseAPI(authType);
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
+  try {
+    const apiUrl = `${baseAPI}/users/listUsers?filter=${encodeURIComponent(
       filter
     )}`;
     const response = await fetch(apiUrl, {

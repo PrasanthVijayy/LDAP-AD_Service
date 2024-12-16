@@ -11,6 +11,7 @@ import { fileURLToPath } from "url";
 import fs from "fs";
 import https from "https";
 import passport from "passport";
+import corn from "node-cron";
 
 /* ---------- IMPORT FILES ---------- */
 import { connectRoutes } from "./modules/common/routesConnector.js";
@@ -46,6 +47,16 @@ app.use(cors(corsOptions)); // Enabling CORS
 securityHeaders(app); // Enabling Security headers
 
 app.use(morgan(":method :url :status - :response-time ms"));
+
+/* ---------- CRON JOB SETUP - SERVER TIMESTAMP ---------- */
+corn.schedule("*/1 * * * *", () => {
+  console.log(
+    "Monitoring server: ",
+    new Date(),
+    " Minutes:  ",
+    new Date().getMinutes()
+  );
+});
 
 /* --------- SESSION SETUP --------- */
 

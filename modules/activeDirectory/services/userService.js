@@ -5,6 +5,7 @@ import {
   add,
   modify,
   deleteEntry,
+  groupList,
 } from "../../../utils/adUtils.js";
 import {
   BadRequestError,
@@ -87,9 +88,9 @@ class UserService {
         throw new BadRequestError("Username already created");
       } else if (error.message.includes("0000208D")) {
         throw new BadRequestError("Invalid OU");
-      } else if (error.message.includes("00000524")) {
-        throw new BadRequestError("Email already exists (samAccountName)");
-      } else if (error.message.includes("00000526")) {
+      } else if (error.message.includes("00000524" || "000021C8")) {
+        throw new BadRequestError("Email already exists");
+      } else if (error.message.includes("0000052D")) { // Password mismatch with provided password in AD
         throw new BadRequestError("Email username already in use");
       } else {
         throw error;
@@ -206,13 +207,13 @@ class UserService {
       if (password !== confirmPassword) {
         throw new BadRequestError("Passwords do not match");
       } else {
-        const hashedPassword = createSSHAHash(password);
+        const newPassword = UserService.encodePassword(password);
 
         const changes = [
           {
             operation: "replace",
             modification: {
-              userPassword: hashedPassword,
+              unicodePwd: newPassword,
             },
           },
         ];
@@ -224,7 +225,11 @@ class UserService {
       return { message: "Password reset successfully." };
     } catch (error) {
       console.log("[AD] Service: resetPassword - Error", error);
-      if (error.message.includes("No Such Object")) {
+      if (
+        error.message.includes(
+          "0000208D: NameErr: DSID-03100245, problem 2001 (NO_OBJECT)"
+        )
+      ) {
         throw new NotFoundError("User not found");
       } else {
         throw error;
@@ -263,7 +268,7 @@ class UserService {
       if (attributes.mail) {
         changes.push({
           operation: "replace",
-          modification: { mail: attributes.mail },
+          modification: { userPrincipalName: attributes.mail },
         });
       }
 
@@ -277,7 +282,7 @@ class UserService {
       if (attributes.registeredAddress) {
         changes.push({
           operation: "replace",
-          modification: { registeredAddress: attributes.registeredAddress },
+          modification: { streetAddress: attributes.registeredAddress },
         });
       }
 
@@ -289,19 +294,25 @@ class UserService {
       }
 
       //Adding timeStamp to lastest updated date
-      changes.push({
-        operation: "replace",
-        modification: {
-          shadowLastChange: Date.now(),
-        },
-      });
+      // changes.push({
+      //   operation: "replace",
+      //   modification: {
+      //     shadowLastChange: Date.now(),
+      //   },
+      // });
 
       await modify(userDN, changes);
       logger.success("[AD] Service: updateUser - Completed");
       return { message: "User updated successfully." };
     } catch (error) {
       console.log("[AD] Service: updateUser - Error", error);
-      throw error;
+      if (error.message.includes("0000208D")) {
+        throw new NotFoundError("User not found");
+      } else if (error.message.includes("000021C8")) {
+        throw new BadRequestError("Email alrady in use");
+      } else {
+        throw error;
+      }
     }
   }
 
@@ -317,7 +328,7 @@ class UserService {
       if (attributes.mail) {
         changes.push({
           operation: "replace",
-          modification: { mail: attributes.mail },
+          modification: { userPrincipalName: attributes.mail },
         });
       }
 
@@ -335,7 +346,13 @@ class UserService {
       return { message: "Contact details updated successfully." };
     } catch (error) {
       console.log("[AD] Service: updateContactDetails - Error", error);
-      throw error;
+      if (error.message.includes("0000208D")) {
+        throw new NotFoundError("User not found");
+      } else if (error.message.includes("000021C8")) {
+        throw new BadRequestError("Email alrady in use");
+      } else {
+        throw error;
+      }
     }
   }
 
@@ -726,11 +743,29 @@ class UserService {
     try {
       logger.success("[AD] Service: login - Started");
 
-      // Call the authenticate function
+      // Authenticate user
       await authenticate(email, password);
 
+      // Fetch groups with retry logic
+      // const groups = await groupList(email);
+      // logger.success(`Group list for user ${email}: ${JSON.stringify(groups)}`);
+
+      const adminGroups = [
+        "Administrators",
+        "Domain Admins",
+        "Enterprise Admins",
+        "Group Policy Creator Owners",
+        "Schema Admins",
+      ];
+
+      // const isAdmin = groups.some((group) => adminGroups.includes(group.cn));
+      // logger.success(`Is user a admin: ${isAdmin ? "admin " : "user"}`);
+
       logger.success("[AD] Service: login - Completed");
-      return { message: "Login successful." }; // Return success and user details
+      return {
+        message: "Login successful.",
+        // userType: isAdmin ? "admin" : "user",
+      }; // Return success and user details
     } catch (error) {
       logger.error(`[AD] Service: login - Error ${error}`);
       throw error;

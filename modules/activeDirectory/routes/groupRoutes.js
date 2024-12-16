@@ -18,6 +18,6 @@ const adGroupRoutes = (app) => {
   router.get("/membersInGroup", csrfProtection, sessionMiddleware, apiLimiter(30), groupController.membersInGroup); // List members in group - additional
   router.post("/addToAdminGroup", csrfProtection, sessionMiddleware, apiLimiter(), groupController.addToAdminGroup); // Add user to admin group
   router.delete("/deleteFromAdminGroup", csrfProtection, sessionMiddleware, apiLimiter(), groupController.deleteFromAdminGroup); // Delete user from admin group
-  router.delete("/deleteMemberFromGroups", csrfProtection, sessionMiddleware, apiLimiter(), groupController.deleteUserFromGroups); // Delete member from all groups
+  // router.delete("/deleteMemberFromGroups", csrfProtection, sessionMiddleware, apiLimiter(), groupController.deleteUserFromGroups); // Delete member from all groups
 };
 export default adGroupRoutes;

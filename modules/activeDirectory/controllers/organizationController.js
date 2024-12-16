@@ -15,18 +15,16 @@ class OrganizationController {
 
       const { organizationName, description } = req.body;
 
-      // const encryptedData = req.body.data;
-      // const payload = decryptPayload(encryptedData); // Decrypt input data
+      const encryptedData = req.body.data;
+      const payload = decryptPayload(encryptedData); // Decrypt input data
 
       // Validate required fields
-      if (!organizationName) {
+      if (!payload.organizationName) {
         throw new BadRequestError("Missing field: organizationName");
       }
 
       // Delegate to the service layer
-      const result = await this.organizationService.createOrganization(
-        organizationName, description
-      );
+      const result = await this.organizationService.createOrganization(payload);
 
       logger.success("[AD] Controller: createOrganization - Completed");
       res.status(201).json(result); // Send success response
@@ -43,10 +41,10 @@ class OrganizationController {
       const organizations = await this.organizationService.listOrganizaitons(
         filter
       );
-      // const encryptData = encryptPayload(organizations);
+      const encryptData = encryptPayload(organizations);
       logger.info("[AD] Controller: listOrganizaitons - Completed");
-      res.status(200).json(organizations);
-      // res.status(200).json({ data: encryptData });
+      // res.status(200).json(organizations);
+      res.status(200).json({ data: encryptData });
     } catch (error) {
       console.error("[AD] Controller: listOrganizaitons - Error", error);
       next(error);

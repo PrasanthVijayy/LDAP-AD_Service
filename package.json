@@ -23,6 +23,7 @@
     "hpp": "^0.2.3",
     "ldapjs": "^2.3.3",
     "morgan": "^1.10.0",
+    "node-cron": "^3.0.3",
     "nodemon": "^3.1.4",
     "passport": "^0.7.0",
     "passport-strategy": "^1.0.0",
@@ -40,10 +41,12 @@
   },
   "keywords": [
     "ExpressJS",
-    "LDAP",
+    "LDAP Protocols",
+    "OpenLDAP",
+    "Active Directory",
     "Authentication",
     "REST API",
-    "User management"
+    "Directory management"
   ],
   "author": "Prasanth",
   "license": "MIT",

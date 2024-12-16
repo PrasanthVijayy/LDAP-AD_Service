@@ -20,8 +20,13 @@ class GroupController {
     try {
       logger.success("[AD] Controller: createGroup - Started");
 
-      const { groupName, description, groupType, groupOU, groupScope } =
-        req.body; // Extracting payload
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
+      const { groupName, description, groupType, groupOU, groupScope } = payload;
+
+      // const { groupName, description, groupType, groupOU, groupScope } =
+      //   req.body;
+
       let missingFields = [];
       if (!groupName) missingFields.push("groupName");
       if (!groupType) missingFields.push("groupType");
@@ -57,7 +62,6 @@ class GroupController {
       }
 
       if (groupOU) {
-        
         try {
           await this.organizationService.listOrganizaitons(`ou=${groupOU}`);
         } catch (error) {
@@ -108,13 +112,13 @@ class GroupController {
       const filter = req.query.filter;
       console.log("Filter:", filter || null);
       const groups = await this.groupService.listGroups(filter);
-      // const encryptData = encryptPayload(groups);
+      const encryptData = encryptPayload(groups);
       logger.success("[AD] Controller: listGroups - Completed");
       // if (groups.count === 0) {
       //   res.status(204).end();
       // }
-      // res.status(200).json({ data: encryptData });
-      res.status(200).json(groups);
+      res.status(200).json({ data: encryptData });
+      // res.status(200).json(groups);
     } catch (error) {
       console.log("Controller: listGroups - Error", error);
       next(error);
@@ -239,12 +243,12 @@ class GroupController {
   membersInGroup = async (req, res, next) => {
     try {
       logger.success("[AD] Controller: membersInGroup - Started");
-      const { groupName, OU } = req.query;
-      // const encryptedGroupName = req.query.groupName;
-      // const encryptedOU = req.query.OU;
+      // const { groupName, OU } = req.query;
+      const encryptedGroupName = req.query.groupName;
+      const encryptedOU = req.query.OU;
 
-      // const groupName = decryptPayload(encryptedGroupName);
-      // const OU = decryptPayload(encryptedOU);
+      const groupName = decryptPayload(encryptedGroupName);
+      const OU = decryptPayload(encryptedOU);
 
       let missingFields = [];
       if (!groupName) missingFields.push("groupName");
@@ -269,12 +273,12 @@ class GroupController {
       }
 
       const group = await this.groupService.membersInGroup(groupName, OU);
-      // const encryptData = encryptPayload(group);
+      const encryptData = encryptPayload(group);
 
       logger.success("[AD] Controller: membersInGroup - Completed");
-      res.status(200).json(group);
+      // res.status(200).json(group);
 
-      // res.status(200).json({ data: encryptData });
+      res.status(200).json({ data: encryptData });
     } catch (error) {
       console.log("Controller: membersInGroup - Error", error);
       next(error);
@@ -392,47 +396,48 @@ class GroupController {
     }
   };
 
-  deleteUserFromGroups = async (req, res, next) => {
-    try {
-      logger.success("[AD] Controller: deleteUserFromGroups - Started");
-      const { member, memberOU } = req.body;
+  //Since AD is deleting user from groups internally while deleting the users, so I am commenting for AD
+  // deleteUserFromGroups = async (req, res, next) => {
+  //   try {
+  //     logger.success("[AD] Controller: deleteUserFromGroups - Started");
+  //     const { member, memberOU } = req.body;
 
-      // Check for missing fields
-      let missingFields = [];
-      if (!member) missingFields.push("member");
-      if (!memberOU) missingFields.push("memberOU");
+  //     // Check for missing fields
+  //     let missingFields = [];
+  //     if (!member) missingFields.push("member");
+  //     if (!memberOU) missingFields.push("memberOU");
 
-      if (missingFields.length > 0) {
-        return next(
-          new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
-        );
-      }
+  //     if (missingFields.length > 0) {
+  //       return next(
+  //         new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
+  //       );
+  //     }
 
-      if (memberOU) {
-        try {
-          await this.organizationService.listOrganizaitons(`ou=${memberOU}`); // Validate the provided OU
-        } catch (error) {
-          if (error.name === "NotFoundError") {
-            error.message = `Invalid memberOU: ${memberOU}`;
-          }
-          throw error;
-        }
-      }
+  //     if (memberOU) {
+  //       try {
+  //         await this.organizationService.listOrganizaitons(`ou=${memberOU}`); // Validate the provided OU
+  //       } catch (error) {
+  //         if (error.name === "NotFoundError") {
+  //           error.message = `Invalid memberOU: ${memberOU}`;
+  //         }
+  //         throw error;
+  //       }
+  //     }
 
-      const result = await this.groupService.deleteUserFromGroups(
-        member,
-        memberOU
-      );
+  //     const result = await this.groupService.deleteUserFromGroups(
+  //       member,
+  //       memberOU
+  //     );
 
-      // const encryptData = encryptPayload(result);
-      logger.success("[AD] Controller: deleteUserFromGroups - Completed");
-      res.status(200).json(result);
-      // res.status(200).json({ data: encryptData });
-    } catch (error) {
-      console.log("[AD] Controller: deleteUserFromGroups - Error", error);
-      next(error);
-    }
-  };
+  //     // const encryptData = encryptPayload(result);
+  //     logger.success("[AD] Controller: deleteUserFromGroups - Completed");
+  //     res.status(200).json(result);
+  //     // res.status(200).json({ data: encryptData });
+  //   } catch (error) {
+  //     console.log("[AD] Controller: deleteUserFromGroups - Error", error);
+  //     next(error);
+  //   }
+  // };
 }
 
 export default GroupController;

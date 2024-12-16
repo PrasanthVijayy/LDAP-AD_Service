@@ -92,6 +92,14 @@
                     <option value="admin">Admin</option>
                   </select>
                 </div>
+                <div class="form-group" id="visibleScope">
+                  <label for="groupScope" class="required">Group Scope:</label>
+                  <select class="form-control" id="groupScope">
+                    <option value="Universal">Universal</option>
+                    <option value="Domain local">Domain local</option>
+                    <option value="Global">Global</option>
+                  </select>
+                </div>
                 <div class="form-group">
                   <label for="groupDescription">Description: (Optional)</label>
                   <input
@@ -129,7 +137,7 @@
               </div>
             </div>
             <div class="card-body">
-              <div class="table-responsive">
+              <div class="table-responsive inner-scroll">
                 <!-- Make table responsive -->
                 <table class="table table-bordered table-hover bg-light">
                   <thead class="thead-dark">
