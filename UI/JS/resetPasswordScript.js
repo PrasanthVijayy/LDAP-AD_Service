@@ -2,6 +2,18 @@ const resetPasswordBaseAPI = "/LDAP/v1"; // API Base URL
 
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV  stage alone
 const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
+const authType = localStorage.getItem("authType");
+
+function getBaseAPI(authType) {
+  switch (authType) {
+    case "ldap":
+      return "/LDAP/v1"; // OpenLDAP API prefix
+    case "ad":
+      return "/AD/v1"; // AD API prefix
+    default:
+      throw new Error("Invalid authType specified.");
+  }
+}
 
 // Function to encrypt payload
 function encryptData(data) {
@@ -26,8 +38,18 @@ $(document).ready(function () {
 
 // Fetch list of OUs from the API
 async function fetchOrganizationalUnits() {
+  // Dynamic setup for API prefix
+  let baseAPI;
   try {
-    const apiUrl = `${resetPasswordBaseAPI}/organizations/listOrganizations`;
+    baseAPI = getBaseAPI(authType);
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
+  try {
+    const apiUrl = `${baseAPI}/organizations/listOrganizations`;
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
@@ -86,7 +108,9 @@ function togglePasswordVisibility(fieldId, iconId) {
   const toggleIcon = document.getElementById(iconId);
   const isPassword = passwordField.getAttribute("type") === "password";
   passwordField.setAttribute("type", isPassword ? "text" : "password");
-  toggleIcon.src = isPassword ? "/directoryManagement/images/eye.png" : "/directoryManagement/images/hidden.png"; // Update icon
+  toggleIcon.src = isPassword
+    ? "/directoryManagement/images/eye.png"
+    : "/directoryManagement/images/hidden.png"; // Update icon
 }
 
 // Toggle password visibility for New Password
@@ -140,8 +164,19 @@ document
     });
 
     const csrfToken = document.querySelector('input[name="_csrf"]').value;
+
+    // Dynamic setup for API prefix
+    let baseAPI;
     try {
-      const response = await fetch(`${resetPasswordBaseAPI}/users/resetPwd`, {
+      baseAPI = getBaseAPI(authType);
+    } catch (error) {
+      console.error("Error determining base API URL:", error.message);
+      alert("Invalid authentication type selected.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${baseAPI}/users/resetPwd`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

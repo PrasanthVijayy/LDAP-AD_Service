@@ -2,6 +2,19 @@ const searchBaseAPI = "/LDAP/v1"; // API Base URL
 
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV stage alone
 const csrfToken = document.querySelector('input[name="_csrf"]').value;
+const authType = localStorage.getItem("authType");
+
+// Function to get the correct base API URL based on authType
+function getBaseAPI(authType) {
+  switch (authType) {
+    case "ldap":
+      return "/LDAP/v1"; // OpenLDAP API prefix
+    case "ad":
+      return "/AD/v1"; // AD API prefix
+    default:
+      throw new Error("Invalid authType specified.");
+  }
+}
 
 // Function to encrypt payload
 function encryptedData(data) {
@@ -34,8 +47,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Fetch list of OUs from the API
 async function fetchOrganizationalUnits() {
+  // Dynamic setup for API prefix
+  let baseAPI;
   try {
-    const apiUrl = `${searchBaseAPI}/organizations/listOrganizations`;
+    baseAPI = getBaseAPI(authType);
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
+  try {
+    const apiUrl = `${baseAPI}/organizations/listOrganizations`;
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
@@ -75,6 +98,16 @@ async function fetchOrganizationalUnits() {
 
 // Function to search user based on username and OU
 async function searchUser() {
+  // Dynamic setup for API prefix
+  let baseAPI;
+  try {
+    baseAPI = getBaseAPI(authType);
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
   try {
     // Clear previous errors or user details
     document.getElementById("userDetailsTable").classList.add("d-none");
@@ -100,7 +133,7 @@ async function searchUser() {
     const encodedUserOU = encodeURIComponent(encryptedUserOU);
 
     // Construct API URL based on whether OU is provided
-    let apiUrl = `${searchBaseAPI}/users/search?username=${encodedUsername}`;
+    let apiUrl = `${baseAPI}/users/search?username=${encodedUsername}`;
     if (selectedOU) {
       apiUrl += `&userOU=${encodedUserOU}`;
     }

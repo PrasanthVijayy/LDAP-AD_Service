@@ -3,6 +3,18 @@
 const organizationBaseAPI = "/LDAP/v1"; // API Base URL
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV  stage alone
 const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
+const authType = localStorage.getItem("authType");
+
+function getBaseAPI(authType) {
+  switch (authType) {
+    case "ldap":
+      return "/LDAP/v1"; // OpenLDAP API prefix
+    case "ad":
+      return "/AD/v1"; // AD API prefix
+    default:
+      throw new Error("Invalid authType specified.");
+  }
+}
 
 // Function to get element by ID
 function getElementById(id) {
@@ -35,7 +47,17 @@ getElementById("createOrganizationForm")?.addEventListener(
       "organizationDescription"
     ).value;
 
-    const apiUrl = `${organizationBaseAPI}/organizations/createOrganization`;
+    // Dynamic setup for API prefix
+    let baseAPI;
+    try {
+      baseAPI = getBaseAPI(authType); // Get the API prefix based on authType
+    } catch (error) {
+      console.error("Error determining base API URL:", error.message);
+      alert("Invalid authentication type selected.");
+      return;
+    }
+
+    const apiUrl = `${baseAPI}/organizations/createOrganization`;
 
     const data = encryptData({
       organizationName: organizationName,
@@ -84,7 +106,18 @@ window.organizationsData = [];
 
 // Fetch organizations from the API
 async function fetchOrganizations() {
-  const apiUrl = `${organizationBaseAPI}/organizations/listOrganizations`;
+
+  // Dynamic setup for API prefix
+  let baseAPI;
+  try {
+    baseAPI = getBaseAPI(authType); // Get the API prefix based on authType
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
+  const apiUrl = `${baseAPI}/organizations/listOrganizations`;
 
   try {
     const response = await fetch(apiUrl, {

@@ -3,6 +3,19 @@
 const groupBaseAPI = "/LDAP/v1"; // Replace with actual base URL
 const SECRET_KEY = "L7grbWEnt4fju9Xbg4hKDERzEAW5ECPe"; // Visibile in DEV  stage alone
 const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
+const authType = localStorage.getItem("authType");
+
+// Function to get the correct base API URL based on authType
+function getBaseAPI(authType) {
+  switch (authType) {
+    case "ldap":
+      return "/LDAP/v1"; // OpenLDAP API prefix
+    case "ad":
+      return "/AD/v1"; // AD API prefix
+    default:
+      throw new Error("Invalid authType specified.");
+  }
+}
 
 // Function to encrypt payload
 function encryptData(data) {
@@ -27,8 +40,18 @@ $(document).ready(function () {
 
 // Fetch list of OUs from the API
 async function fetchOrganizationalUnits() {
+  // Dynamic setup for API prefix
+  let baseAPI;
   try {
-    const apiUrl = `${groupBaseAPI}/organizations/listOrganizations`;
+    baseAPI = getBaseAPI(authType);
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
+  try {
+    const apiUrl = `${baseAPI}/organizations/listOrganizations`;
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
@@ -85,6 +108,57 @@ $(document).on("click", ".dropdown-item", function (event) {
   }
 });
 
+// Dynamically show the groupScope only AD login users
+async function fetchSessionDetails() {
+  // Dynamic setup for API prefix
+  let baseAPI;
+  try {
+    baseAPI = getBaseAPI(authType);
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${groupBaseAPI}/session/check`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (response.ok) {
+      const sessionData = await response.json();
+      return sessionData.user?.authType;
+    } else {
+      console.error("Failed to fetch session details.");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching session details:", error.message);
+    return null;
+  }
+}
+
+async function toggleUIData() {
+  let authType;
+
+  if (!authType) {
+    // Get authType from session API
+    authType = await fetchSessionDetails();
+  }
+
+  const visibleArea = document.getElementById("visibleScope");
+  if (authType == "ad") {
+    // Show the dropdown only for AD
+    visibleArea.style.display = "block";
+  } else {
+    // Hide the dropdown for non-AD
+    visibleArea.style.display = "none";
+  }
+}
+
+window.addEventListener("load", toggleUIData);
+
 // Form submission event for creating a new group
 document
   .getElementById("createGroupForm")
@@ -94,21 +168,34 @@ document
     // Get values from the form
     const groupName = document.getElementById("groupName").value;
     const groupType = document.getElementById("groupType").value;
+    console.log("groupType", groupType);
     const groupOU = document.getElementById("organizationDN").value;
     const groupDescription =
       document.getElementById("groupDescription").value ||
       "No description provided";
+    const groupScope = document.getElementById("groupScope").value;
+
+    // Dynamic setup for API prefix
+    let baseAPI;
+    try {
+      baseAPI = getBaseAPI(authType);
+    } catch (error) {
+      console.error("Error determining base API URL:", error.message);
+      alert("Invalid authentication type selected.");
+      return;
+    }
 
     // Encrypt form data before sending
     const groupPayload = encryptData({
       groupName,
       groupType,
       groupOU,
+      groupScope: groupScope || null,
       description: groupDescription,
     });
 
     try {
-      const response = await fetch(`${groupBaseAPI}/groups/createGroup`, {
+      const response = await fetch(`${baseAPI}/groups/createGroup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -140,8 +227,18 @@ document
   });
 // Fetch and list groups
 async function fetchGroups() {
+  // Dynamic setup for API prefix
+  let baseAPI;
   try {
-    const response = await fetch(`${groupBaseAPI}/groups/listGroups`, {
+    baseAPI = getBaseAPI(authType);
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${baseAPI}/groups/listGroups`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -227,8 +324,18 @@ document
 
 // Fetch filtered groups by groupType
 async function fetchFilteredGroups(groupType) {
+  // Dynamic setup for API prefix
+  let baseAPI;
   try {
-    const response = await fetch(`${groupBaseAPI}/groups/listGroups`, {
+    baseAPI = getBaseAPI(authType);
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${baseAPI}/groups/listGroups`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -271,6 +378,16 @@ window.usersData = [];
 
 // Lock group members
 async function lockGroupMembers(index) {
+  // Dynamic setup for API prefix
+  let baseAPI;
+  try {
+    baseAPI = getBaseAPI(authType);
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
   try {
     console.log(`Index: ${index}, Users Data:`, index.groupName);
 
@@ -280,7 +397,7 @@ async function lockGroupMembers(index) {
 
     const requestBody = { groupName: groupName, groupOU: groupOU };
     const encryptedData = encryptData(requestBody);
-    const response = await fetch(`${groupBaseAPI}/users/lockGroupMembers`, {
+    const response = await fetch(`${baseAPI}/users/lockGroupMembers`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -323,6 +440,16 @@ async function lockGroupMembers(index) {
 
 // View group details and members
 async function viewGroupDetails(groupName, groupType, groupOU) {
+  // Dynamic setup for API prefix
+  let baseAPI;
+  try {
+    baseAPI = getBaseAPI(authType);
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
   try {
     const encrypredGroupName = encryptData(groupName);
     const encrypredGroupOU = encryptData(groupOU);
@@ -332,7 +459,7 @@ async function viewGroupDetails(groupName, groupType, groupOU) {
     const encodedGroupOU = encodeURIComponent(encrypredGroupOU);
 
     const response = await fetch(
-      `${groupBaseAPI}/groups/membersInGroup?groupName=${encodedGroupName}&OU=${encodedGroupOU}`,
+      `${baseAPI}/groups/membersInGroup?groupName=${encodedGroupName}&OU=${encodedGroupOU}`,
       {
         method: "GET",
         headers: {
@@ -570,6 +697,16 @@ async function addMemberToGroup(
   newMember,
   memberOU
 ) {
+  // Dynamic setup for API prefix
+  let baseAPI;
+  try {
+    baseAPI = getBaseAPI(authType);
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
   const apiEndpoint = groupType === "admin" ? "addToAdminGroup" : "addToGroup";
 
   const payload = {
@@ -580,7 +717,7 @@ async function addMemberToGroup(
   };
 
   try {
-    const response = await fetch(`${groupBaseAPI}/groups/${apiEndpoint}`, {
+    const response = await fetch(`${baseAPI}/groups/${apiEndpoint}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -664,6 +801,16 @@ function setInvalid(input, message) {
 
 // Remove member from group
 async function removeMemberFromGroup(groupName, groupType, groupOU, member) {
+  // Dynamic setup for API prefix
+  let baseAPI;
+  try {
+    baseAPI = getBaseAPI(authType);
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
   try {
     console.warn(
       `groupName: ${groupName}, groupOU: ${groupOU}, groupType: ${groupType}, member: ${member}`
@@ -674,7 +821,7 @@ async function removeMemberFromGroup(groupName, groupType, groupOU, member) {
     const username = extractUsernameFromDN(member);
     const userOU = extractOU(member);
 
-    const response = await fetch(`${groupBaseAPI}/groups/${apiEndpoint}`, {
+    const response = await fetch(`${baseAPI}/groups/${apiEndpoint}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
