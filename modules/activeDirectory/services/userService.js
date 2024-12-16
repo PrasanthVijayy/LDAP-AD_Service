@@ -105,7 +105,8 @@ class UserService {
       const baseDN = process.env.AD_BASE_DN;
 
       // Default to search by objectClass=person if no filter provided
-      let searchFilter = "(objectClass=person)";
+      let searchFilter =
+        "(&(objectClass=person)(objectClass=user)(objectClass=organizationalPerson))";
       let statusFilter = null;
 
       // Apply the filter based on the query parameter (username, email, phone, ou)
@@ -143,14 +144,20 @@ class UserService {
       // Map and process user data
       let users = rawUsers.map((user) => {
         let status;
-        if (user.shadowFlag == 1) {
-          status = "deleted";
-        } else if (user.shadowInactive == 1) {
+        if (
+          user.userAccountControl == 512 ||
+          user.userAccountControl == 66048
+        ) {
+          status = "active";
+        } else if (
+          user.userAccountControl == 514 ||
+          user.userAccountControl == 66082
+        ) {
           status = "disabled";
         } else if (user.shadowExpire == 1) {
           status = "locked";
         } else {
-          status = "active";
+          status = "null";
         }
 
         // Extract the OU from the DN (distinguished name)
@@ -332,16 +339,16 @@ class UserService {
     }
   }
 
-  async modifyUserStatus(username, action) {
+  async modifyUserStatus(username, OU, action) {
     try {
       console.log(`Service: modifyUserStatus - ${action} - Started`);
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
-      const userDN = `cn=${username},ou=users,${process.env.AD_BASE_DN}`;
+      const userDN = `cn=${username},ou=${OU},${process.env.AD_BASE_DN}`;
 
       // Fetch the current 'description' field of the user
       const searchResults = await search(
-        `ou=users,${process.env.AD_BASE_DN}`,
+        `ou=${OU},${process.env.AD_BASE_DN}`,
         `(cn=${username})`
       );
 
@@ -349,14 +356,20 @@ class UserService {
         throw new NotFoundError(`User not found.`);
       }
 
-      const currentStatus = searchResults[0].shadowInactive || 0; // Default to 'enabled' if no description is found
+      const currentStatus = searchResults[0]?.userAccountControl; // Default to 'enabled' if no description is found
 
       // Validation based on the current status and requested action
-      if (action === "disable" && currentStatus == 1) {
+      if (
+        (action === "disable" && currentStatus == 514) ||
+        currentStatus == 66050
+      ) {
         throw new ConflictError(`User already disabled.`);
       }
 
-      if (action === "enable" && currentStatus == 0) {
+      if (
+        (action === "enable" && currentStatus == 512) ||
+        currentStatus == 66048
+      ) {
         throw new ConflictError(`User already enabled.`);
       }
 
@@ -367,7 +380,7 @@ class UserService {
           {
             operation: "replace",
             modification: {
-              shadowInactive: 1,
+              userAccountControl: 514,
             },
           },
         ];
@@ -376,7 +389,7 @@ class UserService {
           {
             operation: "replace",
             modification: {
-              shadowInactive: 0,
+              userAccountControl: 512,
             },
           },
         ];

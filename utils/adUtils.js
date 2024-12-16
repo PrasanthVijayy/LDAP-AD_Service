@@ -124,8 +124,6 @@ const search = async (baseDN, filter, scope = "sub") => {
   }
 };
 
-
-
 // Function to bind user to Active Directoryq
 const bind = async (dn, password) => {
   try {
