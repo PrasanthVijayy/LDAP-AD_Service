@@ -21,23 +21,29 @@ export const connectRoutes = async (app, authType) => {
 
     // Remove previously loaded routes from the Express stack
     if (loadedRoutes.length > 0) {
-      logger.info(
+      logger.warn(
         `Unloading previously loaded routes for authType "${currentAuthType}".`
       );
       app._router.stack = app._router.stack.filter(
-        (layer) =>
-          !loadedRoutes.includes(layer.name) && // Exclude loaded routes
-          !(layer.route && layer.route.path.startsWith("/LDAP/v1")) // Exclude OpenLDAP-specific paths
+        (layer) => !loadedRoutes.includes(layer.name) // Exclude loaded routes
       );
+
+      // Previously mentioned ldap api prefix since it is beeen loaded continuously (Removed dt:17/12)
+      // app._router.stack = app._router.stack.filter(
+      //   (layer) =>
+      //     !loadedRoutes.includes(layer.name) && // Exclude loaded routes
+      //     !(layer.route && layer.route.path.startsWith("/LDAP/v1")) // Exclude OpenLDAP-specific paths
+      // );
+
       loadedRoutes = []; // Clear the list of loaded routes
     }
 
     let routesDirectory;
     if (authType === "ldap") {
-      logger.info("Loading OpenLDAP routes...");
+      logger.success("Loading OpenLDAP routes...");
       routesDirectory = path.resolve("modules/openLdap/routes");
     } else if (authType === "ad") {
-      logger.info("Loading Active Directory routes...");
+      logger.success("Loading Active Directory routes...");
       routesDirectory = path.resolve("modules/activeDirectory/routes");
     } else {
       throw new BadRequestError("Invalid authentication type.");

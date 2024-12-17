@@ -58,24 +58,45 @@
               <h2 class="text-center mb-0">Login</h2>
               <!-- Dropdown for LDAP/AD -->
               <select id="authType" class="form-select w-auto">
-                <option value="ldap" selected>OpenLDAP</option>
-                <option value="ad">AD</option>
+                <option value="ldap" selected>My Ldap</option>
+                <option value="ad">Cylock</option>
               </select>
             </div>
 
             <form id="loginForm">
-              <!-- Username/Email input -->
-              <div class="form-group" id="usernameGroup">
-                <label for="username" class="required">Username</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="username"
-                  name="username"
-                  placeholder="Enter username"
-                  required
-                />
+              <!-- Username and Organizational Unit input in the same row -->
+              <div class="form-row mb-3">
+                <div class="col-md-6">
+                  <div class="form-group" id="usernameGroup">
+                    <label for="username" class="required">Username</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="username"
+                      name="username"
+                      placeholder="Enter username"
+                      required
+                    />
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group" id="ouGroup">
+                    <label for="ouSelect" class="required"
+                      >Organizational Unit</label
+                    >
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="ouSelect"
+                      name="ouSelect"
+                      placeholder="Enter Organizational Unit"
+                      required
+                    />
+                  </div>
+                </div>
               </div>
+
+              <!-- Email input for AD login (remains for AD login) -->
               <div class="form-group d-none" id="emailGroup">
                 <label for="email" class="required">Email</label>
                 <div class="input-group">
@@ -84,11 +105,8 @@
                     class="form-control"
                     id="email"
                     name="email"
-                    placeholder="Enter your mail"
+                    placeholder="Enter your email"
                   />
-                  <!-- <div class="input-group-append">
-                    <span class="input-group-text">@cylock.com</span>
-                  </div> -->
                 </div>
               </div>
 
@@ -121,31 +139,7 @@
                 </div>
               </div>
 
-              <!-- Organizational Unit input -->
-              <div class="form-group" id="ouGroup">
-                <label for="ouSelect" class="required"
-                  >Organizational Unit (OU)</label
-                >
-                <div class="input-group">
-                  <div class="input-group-prepend">
-                    <span class="input-group-text">ou=</span>
-                  </div>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="ouSelect"
-                    name="ouSelect"
-                    placeholder="Select or enter OU"
-                    list="ouOptions"
-                    required
-                  />
-                  <div class="input-group-append">
-                    <span class="input-group-text">,dc=myLDAP,dc=com</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- User type radio buttons -->
+              <!-- User type radio buttons in a separate row -->
               <div class="form-group" id="userTypeGroup">
                 <label>Type:</label>
                 <div class="form-check form-check-inline">
@@ -195,6 +189,15 @@
             </div>
           </div>
         </div>
+
+        <!-- Footer Section -->
+        <footer class="text-center mt-4 py-3">
+          <p>
+            <strong
+              >Powered by <span class="footer-color">Cybernexa</span></strong
+            >
+          </p>
+        </footer>
       </div>
     </div>
 
