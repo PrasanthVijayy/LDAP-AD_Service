@@ -90,8 +90,9 @@ class UserService {
         throw new BadRequestError("Invalid OU");
       } else if (error.message.includes("00000524" || "000021C8")) {
         throw new BadRequestError("Email already exists");
-      } else if (error.message.includes("0000052D")) { // Password mismatch with provided password in AD
-        throw new BadRequestError("Email username already in use");
+      } else if (error.message.includes("0000052D")) {
+        // Password mismatch with provided password in AD
+        throw new BadRequestError("Password not secured");
       } else {
         throw error;
       }
@@ -145,18 +146,22 @@ class UserService {
       // Map and process user data
       let users = rawUsers.map((user) => {
         let status;
+
+        const isLocked = user.badPwdCount > 0;
+
+        // Determine user status based on priority
         if (
-          user.userAccountControl == 512 ||
-          user.userAccountControl == 66048
-        ) {
-          status = "active";
-        } else if (
           user.userAccountControl == 514 ||
           user.userAccountControl == 66082
         ) {
           status = "disabled";
-        } else if (user.shadowExpire == 1) {
+        } else if (isLocked) {
           status = "locked";
+        } else if (
+          user.userAccountControl == 512 ||
+          user.userAccountControl == 66048
+        ) {
+          status = "active";
         } else {
           status = "null";
         }
@@ -173,9 +178,9 @@ class UserService {
           firstName: user.gn,
           lastName: user.sn,
           userName: user.cn,
-          email: user.mail,
+          email: user.userPrincipalName,
           phone: user.telephoneNumber,
-          address: user.registeredAddress,
+          address: user.streetAddress,
           postalCode: user.postalCode,
           status, // Determine user status
         };
@@ -549,45 +554,29 @@ class UserService {
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
       const userDN = `cn=${payload.username},ou=${payload.userOU},${process.env.AD_BASE_DN}`;
 
-      // Verify the user exists and fetch their details
-      const userSearchResults = await search(
-        userDN,
-        "(objectClass=inetOrgPerson)"
-      );
 
-      if (userSearchResults.length === 0) {
-        throw new BadRequestError(`User ${payload.username} not found.`);
-      }
+      let modifications = [];
 
-      const user = userSearchResults[0].shadowExpire || 0;
+      // if (payload.action === "lock") {
+      //   modifications = [
+      //     {
+      //       operation: "replace",
+      //       modification: {
+      //         shadowExpire: 1, // Set to 1 to lock the users
+      //       },
+      //     },
+      //   ];
+      // } else
 
-      // Validation based on the current status and requested action
-      if (payload.action === "lock" && user == 1) {
-        throw new ConflictError(`User already locked.`);
-      } else if (payload.action === "unlock" && user == 0) {
-        throw new ConflictError(`User already unlocked.`);
-      }
-
-      let modifications;
-
-      if (payload.action === "lock") {
-        modifications = [
-          {
-            operation: "replace",
-            modification: {
-              shadowExpire: 1, // Set to 1 to lock the users
-            },
-          },
-        ];
-      } else if (payload.action === "unlock") {
-        modifications = [
-          {
-            operation: "replace",
-            modification: {
-              shadowExpire: 0, // Set to 0 to unlock the users
-            },
-          },
-        ];
+      if (payload.action === "unlock") {
+        modifications.push({
+          operation: "replace",
+          modification: { lockoutTime: "0" }, // Unlock user
+        });
+        modifications.push({
+          operation: "replace",
+          modification: { accountExpires: 0 }, // Never expires
+        });
       } else {
         throw new BadRequestError(`Invalid action: ${payload.action}`);
       }
@@ -598,7 +587,8 @@ class UserService {
       console.log(`Service: userLockAction - ${payload.action} - Completed`);
       return { message: `User ${payload.action}ed successfully` };
     } catch (error) {
-      if (error.message.includes("No Such Object")) {
+      // No user found - error code
+      if (error.message.includes("0000208D")) {
         throw new NotFoundError(`User not found.`);
       }
       console.log("[AD] Service: userLockAction - Error", error);
@@ -681,11 +671,11 @@ class UserService {
 
       const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
 
-      // Attempt to bind with the current password to verify it
-      try {
-        await bind(userDN, currentPassword);
-      } catch (error) {
-        throw new BadRequestError("Invalid credentials.");
+      //General AD binding
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+
+      if (currentPassword) {
+        await authenticate(userDN, currentPassword);
       }
 
       // Validate that newPassword and confirmPassword match
@@ -696,30 +686,24 @@ class UserService {
       }
 
       // Retrieve user information
-      const searchResults = await search(userDN, "(objectClass=*)");
+      // const searchResults = await search(userDN, "(objectClass=*)");
 
-      if (searchResults.length === 0) {
-        throw new NotFoundError("User not found.");
-      }
+      // if (searchResults.length === 0) {
+      //   throw new NotFoundError("User not found.");
+      // }
 
-      const user = searchResults[0];
-      const userPassword = user.userPassword; // Retrieve the currently stored password
+      // const user = searchResults[0];
+      // const userPassword = user.userPassword; // Retrieve the currently stored password
 
       // Hash the new password using SSHA
-      const hashedNewPassword = createSSHAHash(newPassword);
+      const hashedNewPassword = UserService.encodePassword(newPassword);
 
       // Prepare the changes for LDAP
       const changes = [
         {
           operation: "replace",
           modification: {
-            userPassword: hashedNewPassword, // Update with SSHA hashed password
-          },
-        },
-        {
-          operation: "replace",
-          modification: {
-            shadowLastChange: Date.now(), // Store last change timestamp
+            unicodePwd: hashedNewPassword, // Update with SSHA hashed password
           },
         },
       ];
@@ -735,7 +719,15 @@ class UserService {
         throw new NotFoundError("User not found.");
       }
       console.log("[AD] Service: chpwd - Error", error);
-      throw error;
+      if (
+        error.message.includes(
+          "0000208D: NameErr: DSID-03100245, problem 2001 (NO_OBJECT)"
+        )
+      ) {
+        throw new NotFoundError("User not found");
+      } else {
+        throw error;
+      }
     }
   }
 
@@ -767,6 +759,9 @@ class UserService {
         // userType: isAdmin ? "admin" : "user",
       }; // Return success and user details
     } catch (error) {
+      if (error.message.includes("80090308")) {
+        throw new BadRequestError("Account locked, contact admin.");
+      }
       logger.error(`[AD] Service: login - Error ${error}`);
       throw error;
     }

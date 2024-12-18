@@ -234,11 +234,11 @@ class UserController {
     try {
       logger.success("[AD] Controller: updateUser - Started");
 
-      // const encryptedData = req.body.data; // Decrypt the encrypted data
-      // const payload = decryptPayload(encryptedData); // Decrypt the data
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
 
-      // const { username, userOU, attributes } = payload;
-      const { username, userOU, attributes } = req.body;
+      const { username, userOU, attributes } = payload;
+      // const { username, userOU, attributes } = req.body;
 
       let missingFields = [];
       if (!username) missingFields.push("username");
@@ -353,12 +353,12 @@ class UserController {
     try {
       logger.success("[AD] Controller: changeEmailPhone - Started");
 
-      // const encryptedData = req.body.data; // Decrypt the encrypted data
-      // const payload = decryptPayload(encryptedData); // Decrypt the data
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
 
-      // const { username, userOU, attributes } = payload;
+      const { username, userOU, attributes } = payload;
 
-      const { username, userOU, attributes } = req.body;
+      // const { username, userOU, attributes } = req.body;
 
       let missingFields = [];
       if (!username) missingFields.push("username");
@@ -471,7 +471,11 @@ class UserController {
   updateUserStatus = async (req, res, next) => {
     try {
       logger.success("[AD] Controller: updateUserStatus - Started");
-      const { username, action, OU } = req.body;
+      // const { username, action, OU } = req.body;
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
+
+      const { username, action, OU } = payload;
 
       // Validate required fields
       let missingFields = [];
@@ -582,6 +586,9 @@ class UserController {
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
 
+      // const { username, action, userOU } = req.body;
+      // const payload = req.body;
+
       let missingFields = [];
       if (!payload.username) missingFields.push("username");
       if (!payload.action) missingFields.push("action");
@@ -593,10 +600,21 @@ class UserController {
       }
 
       // Checking the requested OU is valid
-      await this.organizationService.listOrganizaitons(`ou=${payload.userOU}`);
+      if (payload.userOU) {
+        try {
+          await this.organizationService.listOrganizaitons(
+            `ou=${payload.userOU}`
+          );
+        } catch (error) {
+          if (error.name === "NotFoundError") {
+            error.message = `Invalid userOU: ${payload.userOU}`;
+          }
+          throw error;
+        }
+      }
 
-      if (!["unlock", "lock"].includes(payload.action)) {
-        throw new BadRequestError("Action should be either lock or unlock");
+      if (!["unlock"].includes(payload.action)) {
+        throw new BadRequestError("Only unlock action is allowed");
       }
       // const userExists = await search(
       //   `ou=${userOU},${process.env.AD_BASE_DN}`,
@@ -639,14 +657,14 @@ class UserController {
       logger.success("[AD] Controller: searchUser - Started");
 
       // Decrypt the incoming encrypted parameters
-      // const encryptedUsername = req.query.username;
-      // const encryptedUserOU = req.query.userOU;
+      const encryptedUsername = req.query.username;
+      const encryptedUserOU = req.query.userOU;
 
       // Decrypt the values
-      // const username = decryptPayload(encryptedUsername);
-      // const userOU = encryptedUserOU ? decryptPayload(encryptedUserOU) : null;
+      const username = decryptPayload(encryptedUsername);
+      const userOU = encryptedUserOU ? decryptPayload(encryptedUserOU) : null;
 
-      const { username, userOU } = req.query;
+      // const { username, userOU } = req.query;
       // Check for missing fields after decryption
       if (!username) {
         return next(new BadRequestError("Missing fields: username"));
@@ -677,8 +695,8 @@ class UserController {
   chpwd = async (req, res, next) => {
     try {
       logger.success("[AD] Controller: chpwd - Started");
-      const encryptedData = req.body.data; // Decrypt the encrypted data
-      const payload = decryptPayload(encryptedData); // Decrypt the data
+      // const encryptedData = req.body.data; // Decrypt the encrypted data
+      // const payload = decryptPayload(encryptedData); // Decrypt the data
 
       const {
         username,
@@ -686,7 +704,7 @@ class UserController {
         newPassword,
         confirmPassword,
         userOU,
-      } = payload;
+      } = req.body;
 
       let missingFields = [];
       if (!username) missingFields.push("username");

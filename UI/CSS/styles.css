@@ -4,6 +4,10 @@ body {
   background-color: #277acd; /* Common background color */
 }
 
+.footer-color {
+  color: rgb(46, 138, 46);
+}
+
 /* ---- Card styles apply only on the login page ---- */
 .login-page .card {
   border: none;
