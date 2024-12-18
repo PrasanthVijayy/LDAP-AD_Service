@@ -1,5 +1,4 @@
 const scriptBaseAPI = "/LDAP/v1"; // API Base URL
-const adScriptBaseAPI = "/AD/v1"; // AD Base URL
 const authType = localStorage.getItem("authType");
 
 // Function to get the correct base API URL based on authType
@@ -432,6 +431,8 @@ function displayUsers(users) {
     const lockBtn = row.querySelector(".lock-user-btn");
     const unlockBtn = row.querySelector(".unlock-user-btn");
     const editBtn = row.querySelector(".edit-user-btn");
+    const enableBtn = row.querySelector(".enable-user-btn");
+    const disableBtn = row.querySelector(".disable-user-btn");
 
     if (lockBtn)
       lockBtn.addEventListener("click", () => toggleUserLock(index, "lock"));
@@ -440,48 +441,136 @@ function displayUsers(users) {
         toggleUserLock(index, "unlock")
       );
     if (editBtn) editBtn.addEventListener("click", () => editUser(index));
+    if (enableBtn)
+      enableBtn.addEventListener("click", () =>
+        toggleUserAccess(index, "enable")
+      );
+    if (disableBtn)
+      disableBtn.addEventListener("click", () =>
+        toggleUserAccess(index, "disable")
+      );
+  });
+}
+
+let dynamicAuthType = null;
+
+async function checkSession() {
+  if (dynamicAuthType === null) {
+    try {
+      const response = await fetch(`${scriptBaseAPI}/session/check`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (response.ok) {
+        const sessionData = await response.json();
+        dynamicAuthType = sessionData?.user?.authType;
+        return dynamicAuthType; // Passing the authType
+      } else {
+        console.error("Failed to fetch session data.");
+        return null;
+      }
+    } catch (error) {
+      console.error("Error checking session:", error);
+      return null;
+    }
+  }
+  return dynamicAuthType;
+}
+
+// Fetch the authType at the beginning while page loading
+if (window.location.pathname === "/directoryManagement/listUsers") {
+  window.addEventListener("load", async () => {
+    await checkSession();
+    fetchUsers(); // Calling fetch user function
   });
 }
 
 // Helper function to generate lock/unlock/edit buttons based on user status
 function generateLockUnlockButtons(user, index) {
-  if (user.status === "deleted") {
-    return `
-      <button class="btn btn-link" disabled title="User is deleted and cannot be locked/unlocked">
-        <img src="/directoryManagement/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
-      </button>
-      <button class="btn btn-link" disabled title="User is deleted and cannot be locked/unlocked">
-        <img src="/directoryManagement/images/lockUser.png" alt="Lock" class="navigation-icon" />
-      </button>
-      <button class="btn btn-link" disabled title="Deleted user cannot edit">
-        <img src="/directoryManagement/images/editUser.png" alt="Edit" class="navigation-icon" />
-      </button>
-    `;
-  } else if (user.status === "locked") {
-    return `
-      <button class="btn btn-link unlock-user-btn" title="Unlock User">
-        <img src="/directoryManagement/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
-      </button>
-      <button class="btn btn-link" disabled title="User is locked and cannot be locked again">
-        <img src="/directoryManagement/images/lockUser.png" alt="Lock" class="navigation-icon" />
-      </button>
-      <button class="btn btn-link edit-user-btn" title="Edit User">
-        <img src="/directoryManagement/images/editUser.png" alt="Edit" class="navigation-icon" />
-      </button>
-    `;
-  } else {
-    return `
-      <button class="btn btn-link" disabled title="User is active and cannot be unlocked">
-        <img src="/directoryManagement/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
-      </button>
-      <button class="btn btn-link lock-user-btn" title="Lock User">
-        <img src="/directoryManagement/images/lockUser.png" alt="Lock" class="navigation-icon" />
-      </button>
-      <button class="btn btn-link edit-user-btn" title="Edit User">
-        <img src="/directoryManagement/images/editUser.png" alt="Edit" class="navigation-icon" />
-      </button>
-    `;
+  // Determine the authType dynamically
+  const authType = dynamicAuthType;
+
+  if (authType === "ad") {
+    // AD-specific logic: Enable/Disable based on user status and include Unlock
+    if (user.status === "disabled") {
+      return `
+      <button class="btn btn-link unlock-user-btn" disabled title="Unlock User">
+          <img src="/directoryManagement/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
+        </button>
+        <button class="btn btn-link enable-user-btn" title="Enable User">
+          <img src="/directoryManagement/images/enableUser.png" alt="Enable" class="navigation-icon" />
+        </button>        
+        <button class="btn btn-link edit-user-btn" title="Edit User">
+          <img src="/directoryManagement/images/editUser.png" alt="Edit" class="navigation-icon" />
+        </button>
+      `;
+    } else if (user.status === "locked") {
+      return `
+        <button class="btn btn-link unlock-user-btn" title="Unlock User">
+          <img src="/directoryManagement/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
+        </button>
+        <button class="btn btn-link" title="Lock User">
+          <img src="/directoryManagement/images/disableUser.png" alt="Lock" class="navigation-icon" />
+        </button>
+        <button class="btn btn-link edit-user-btn" title="Edit User">
+          <img src="/directoryManagement/images/editUser.png" alt="Edit" class="navigation-icon" />
+        </button>
+      `;
+    } else {
+      return `
+           <button class="btn btn-link unlock-user-btn" disabled title="Unlock User">
+          <img src="/directoryManagement/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
+        </button>
+        <button class="btn btn-link disable-user-btn" title="Disable User">
+          <img src="/directoryManagement/images/disableUser.png" alt="Disable" class="navigation-icon" />
+        </button>
+        <button class="btn btn-link edit-user-btn" title="Edit User">
+          <img src="/directoryManagement/images/editUser.png" alt="Edit" class="navigation-icon" />
+        </button>
+      `;
+    }
+  } else if (authType === "ldap") {
+    // LDAP-specific logic: Keep the current lock/unlock behavior
+    if (user.status === "disabled") {
+      return `
+        <button class="btn btn-link" disabled title="Unlock User">
+          <img src="/directoryManagement/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
+        </button>
+        <button class="btn btn-link" disabled title="Lock User">
+          <img src="/directoryManagement/images/lockUser.png" alt="Lock" class="navigation-icon" />
+        </button>
+        <button class="btn btn-link" title="Edit User">
+          <img src="/directoryManagement/images/editUser.png" alt="Edit" class="navigation-icon" />
+        </button>
+      `;
+    } else if (user.status === "locked") {
+      return `
+        <button class="btn btn-link unlock-user-btn" title="Unlock User">
+          <img src="/directoryManagement/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
+        </button>
+        <button class="btn btn-link" disabled title="Lock User">
+          <img src="/directoryManagement/images/lockUser.png" alt="Lock" class="navigation-icon" />
+        </button>
+        <button class="btn btn-link edit-user-btn" title="Edit User">
+          <img src="/directoryManagement/images/editUser.png" alt="Edit" class="navigation-icon" />
+        </button>
+      `;
+    } else {
+      return `
+        <button class="btn btn-link" disabled title="Unlock User">
+          <img src="/directoryManagement/images/unlockUser.png" alt="Unlock" class="navigation-icon" />
+        </button>
+        <button class="btn btn-link lock-user-btn" title="Lock User">
+          <img src="/directoryManagement/images/lockUser.png" alt="Lock" class="navigation-icon" />
+        </button>
+        <button class="btn btn-link edit-user-btn" title="Edit User">
+          <img src="/directoryManagement/images/editUser.png" alt="Edit" class="navigation-icon" />
+        </button>
+      `;
+    }
   }
+  // Fallback for unsupported authType
+  return `<p>Unsupported authType: ${authType}</p>`;
 }
 
 // Filter users by status
@@ -507,9 +596,9 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // Initial user fetch to particular page
-if (window.location.pathname === "/directoryManagement/listUsers") {
-  fetchUsers();
-}
+// if (window.location.pathname === "/directoryManagement/listUsers") {
+//   fetchUsers();
+// }
 
 // Show user details in the modal
 function showUserDetails(index) {
@@ -549,7 +638,17 @@ async function deleteUser(index) {
 
   const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
 
-  const apiUrl = `${scriptBaseAPI}/users/deleteUser`;
+  //Dynamic API setup
+  let baseAPI;
+  try {
+    baseAPI = getBaseAPI(authType); // Get the API prefix based on authType
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
+  const apiUrl = `${baseAPI}/users/deleteUser`;
 
   const data = encryptData({
     username: userToDelete.userName,
@@ -594,7 +693,7 @@ async function deleteUser(index) {
 // Toggle lock/unlock user
 
 async function toggleUserLock(index, action) {
-  const userToLock = window.usersData[index];
+  const userToLock = window.usersData[index + 1]; // +1 to skip the header
   if (!userToLock) return;
 
   // Extract user data from index
@@ -608,12 +707,97 @@ async function toggleUserLock(index, action) {
 
   const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
 
-  const apiUrl = `${scriptBaseAPI}/users/userLockAction`;
+  //Dynamic API setup
+  let baseAPI;
+  try {
+    baseAPI = getBaseAPI(authType); // Get the API prefix based on authType
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
+  const apiUrl = `${baseAPI}/users/userLockAction`;
   const requestBody = encryptData({
     username: username,
     userOU: indexOU,
     action: action,
   });
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "CSRF-Token": csrfToken },
+      body: JSON.stringify({ data: requestBody }),
+    });
+
+    if (response.status === 429) {
+      alert(
+        "Too many requests. Please wait a few minutes before trying again."
+      );
+      return; // Stop further execution
+    }
+
+    if (response.ok) {
+      const result = await response.json();
+      alert(result.message || "Action completed successfully.");
+      fetchUsers(); // Refresh user list after action
+    } else {
+      console.error(result.message || "Failed to toggle user lock:", response);
+      alert(
+        "An error occurred while trying to toggle user lock. Please try again later."
+      );
+    }
+  } catch (error) {
+    console.error("Error toggling user lock:", error);
+    alert("An error occurred. Please try again later.");
+  }
+}
+
+// Function to initiate user edit and pass necessary parameters
+function editUser(index) {
+  const editUser = window.usersData[index];
+  const username = editUser.userName;
+  const userOU = extractOU(editUser.dn); // Extract OU correctly
+
+  // Encrypting the username and userOU values
+  const encryptedUsername = encryptData(username);
+  const encryptedUserOU = encryptData(userOU);
+
+  window.location.href = `/directoryManagement/editUser?username=${encodeURIComponent(
+    encryptedUsername
+  )}&ou=${encodeURIComponent(encryptedUserOU)}`;
+}
+
+// Function to enable / disable a user
+async function toggleUserAccess(index, action) {
+  const editUser = window.usersData[index];
+  const username = editUser.userName;
+  const userOU = extractOU(editUser.dn); // Extract OU correctly
+
+  if (!userOU) {
+    alert("Failed to extract OU from user DN.");
+    return;
+  }
+
+  const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
+
+  //Dynamic API setup
+  let baseAPI;
+  try {
+    baseAPI = getBaseAPI(authType); // Get the API prefix based on authType
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
+  const apiUrl = `${baseAPI}/users/modifyUserAccess`;
+  const requestBody = encryptData({
+    username: username,
+    OU: userOU,
+    action: action, // enable or disable
+  });
+
   try {
     const response = await fetch(apiUrl, {
       method: "POST",
@@ -639,24 +823,9 @@ async function toggleUserLock(index, action) {
       );
     }
   } catch (error) {
-    console.error("Error toggling user lock:", error);
+    console.error("Error toggling user action:", error);
     alert("An error occurred. Please try again later.");
   }
-}
-
-// Function to initiate user edit and pass necessary parameters
-function editUser(index) {
-  const editUser = window.usersData[index];
-  const username = editUser.userName;
-  const userOU = extractOU(editUser.dn); // Extract OU correctly
-
-  // Encrypting the username and userOU values
-  const encryptedUsername = encryptData(username);
-  const encryptedUserOU = encryptData(userOU);
-
-  window.location.href = `/directoryManagement/editUser?username=${encodeURIComponent(
-    encryptedUsername
-  )}&ou=${encodeURIComponent(encryptedUserOU)}`;
 }
 
 // Populate form fields with user data
@@ -722,7 +891,17 @@ async function fetchUserDetails(username, userOU) {
 
     const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
 
-    const apiUrl = `${scriptBaseAPI}/users/listUsers?${urlParams.toString()}`;
+    //Dynamic API setup
+    let baseAPI;
+    try {
+      baseAPI = getBaseAPI(authType); // Get the API prefix based on authType
+    } catch (error) {
+      console.error("Error determining base API URL:", error.message);
+      alert("Invalid authentication type selected.");
+      return;
+    }
+
+    const apiUrl = `${baseAPI}/users/listUsers?${urlParams.toString()}`;
 
     const response = await fetch(apiUrl, {
       method: "GET",
@@ -873,10 +1052,20 @@ document.addEventListener("DOMContentLoaded", function () {
         const encryptedData = encryptData(data);
         const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
 
+        //Dynamic API setup
+        let baseAPI;
+        try {
+          baseAPI = getBaseAPI(authType); // Get the API prefix based on authType
+        } catch (error) {
+          console.error("Error determining base API URL:", error.message);
+          alert("Invalid authentication type selected.");
+          return;
+        }
+
         const apiUrl =
           editType === "general"
-            ? `${scriptBaseAPI}/users/updateUser`
-            : `${scriptBaseAPI}/users/updateContactDetails`;
+            ? `${baseAPI}/users/updateUser`
+            : `${baseAPI}/users/updateContactDetails`;
 
         try {
           const response = await fetch(apiUrl, {

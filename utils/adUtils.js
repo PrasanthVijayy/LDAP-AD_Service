@@ -42,8 +42,21 @@ const authenticate = async (username, password) => {
     await new Promise((resolve, reject) => {
       adInstance.authenticate(username, password, (err, auth) => {
         if (err) {
-          logger.error(`[AD] Authentication failed: ${err.message}`);
-          reject(new BadRequestError("Invalid credentials."));
+          if (
+            err.message.includes(
+              "80090308: LdapErr: DSID-0C090449, comment: AcceptSecurityContext error, data 775"
+            )
+          ) {
+            logger.error(`[AD] Authentication failed: ${err.message}`);
+            reject(
+              new BadRequestError(
+                "Your account has been locked, Contact Admin!"
+              )
+            );
+          } else {
+            logger.error(`[AD] Authentication failed: ${err.message}`);
+            reject(new BadRequestError("Invalid credentials."));
+          }
         } else if (!auth) {
           logger.error("[AD] Authentication failed: Invalid credentials.");
           reject(new BadRequestError("Invalid credentials."));
