@@ -32,6 +32,57 @@ function decryptPayload(cipherText) {
   return JSON.parse(decryptedData);
 }
 
+async function fetchSessionDetails() {
+  // Dynamic setup for API prefix
+  let baseAPI;
+  try {
+    baseAPI = getBaseAPI(authType);
+  } catch (error) {
+    console.error("Error determining base API URL:", error.message);
+    alert("Invalid authentication type selected.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${createUserBaseApiUrl}/session/check`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (response.ok) {
+      const sessionData = await response.json();
+      return sessionData.user?.authType;
+    } else {
+      console.error("Failed to fetch session details.");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching session details:", error.message);
+    return null;
+  }
+}
+
+async function toggleUIData() {
+  let authType;
+
+  if (!authType) {
+    // Get authType from session API
+    authType = await fetchSessionDetails();
+  }
+
+  const titleDropdown = document.getElementById("title");
+
+  if (authType === "ad") {
+    // Show and disable the dropdown for AD
+    titleDropdown.disabled = true;
+  } else {
+    // Enable the dropdown for non-AD
+    titleDropdown.disabled = false;
+  }
+}
+
+window.addEventListener("load", toggleUIData);
+
 $(document).ready(function () {
   let baseAPI;
   try {

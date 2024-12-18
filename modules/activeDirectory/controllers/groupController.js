@@ -22,7 +22,8 @@ class GroupController {
 
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
-      const { groupName, description, groupType, groupOU, groupScope } = payload;
+      const { groupName, description, groupType, groupOU, groupScope } =
+        payload;
 
       // const { groupName, description, groupType, groupOU, groupScope } =
       //   req.body;
@@ -150,6 +151,7 @@ class GroupController {
           if (error.name === "NotFoundError") {
             error.message = `Invalid groupOU: ${groupOU}`;
           }
+          throw error;
         }
       }
       //Checking is user exists with CN and OU
@@ -160,6 +162,7 @@ class GroupController {
           if (error.name === "NotFoundError") {
             error.message = `Invalid memberOU: ${memberOU}`;
           }
+          throw error;
         }
       }
       const userDN = `ou=${memberOU},${process.env.AD_BASE_DN}`;
@@ -311,6 +314,7 @@ class GroupController {
           if (error.name === "NotFoundError") {
             error.message = `Invalid groupOU: ${groupOU}`;
           }
+          throw error;
         }
       }
 
@@ -322,6 +326,7 @@ class GroupController {
           if (error.name === "NotFoundError") {
             error.message = `Invalid memberOU: ${memberOU}`;
           }
+          throw error;
         }
       }
 
