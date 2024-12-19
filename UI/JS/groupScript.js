@@ -108,43 +108,14 @@ $(document).on("click", ".dropdown-item", function (event) {
   }
 });
 
-// Dynamically show the groupScope only AD login users
-async function fetchSessionDetails() {
-  // Dynamic setup for API prefix
-  let baseAPI;
-  try {
-    baseAPI = getBaseAPI(authType);
-  } catch (error) {
-    console.error("Error determining base API URL:", error.message);
-    alert("Invalid authentication type selected.");
-    return;
-  }
 
-  try {
-    const response = await fetch(`${groupBaseAPI}/session/check`, {
-      method: "GET",
-      credentials: "include",
-    });
-
-    if (response.ok) {
-      const sessionData = await response.json();
-      return sessionData.user?.authType;
-    } else {
-      console.error("Failed to fetch session details.");
-      return null;
-    }
-  } catch (error) {
-    console.error("Error fetching session details:", error.message);
-    return null;
-  }
-}
 
 async function toggleUIData() {
   let authType;
 
   if (!authType) {
     // Get authType from session API
-    authType = await fetchSessionDetails();
+    authType = dynamicAuthType;
   }
 
   const visibleArea = document.getElementById("visibleScope");
@@ -157,7 +128,8 @@ async function toggleUIData() {
   }
 }
 
-window.addEventListener("load", toggleUIData);
+// Commented since we are using after getting the authType from API (used below).
+// window.addEventListener("load", toggleUIData);
 
 // Form submission event for creating a new group
 document
@@ -306,7 +278,7 @@ async function checkSession() {
 if (window.location.pathname === "/directoryManagement/createGroup") {
   window.addEventListener("load", async () => {
     await checkSession();
-    fetchUsers(); // Calling fetch user function
+    toggleUIData();
   });
 }
 // Populate groups table with lock and view actions
