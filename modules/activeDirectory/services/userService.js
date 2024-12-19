@@ -15,8 +15,6 @@ import {
 } from "../../../utils/error.js";
 import { createSSHAHash } from "../../../utils/encryption.js";
 import logger from "../../../config/logger.js";
-import { connectToAD } from "../../../config/adConfig.js";
-
 class UserService {
   //Commenting below function as it is not used anywhere (dt: 14/10)
 
@@ -88,7 +86,10 @@ class UserService {
         throw new BadRequestError("Username already created");
       } else if (error.message.includes("0000208D")) {
         throw new BadRequestError("Invalid OU");
-      } else if (error.message.includes("00000524" || "000021C8")) {
+      } else if (
+        error.message.includes("00000524") ||
+        error.message.includes("000021C8")
+      ) {
         throw new BadRequestError("Email already exists");
       } else if (error.message.includes("0000052D")) {
         // Password mismatch with provided password in AD
@@ -646,12 +647,11 @@ class UserService {
 
       // Return user details in the desired format
       return userExists.map((user) => ({
-        uid: user.uid,
         firstName: user.cn,
         lastName: user.sn,
         username: user.givenName,
-        mail: user.mail,
-        address: user.registeredAddress,
+        mail: user.userPrincipalName,
+        address: user.streetAddressess,
         postalCode: user.postalCode,
         phoneNumber: user.telephoneNumber,
       }));
@@ -665,21 +665,21 @@ class UserService {
     }
   }
 
-  async chpwd(username, currentPassword, newPassword, confirmPassword, userOU) {
+  async chpwd(payload) {
     try {
       logger.success("[AD] Service: chpwd - Started");
 
-      const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
+      const userDN = `cn=${payload.username},ou=${payload.userOU},${process.env.AD_BASE_DN}`;
 
       //General AD binding
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
-      if (currentPassword) {
-        await authenticate(userDN, currentPassword);
+      if (payload.currentPassword) {
+        await authenticate(userDN, payload.currentPassword);
       }
 
       // Validate that newPassword and confirmPassword match
-      if (newPassword !== confirmPassword) {
+      if (payload.newPassword !== payload.confirmPassword) {
         throw new BadRequestError(
           "New password and confirmation do not match."
         );
@@ -696,7 +696,7 @@ class UserService {
       // const userPassword = user.userPassword; // Retrieve the currently stored password
 
       // Hash the new password using SSHA
-      const hashedNewPassword = UserService.encodePassword(newPassword);
+      const hashedNewPassword = UserService.encodePassword(payload.newPassword);
 
       // Prepare the changes for LDAP
       const changes = [
@@ -715,9 +715,6 @@ class UserService {
         message: "Password changed successfully.",
       };
     } catch (error) {
-      if (error.message.includes("No Such Object")) {
-        throw new NotFoundError("User not found.");
-      }
       console.log("[AD] Service: chpwd - Error", error);
       if (
         error.message.includes(
@@ -736,7 +733,13 @@ class UserService {
       logger.success("[AD] Service: login - Started");
 
       // Authenticate user
-      await authenticate(email, password);
+      const userData = await authenticate(email, password);
+
+      const userName = userData?.cn;
+      const userOU = userData?.dn?.match(/OU=([^,]+)/)?.[1];
+
+      console.log(`userData, ${userName} & userOU: ${userOU}`);
+      console.warn("userou:", userOU);
 
       // Fetch groups with retry logic
       // const groups = await groupList(email);
@@ -756,6 +759,8 @@ class UserService {
       logger.success("[AD] Service: login - Completed");
       return {
         message: "Login successful.",
+        userName: userName,
+        userOU: userOU,
         // userType: isAdmin ? "admin" : "user",
       }; // Return success and user details
     } catch (error) {
