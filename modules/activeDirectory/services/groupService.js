@@ -68,6 +68,7 @@ class GroupService {
         groupName: group.cn,
         description: group.description,
         groupType: GroupService.mapGroupType(group.groupType),
+        isAdmin: group.groupType < 0, // Check if group is admin group for client side JS purpose
       }));
 
       if (groups.length === 0) {
