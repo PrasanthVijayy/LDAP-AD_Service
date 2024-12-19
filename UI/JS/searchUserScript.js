@@ -179,7 +179,6 @@ function displayUserDetails(users) {
   users.forEach((user) => {
     const row = `
       <tr>
-        <td>${user.uid}</td>
         <td>${user.username}</td>
         <td>${user.firstName || "N/A"}</td>
         <td>${user.lastName || "N/A"}</td>

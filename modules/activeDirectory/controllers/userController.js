@@ -195,11 +195,11 @@ class UserController {
   deleteUser = async (req, res, next) => {
     try {
       logger.success("[AD] Controller: deleteUser - Started");
-      // const encryptedData = req.body.data; // Decrypt the encrypted data
-      // const payload = decryptPayload(encryptedData); // Decrypt the data
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
 
-      // const { username, password, confirmPassword, userOU } = payload;
-      const { username, userOU } = req.body;
+      const { username, userOU } = payload;
+      // const { username, userOU } = req.body;
       let missingFields = [];
       if (!username) missingFields.push("username");
       if (!userOU) missingFields.push("userOU");
@@ -696,23 +696,25 @@ class UserController {
   chpwd = async (req, res, next) => {
     try {
       logger.success("[AD] Controller: chpwd - Started");
-      // const encryptedData = req.body.data; // Decrypt the encrypted data
-      // const payload = decryptPayload(encryptedData); // Decrypt the data
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
 
-      const {
-        username,
-        currentPassword,
-        newPassword,
-        confirmPassword,
-        userOU,
-      } = req.body;
+      // const {
+      //   username,
+      //   currentPassword,
+      //   newPassword,
+      //   confirmPassword,
+      //   userOU,
+      // } = req.body;
+
+      // const payload = req.body;
 
       let missingFields = [];
-      if (!username) missingFields.push("username");
-      if (!currentPassword) missingFields.push("currentPassword");
-      if (!newPassword) missingFields.push("newPassword");
-      if (!confirmPassword) missingFields.push("confirmPassword");
-      if (!userOU) missingFields.push("OU");
+      if (!payload.username) missingFields.push("username");
+      if (!payload.currentPassword) missingFields.push("currentPassword");
+      if (!payload.newPassword) missingFields.push("newPassword");
+      if (!payload.confirmPassword) missingFields.push("confirmPassword");
+      if (!payload.userOU) missingFields.push("OU");
 
       if (missingFields.length > 0) {
         return next(
@@ -729,13 +731,7 @@ class UserController {
       //   throw new NotFoundError(`User not found.`);
       // }
 
-      const message = await this.userService.chpwd(
-        username,
-        currentPassword,
-        newPassword,
-        confirmPassword,
-        userOU
-      );
+      const message = await this.userService.chpwd(payload);
       logger.success("[AD] Controller: chpwd - Completed");
       res.status(202).json(message);
     } catch (error) {
@@ -775,8 +771,9 @@ class UserController {
       // Create a session for the user
       req.session.user = {
         email: email,
-        userType: "admin",
-        // OU: OU || fetchedOU,
+        userType: "user",
+        username: message?.userName,
+        OU: message?.userOU,
         authMethod: "Password",
         authType: authType,
       };
