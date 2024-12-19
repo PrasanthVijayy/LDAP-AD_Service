@@ -276,8 +276,43 @@ function extractOU(dn) {
   return ouMatch ? ouMatch[1] : "N/A"; // Return the matched OU, or 'N/A' if not found
 }
 
+// Loading the authType single time without misusing the API
+let dynamicAuthType = null;
+
+async function checkSession() {
+  if (dynamicAuthType === null) {
+    try {
+      const response = await fetch(`${groupBaseAPI}/session/check`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (response.ok) {
+        const sessionData = await response.json();
+        dynamicAuthType = sessionData?.user?.authType;
+        return dynamicAuthType; // Passing the authType
+      } else {
+        console.error("Failed to fetch session data.");
+        return null;
+      }
+    } catch (error) {
+      console.error("Error checking session:", error);
+      return null;
+    }
+  }
+  return dynamicAuthType;
+}
+
+// Fetch the authType at the beginning while page loading
+if (window.location.pathname === "/directoryManagement/createGroup") {
+  window.addEventListener("load", async () => {
+    await checkSession();
+    fetchUsers(); // Calling fetch user function
+  });
+}
 // Populate groups table with lock and view actions
 function populateGroupsTable(groups) {
+  const authType = dynamicAuthType; // Get authType to load images dynamically
+
   const tableBody = document.getElementById("groupTableBody");
   tableBody.innerHTML = ""; // Clear previous content
 
@@ -285,23 +320,29 @@ function populateGroupsTable(groups) {
     const groupOU = extractOU(group.dn) || "N/A"; // Extract groupOU from DN
     const row = document.createElement("tr");
 
-    // Assuming you have your row creation code inside a loop, after this line:
-    row.innerHTML = `
-  <th scope="row">${index + 1}</th>
-  <td>${group.groupName}</td>
-  <td>${group.groupType}</td>
-  <td>${groupOU}</td>
-  <td>
-    <button class="btn btn-link" title="Lock Group">
-      <img src="/directoryManagement/images/lockUser.png" alt="Lock Group" class="group-icons">
-    </button>
-    <button class="btn btn-link" title="View Members">
-      <img src="/directoryManagement/images/groupMembers.png" alt="View Group" class="group-icons">
-    </button>
-  </td>
-`;
+    // Dynamically set image paths based on authType
+    const lockImage =
+      authType === "ad"
+        ? "/directoryManagement/images/disableUser.png" // lockUser image for OpenLDAP
+        : "/directoryManagement/images/lockUser.png"; // disableUser image for AD
+    const lockAltText = authType === "ad" ? "Disable Group" : "Lock Group";
 
-    const lockButton = row.querySelector("button[title='Lock Group']");
+    row.innerHTML = `
+      <th scope="row">${index + 1}</th>
+      <td>${group.groupName}</td>
+      <td>${group.groupType}</td>
+      <td>${groupOU}</td>
+      <td> 
+        <button class="btn btn-link" title="${lockAltText}">
+          <img src="${lockImage}" alt="${lockAltText}" class="group-icons">
+        </button>
+        <button class="btn btn-link" title="View Members">
+          <img src="/directoryManagement/images/groupMembers.png" alt="View Group" class="group-icons">
+        </button>
+      </td>
+    `;
+
+    const lockButton = row.querySelector("button[title='" + lockAltText + "']");
     const viewButton = row.querySelector("button[title='View Members']");
 
     // Attach event listeners

@@ -452,6 +452,7 @@ function displayUsers(users) {
   });
 }
 
+// Loading the authType single time without misusing the API
 let dynamicAuthType = null;
 
 async function checkSession() {
