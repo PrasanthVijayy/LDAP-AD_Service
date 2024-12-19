@@ -547,11 +547,12 @@ class UserController {
     }
   };
 
-  // Lock users on group basis
+  // Disable users on group basis since manual lock in AD not possible
   lockGroupMembers = async (req, res, next) => {
     try {
-      logger.success("[AD] Controller: modifyUserLockStatus - Started");
+      logger.success("[AD] Controller: disableUser - Started");
       // const { groupName, groupOU } = req.body;
+      // const payload = req.body;
       const encryptedData = req.body.data;
       const payload = decryptPayload(encryptedData); // Decrypt the data
 
@@ -571,10 +572,10 @@ class UserController {
       // }
 
       const message = await this.userService.lockGroupMembers(payload);
-      logger.success("[AD] Controller: lockUser - Completed");
+      logger.success("[AD] Controller: disableUser - Completed");
       res.status(202).json(message);
     } catch (error) {
-      logger.success("[AD] Controller: lockUser - Error", error);
+      logger.success("[AD] Controller: disableUser - Error", error);
       next(error);
     }
   };

@@ -460,9 +460,9 @@ class UserService {
 
   async lockGroupMembers(payload) {
     try {
-      console.log(
-        `Service: lockGroupMembers - Locking members of group ${payload.groupName} Started`
-      );
+      logger.success(`[AD] Service: disableGroupMembers - Started`);
+
+      logger.success(`Locking members of group: ${payload.groupName}`);
 
       // Bind with LDAP admin credentials
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
@@ -471,11 +471,17 @@ class UserService {
       const groupDN = `cn=${payload.groupName},ou=${payload.groupOU},${process.env.AD_BASE_DN}`;
 
       // Search for all members (users) in the group
-      const searchFilter = `(member=*)`; // Searches for the "member" attribute in the group
+      const searchFilter = `(objectClass=*)`; // Ensure it fetches all attributes
       const groupSearchResults = await search(groupDN, searchFilter);
 
       // Extract members' DNs (Distinguished Names)
       let groupMembers = groupSearchResults[0]?.member || [];
+      console.log("Group members", groupMembers);
+
+      // Transforming to array to avoid errors of undefined
+      if (!Array.isArray(groupMembers)) {
+        groupMembers = [groupMembers];
+      }
 
       // Filter out empty or invalid member DNs
       groupMembers = groupMembers.filter(
@@ -495,10 +501,12 @@ class UserService {
       // Loop through each valid member and lock them
       for (const userDN of groupMembers) {
         try {
-          // Verify the user exists and fetch their details
+          console.log(`Processing user: ${userDN}`);
+
+          // Check if the user exists
           const userSearchResults = await search(
             userDN,
-            "(objectClass=inetOrgPerson)"
+            "(objectClass=user)" // Specific to AD
           );
 
           if (userSearchResults.length === 0) {
@@ -506,43 +514,36 @@ class UserService {
             continue; // Skip if the user is not found
           }
 
-          const user = userSearchResults[0];
-
-          // Check if the user is already locked
-          if (user.shadowExpire === 1) {
-            console.log(`User ${userDN} is already locked.`);
-            continue; // Skip if already locked
-          }
-
+          // Apply the locking operation
           const modifications = [
             {
               operation: "replace",
               modification: {
-                shadowExpire: 1, // Set to 1 to lock the user
+                // Disable the user, since manual lock is not possible in AD
+                userAccountControl: 514,
               },
             },
           ];
 
-          // Apply the modification to lock the user
           await modify(userDN, modifications);
-          console.log(`Locked user: ${userDN}`);
-          lockedCount++; // Increment the locked user count
+          console.log(`Disabled user: ${userDN}`);
+          lockedCount++;
         } catch (err) {
-          console.log(`Error locking user ${userDN}:`, err);
+          console.log(
+            `[AD] Error while disabling user ${userDN}:`,
+            err.message
+          );
         }
       }
 
-      // Log the completion of the lock operation
-      console.log(`Service: lockGroupMembers - Completed`);
-
-      // Return the result message
+      logger.success(`[AD] Service: disableGroupMembers -Completed`);
       return {
-        message: `Locked ${lockedCount} member(s) from group successfully.`,
+        message: `Disabled ${lockedCount} member(s) from group successfully.`,
       };
     } catch (error) {
-      console.log(`Service: lockGroupMembers - Error`, error);
-      if (error.message.includes("No Such Object")) {
-        throw new NotFoundError(`Group '${groupName}' not found.`);
+      console.log(`Service: disableGroupMembers - Error`, error);
+      if (error.message.includes("0000208D")) {
+        throw new NotFoundError(`Group '${payload.groupName}' not found.`);
       }
       throw error;
     }
@@ -553,7 +554,6 @@ class UserService {
       console.log(`Service: userLockAction - ${payload.action} - Started`);
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
       const userDN = `cn=${payload.username},ou=${payload.userOU},${process.env.AD_BASE_DN}`;
-
 
       let modifications = [];
 
