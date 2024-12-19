@@ -207,7 +207,6 @@ async function handleLogin() {
     }
 
     const selectResponsePayload = await selectResponse.json();
-    console.log("selectResponsePayload: ", selectResponsePayload);
 
     // Proceeding with the Authenticate API call after successful authType selection
     const authenticateResponse = await fetch(apiUrlAuthenticate, {

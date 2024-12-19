@@ -70,7 +70,6 @@ async function fetchOrganizationalUnits() {
 
     const result = await response.json();
     const decryptedData = decryptPayload(result.data);
-    console.log("decryptedData", decryptedData);
     const groupsOU = decryptedData.organizations;
 
     if (response.ok && groupsOU && groupsOU.length > 0) {
@@ -129,7 +128,6 @@ document
     // Get values from the form
     const groupName = document.getElementById("groupName").value;
     const groupType = document.getElementById("groupType").value;
-    console.log("groupType", groupType);
     const groupOU = document.getElementById("organizationDN").value;
     const groupDescription =
       document.getElementById("groupDescription").value ||
@@ -391,8 +389,6 @@ async function lockGroupMembers(index) {
   }
 
   try {
-    console.log(`Index: ${index}, Users Data:`, index.groupName);
-
     const group = window.usersData[index];
     const groupName = group.groupName;
     const groupOU = extractOU(group.dn);
@@ -586,8 +582,6 @@ function openAddMemberInput(groupName, groupType, groupOU, isAdmin) {
   if (document.getElementById("addMemberInputRow")) return;
 
   // Log values to ensure correct order
-  console.log("Adding member with:", { groupName, groupOU, groupType });
-
   // Row 1: Member Username and Member OU
   const memberRow = document.createElement("div");
   memberRow.classList.add("form-row", "mt-3");
@@ -833,9 +827,6 @@ async function removeMemberFromGroup(groupName, groupType, groupOU, member) {
   }
 
   try {
-    console.warn(
-      `groupName: ${groupName}, groupOU: ${groupOU}, groupType: ${groupType}, member: ${member}`
-    );
     // Use groupType to determine correct endpoint
     const apiEndpoint =
       groupType === "admin" ? "deleteFromAdminGroup" : "deleteFromGroup";

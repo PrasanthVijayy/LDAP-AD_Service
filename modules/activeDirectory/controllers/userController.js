@@ -195,11 +195,11 @@ class UserController {
   deleteUser = async (req, res, next) => {
     try {
       logger.success("[AD] Controller: deleteUser - Started");
-      // const encryptedData = req.body.data; // Decrypt the encrypted data
-      // const payload = decryptPayload(encryptedData); // Decrypt the data
+      const encryptedData = req.body.data; // Decrypt the encrypted data
+      const payload = decryptPayload(encryptedData); // Decrypt the data
 
-      // const { username, password, confirmPassword, userOU } = payload;
-      const { username, userOU } = req.body;
+      const { username, userOU } = payload;
+      // const { username, userOU } = req.body;
       let missingFields = [];
       if (!username) missingFields.push("username");
       if (!userOU) missingFields.push("userOU");

@@ -106,12 +106,12 @@ class UserService {
 
       const baseDN = process.env.AD_BASE_DN;
 
-      // Default to search by objectClass=person if no filter provided
+      // Default search filter for all users
       let searchFilter =
         "(&(objectClass=person)(objectClass=user)(objectClass=organizationalPerson))";
       let statusFilter = null;
 
-      // Apply the filter based on the query parameter (username, email, phone, ou)
+      // Parse filter string to extract valid conditions
       if (filter) {
         const filterParts = filter.split(",");
         let filterConditions = [];
@@ -124,32 +124,36 @@ class UserService {
           } else if (field === "mail") {
             filterConditions.push(`(mail=${value})`); // Email filter
           } else if (field === "telephoneNumber") {
-            filterConditions.push(`(telephoneNumber=${value})`); // Phone number filter
+            filterConditions.push(`(telephoneNumber=${value})`); // Phone filter
           } else if (field === "status") {
-            filterConditions.push(`(status=${value})`); // Status filter
+            statusFilter = value; // Status for post-filtering
           } else if (field === "ou") {
             filterConditions.push(`(ou=${value})`); // OU based filter
           }
         });
 
-        // If valid filters exist, combine them with the AND operator (&)
+        // Combine filters into the LDAP query if conditions exist
         if (filterConditions.length > 0) {
           searchFilter = `(&${searchFilter}${filterConditions.join("")})`;
         }
       }
 
       logger.success("[AD] Searching for users with filter:", searchFilter);
-      const scope = "sub"; // Scope to search within subordinates
-      const rawUsers = await search(baseDN, searchFilter, scope);
-      logger.success("[AD] Service: listUsers - Completed");
 
-      // Map and process user data
-      let users = rawUsers.map((user) => {
+      // Perform LDAP search
+      const scope = "sub";
+      const rawUsers = await search(baseDN, searchFilter, scope);
+      logger.success("[AD] Service: listUsers - Search Completed");
+
+      // Filter only users whose DN contains 'OU='
+      const ouBasedUsers = rawUsers.filter((user) => user.dn.includes(",OU="));
+
+      // Map the OU-based users to structured data
+      const users = ouBasedUsers.map((user) => {
         let status;
 
+        // Determine the account status
         const isLocked = user.badPwdCount > 0;
-
-        // Determine user status based on priority
         if (
           user.userAccountControl == 514 ||
           user.userAccountControl == 66082
@@ -163,12 +167,12 @@ class UserService {
         ) {
           status = "active";
         } else {
-          status = "null";
+          status = "unknown";
         }
 
-        // Extract the OU from the DN (distinguished name)
+        // Extract OU from DN
         // const ouMatch = user.dn.match(/ou=([^,]+)/i);
-        // const ou = ouMatch ? ouMatch[1] : "Unknown"; // Extract OU from DN
+        // const userOU = ouMatch ? ouMatch[1] : "Unknown";
 
         return {
           dn: user.dn,
@@ -186,17 +190,13 @@ class UserService {
         };
       });
 
-      // Apply the OU filter if present
-      // if (ouFilter) {
-      //   users = users.filter((user) => user.ou === ouFilter);
-      // }
-
-      // Apply status filter if provided
+      // Apply status filter post-processing if provided
+      let filteredUsers = users;
       if (statusFilter) {
-        users = users.filter((user) => user.status === statusFilter);
+        filteredUsers = users.filter((user) => user.status === statusFilter);
       }
 
-      return { count: users.length, users };
+      return { count: filteredUsers.length, users: filteredUsers };
     } catch (error) {
       console.log("[AD] Service: listUsers - Error", error);
       throw error;

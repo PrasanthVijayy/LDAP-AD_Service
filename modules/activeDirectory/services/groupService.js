@@ -63,12 +63,18 @@ class GroupService {
       const scope = "sub";
       const rawGroups = await search(baseDN, searchFilter, scope);
       logger.success("[AD] Service: listGroups - Completed");
-      const groups = rawGroups.map((group) => ({
+
+      // Filter only groups with 'OU' in the distinguished name
+      const ouBasedGroups = rawGroups.filter((group) =>
+        group.dn.includes(",OU=")
+      );
+
+      const groups = ouBasedGroups.map((group) => ({
         dn: group.dn,
         groupName: group.cn,
-        description: group.description,
+        description: group.description || "No description available",
         groupType: GroupService.mapGroupType(group.groupType),
-        isAdmin: group.groupType < 0, // Check if group is admin group for client side JS purpose
+        isAdmin: group.groupType < 0, // Check if group is admin group for client-side JS
       }));
 
       if (groups.length === 0) {
