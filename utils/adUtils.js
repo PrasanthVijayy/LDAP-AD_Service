@@ -160,6 +160,26 @@ const bind = async (dn, password) => {
   }
 };
 
+// Function to unbind from Active Directory
+const unBind = async () => {
+  try {
+    return new Promise((resolve, reject) => {
+      ldapClient.unbind((err) => {
+        if (err) {
+          logger.error(`Failed to unbind from AD: ${err.message}`);
+          reject(new Error("AD unbind failed: " + err.message));
+        } else {
+          logger.success(`Successfully unbound from AD`);
+          resolve(); // Successfully unbound from AD
+        }
+      });
+    });
+  } catch (error) {
+    logger.error("Error unbinding from Active Directory: " + error.message);
+    throw error;
+  }
+};
+
 // Function to add a new user/entry to Active Directory
 const add = async (dn, attributes) => {
   try {
@@ -278,6 +298,7 @@ export {
   authenticate,
   findUser,
   bind,
+  unBind,
   search,
   add,
   modify,
