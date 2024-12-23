@@ -1,12 +1,13 @@
-/* ---------- RENDER ROUTES SETUP START----------*/
+"use strict";
 
-"use strict"; // Strict mode enabled
 import passport from "passport";
 import logger from "../../config/logger.js";
 import apiLimiter from "../../middleware/apiLimiter.js";
 import csrfProtection from "../../UI/libs/csurfProtection.js";
 import { search } from "../../utils/ldapUtils.js";
 import { samlUtils } from "../../utils/samlUtils.js";
+import { connectRoutes } from "./routesConnector.js";
+import { connectDirectory } from "../../utils/directoryConnector.js";
 
 export const renderRoutes = (app) => {
   // Render index page
@@ -138,6 +139,20 @@ export const renderRoutes = (app) => {
           return res.redirect("/saml/login");
         }
 
+        const authType = "ldap"; // Set authType to LDAP for SAML users
+
+        // Set authType in session for dynamic route loading
+        req.session.method = { authType };
+
+        try {
+          await connectDirectory(authType); // Connect to directory (LDAP by default as of now)
+          await connectRoutes(app, authType); // Load dynamic routes based on authType
+          logger.success(`Dynamic routes loaded for authType: ${authType}`);
+        } catch (routeError) {
+          logger.error("Failed to load dynamic routes:", routeError);
+          return res.redirect("/saml/login");
+        }
+
         // Extract employeeNumber from SAML response
         const employeeNumber = req.user?.empID;
 
@@ -182,7 +197,7 @@ export const renderRoutes = (app) => {
           userType: ldapUser?.title,
           OU: ldapUser?.ou || null,
           authMethod: "SAML",
-          authType: null,
+          authType: "ldap", // Directly set authType to LDAP for SAML users (since no updates made further)
         };
 
         // Set session expiration dynamically based on SAML assertion
@@ -221,5 +236,3 @@ export const renderRoutes = (app) => {
     res.redirect("/");
   });
 };
-
-/* ---------- RENDER ROUTES SETUP END ----------*/
