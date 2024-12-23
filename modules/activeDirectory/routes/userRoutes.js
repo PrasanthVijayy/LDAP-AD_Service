@@ -23,6 +23,7 @@ const adUserRoutes = (app) => {
   router.post("/userLockAction", csrfProtection, sessionMiddleware, apiLimiter(), userController.userLockAction); // Lock or Unlock user (shadowExpire -> 0 or 1)
   router.get("/listLockedUsers", csrfProtection, sessionMiddleware, apiLimiter(), userController.listLockedUsers); // List lockedUsers
   router.post("/listUpdatedUsers", csrfProtection, sessionMiddleware, apiLimiter(), userController.listUpdatedUsers); // List updatedUsers
+  router.post("/groupMembership", csrfProtection, sessionMiddleware, apiLimiter(), userController.groupMembership); // Group membership of  a user
 
   /* SELF SERVICE ROUTES */
   router.get("/search", csrfProtection, sessionMiddleware, apiLimiter(), userController.searchUser); // Search user
