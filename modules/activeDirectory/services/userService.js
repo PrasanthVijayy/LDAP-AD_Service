@@ -1,6 +1,7 @@
 import {
   authenticate,
   bind,
+  unBind,
   search,
   add,
   modify,
@@ -13,8 +14,9 @@ import {
   NotFoundError,
   UnauthorizedError,
 } from "../../../utils/error.js";
-import { createSSHAHash } from "../../../utils/encryption.js";
 import logger from "../../../config/logger.js";
+import { connectToAD } from "../../../config/adConfig.js";
+import { promisify } from "util";
 class UserService {
   //Commenting below function as it is not used anywhere (dt: 14/10)
 
@@ -34,8 +36,6 @@ class UserService {
       if (!payload.userPassword) {
         throw new BadRequestError("Missing password field");
       }
-
-      const hashedPassword = createSSHAHash(payload.userPassword);
 
       const userAttributes = {
         // uid: uniqueUid,
@@ -72,6 +72,9 @@ class UserService {
 
       await add(userDN, userAttributes);
       logger.success("[AD] Service: addUser - Completed");
+
+      logger.success("[AD] Service: addUser - Unbind initiated");
+      await unBind(); // Unbind the user
       return {
         message: "User added successfully.",
         userDetails: {
@@ -81,6 +84,9 @@ class UserService {
         },
       };
     } catch (error) {
+      logger.error(`[AD] Service: addUser - Error - Unbind initiated`);
+      await unBind(); // Unbind the user
+
       console.log("[AD] Service: addUser - Error", error);
       if (error.message.includes("00002071")) {
         throw new BadRequestError("Username already created");
@@ -197,8 +203,14 @@ class UserService {
         filteredUsers = users.filter((user) => user.status === statusFilter);
       }
 
+      logger.success("[AD] Service: listUsers - Unbind initiated");
+      await unBind(); // Unbind the user
+
       return { count: filteredUsers.length, users: filteredUsers };
     } catch (error) {
+      logger.error(`[AD] Service: listUsers - Error - Unbind initiated`);
+      await unBind(); // Unbind the user
+
       console.log("[AD] Service: listUsers - Error", error);
       throw error;
     }
@@ -228,8 +240,15 @@ class UserService {
       }
 
       logger.success("[AD] Service: resetPassword - Completed");
+
+      logger.success("[AD] Service: resetPassword - Unbind initiated");
+      await unBind(); // Unbind the user
+
       return { message: "Password reset successfully." };
     } catch (error) {
+      logger.error(`[AD] Service: resetPassword - Error - Unbind initiated`);
+      await unBind(); // Unbind the user
+
       console.log("[AD] Service: resetPassword - Error", error);
       if (
         error.message.includes(
@@ -252,8 +271,14 @@ class UserService {
       await deleteEntry(userDN); // Delete user from LDAP (initally it was just flag within a attribute)
       logger.success("[AD] Service: deleteUser - Completed");
 
+      logger.success("[AD] Service: addUser - Unbind initiated");
+      await unBind(); // Unbind the user
+
       return { message: "User deleted successfully." };
     } catch (error) {
+      logger.error(`[AD] Service: deleteUser - Error - Unbind initiated`);
+      await unBind(); // Unbind the user
+
       if (error.message.includes("0000208D")) {
         throw new NotFoundError("User not found");
       }
@@ -309,8 +334,15 @@ class UserService {
 
       await modify(userDN, changes);
       logger.success("[AD] Service: updateUser - Completed");
+
+      logger.success("[AD] Service: addUser - Unbind initiated");
+      await unBind(); // Unbind the user
+
       return { message: "User updated successfully." };
     } catch (error) {
+      logger.error(`[AD] Service: updateUser - Error - Unbind initiated`);
+      await unBind(); // Unbind the user
+
       console.log("[AD] Service: updateUser - Error", error);
       if (error.message.includes("0000208D")) {
         throw new NotFoundError("User not found");
@@ -349,8 +381,17 @@ class UserService {
       await modify(userDN, changes);
 
       logger.success("[AD] Service: updateContactDetails - Completed");
+
+      logger.success("[AD] Service: addUser - Unbind initiated");
+      await unBind(); // Unbind the user
+
       return { message: "Contact details updated successfully." };
     } catch (error) {
+      logger.error(
+        `[AD] Service: updateContactDetails - Error - Unbind initiated`
+      );
+      await unBind(); // Unbind the user
+
       console.log("[AD] Service: updateContactDetails - Error", error);
       if (error.message.includes("0000208D")) {
         throw new NotFoundError("User not found");
@@ -424,8 +465,14 @@ class UserService {
       await modify(userDN, modifications);
       console.log(`Service: modifyUserStatus - ${action} - Completed`);
 
+      logger.success("[AD] Service: modifyUserStatus - Unbind initiated");
+      await unBind(); // Unbind the user
+
       return { message: `User ${action}d successfully.` };
     } catch (error) {
+      logger.error(`[AD] Service: modifyUserStatus - Error - Unbind initiated`);
+      await unBind(); // Unbind the user
+
       console.log(`Service: modifyUserStatus - Error`, error);
       if (error.message.includes("No Such Object")) {
         throw new NotFoundError(`User '${username}' not found.`);
@@ -445,15 +492,19 @@ class UserService {
         `ou=users,${process.env.AD_BASE_DN}`,
         filter
       );
+      logger.success("[AD] Service: modifyUserStatus - Unbind initiated");
+      await unBind(); // Unbind the user
 
       logger.success("[AD] Service: getLockedUsers - Completed");
-
       return lockedUsers.map((user) => ({
         username: user.cn,
         mail: user.mail,
         status: "disabled",
       }));
     } catch (error) {
+      logger.error(`[AD] Service: getLockedUsers - Error - Unbind initiated`);
+      await unBind(); // Unbind the user
+
       console.log("[AD] Service: getLockedUsers - Error", error);
       throw error;
     }
@@ -536,12 +587,19 @@ class UserService {
           );
         }
       }
+      logger.success("[AD] Service: addUser - Unbind initiated");
+      await unBind(); // Unbind the user
 
       logger.success(`[AD] Service: disableGroupMembers -Completed`);
       return {
         message: `Disabled ${lockedCount} member(s) from group successfully.`,
       };
     } catch (error) {
+      logger.error(
+        `[AD] Service: disableGroupMembers - Error - Unbind initiated`
+      );
+      await unBind(); // Unbind the user
+
       console.log(`Service: disableGroupMembers - Error`, error);
       if (error.message.includes("0000208D")) {
         throw new NotFoundError(`Group '${payload.groupName}' not found.`);
@@ -557,17 +615,6 @@ class UserService {
       const userDN = `cn=${payload.username},ou=${payload.userOU},${process.env.AD_BASE_DN}`;
 
       let modifications = [];
-
-      // if (payload.action === "lock") {
-      //   modifications = [
-      //     {
-      //       operation: "replace",
-      //       modification: {
-      //         shadowExpire: 1, // Set to 1 to lock the users
-      //       },
-      //     },
-      //   ];
-      // } else
 
       if (payload.action === "unlock") {
         modifications.push({
@@ -585,9 +632,15 @@ class UserService {
       // Apply the modification to the user
       await modify(userDN, modifications);
 
+      logger.success("[AD] Service: userLockAction - Unbind initiated");
+      await unBind(); // Unbind the user
+
       console.log(`Service: userLockAction - ${payload.action} - Completed`);
       return { message: `User ${payload.action}ed successfully` };
     } catch (error) {
+      logger.error(`[AD] Service: userLockAction - Error - Unbind initiated`);
+      await unBind(); // Unbind the user
+
       // No user found - error code
       if (error.message.includes("0000208D")) {
         throw new NotFoundError(`User not found.`);
@@ -609,6 +662,9 @@ class UserService {
         filter
       );
 
+      logger.success("[AD] Service: listLockedUsers - Unbind initiated");
+      await unBind(); // Unbind the user
+
       logger.success("[AD] Service: listLockedUsers - Completed");
       return lockedUsers.map((user) => ({
         username: user.cn,
@@ -616,6 +672,8 @@ class UserService {
         status: "locked",
       }));
     } catch (error) {
+      logger.error(`[AD] Service: listLockedUsers - Error - Unbind initiated`);
+      await unBind(); // Unbind the user
       console.log("[AD] Service: listLockedUsers - Error", error);
       throw error;
     }
@@ -643,8 +701,10 @@ class UserService {
         throw new NotFoundError("User not found.");
       }
 
-      logger.success("[AD] Service: searchUser - Completed");
+      logger.success("[AD] Service: searchUser - Unbind initiated");
+      await unBind(); // Unbind the user
 
+      logger.success("[AD] Service: searchUser - Completed");
       // Return user details in the desired format
       return userExists.map((user) => ({
         firstName: user.cn,
@@ -656,6 +716,8 @@ class UserService {
         phoneNumber: user.telephoneNumber,
       }));
     } catch (error) {
+      logger.error(`[AD] Service: searchUser - Error - Unbind initiated`);
+      await unBind(); // Unbind the user
       if (error.message.includes("Search operation failed: No Such Object")) {
         throw new NotFoundError("User not found.");
       } else {
@@ -709,12 +771,16 @@ class UserService {
       ];
 
       await modify(userDN, changes);
+      logger.success("[AD] Service: chpwd - Unbind initiated");
+      await unBind(); // Unbind the user
 
       logger.success("[AD] Service: chpwd - Completed");
       return {
         message: "Password changed successfully.",
       };
     } catch (error) {
+      logger.error(`[AD] Service: chpwd - Error - Unbind initiated`);
+      await unBind(); // Unbind the user
       console.log("[AD] Service: chpwd - Error", error);
       if (
         error.message.includes(
@@ -735,15 +801,29 @@ class UserService {
       // Authenticate user
       const userData = await authenticate(email, password);
 
-      const userName = userData?.cn;
-      const userOU = userData?.dn?.match(/OU=([^,]+)/)?.[1];
+      // console.log("userData", userData);
+      const userDN = userData?.user?.dn;
+      const userName = userData?.user?.cn;
 
-      console.log(`userData, ${userName} & userOU: ${userOU}`);
-      console.warn("userou:", userOU);
+      // Extract both CN and OU components (based on userDN)
+      const ouMatch = userDN?.match(/OU=([^,]+)/);
+      const cnMatches = userDN?.match(/CN=([^,]+)/g);
 
-      // Fetch groups with retry logic
-      // const groups = await groupList(email);
-      // logger.success(`Group list for user ${email}: ${JSON.stringify(groups)}`);
+      // Use the OU if it exists; otherwise, fallback to the second CN
+      const userOU = ouMatch
+        ? ouMatch[1] // Extract the OU value
+        : cnMatches?.[1]?.replace("CN=", ""); // Extract the second CN if no OU
+
+      console.warn(`userDN: ${userDN}`);
+      console.warn(`userData: ${userName}`);
+      console.warn(`userou: ${userOU}`);
+
+      const Groups = await groupList(userDN, password, email);
+
+      // Calling listGroupsOnUser API to check if user is admin or not
+      // const groupDetails = await this.groupMembership(email);
+
+      console.log("groupDetails", Groups);
 
       const adminGroups = [
         "Administrators",
@@ -753,17 +833,31 @@ class UserService {
         "Schema Admins",
       ];
 
-      // const isAdmin = groups.some((group) => adminGroups.includes(group.cn));
-      // logger.success(`Is user a admin: ${isAdmin ? "admin " : "user"}`);
+      const isAdmin = Groups.some((group) => {
+        const groupName = group.cn.split(",")[0].replace("CN=", "");
+        if (adminGroups.includes(groupName)) {
+          console.log(`User is a part of admin group: ${group.cn}`);
+          return true;
+        }
+        return false;
+      });
+
+      logger.warn(`Is user a admin: ${isAdmin ? "admin " : "user"}`);
+
+      logger.success("[AD] Service: login - Unbind initiated");
+      await unBind(); // Unbind the user
 
       logger.success("[AD] Service: login - Completed");
       return {
         message: "Login successful.",
         userName: userName,
         userOU: userOU,
-        // userType: isAdmin ? "admin" : "user",
+        userType: isAdmin ? "admin" : "user",
+        isAdmin: isAdmin,
       }; // Return success and user details
     } catch (error) {
+      logger.error(`[AD] Service: login - Error - Unbind initiated`);
+      await unBind(); // Unbind the user
       if (error.message.includes("80090308")) {
         throw new BadRequestError("Account locked, contact admin.");
       }
@@ -794,10 +888,39 @@ class UserService {
         lastChange: new Date(user.shadowLastChange * 1).toLocaleString(),
       }));
 
+      logger.success("[AD] Service: listUpdatedUsers - Unbind initiated");
+      await unBind(); // Unbind the user
+
       return { count: users.length, users };
     } catch (error) {
       console.log("[AD] Service: listUpdatedUsers - Error", error);
       throw error;
+    }
+  }
+
+  async groupMembership(email) {
+    try {
+      logger.success("[AD] Service: groupMembership - Started");
+
+      const adInstance = await connectToAD(); // Connect to AD
+      const opts = {}; // Placeholder for optional parameters (if needed)
+
+      // Promisify the `getGroupMembershipForUser` method for simplicity
+      const getGroupMembershipForUser = promisify(
+        adInstance.getGroupMembershipForUser
+      ).bind(adInstance);
+
+      // Fetch the group membership
+      const groupsList = await getGroupMembershipForUser(opts, email);
+
+      logger.success("[AD] Service: groupMembership - Completed");
+      return groupsList; // Return the group list
+    } catch (error) {
+      logger.error(`[AD] Service: groupMembership - Error - Unbind initiated`);
+      await unBind(); // Unbind the user
+
+      logger.error(`[AD] Service: groupMembership - Error: ${error.message}`);
+      throw error; // Throw the error for the controller to handle
     }
   }
 }

@@ -4,11 +4,13 @@ import ldap from "ldapjs";
 import logger from "../config/logger.js";
 import { connectToAD } from "../config/adConfig.js";
 import { BadRequestError, UnauthorizedError } from "./error.js";
+import { promisify } from "util";
 import dotenv from "dotenv";
 dotenv.config();
 
 const ldapClient = ldap.createClient({
   url: process.env.AD_SERVER_URL,
+  reconnect: true, // Enable reconnect when fails
   tlsOptions: {
     rejectUnauthorized: false, // Disable certificate temporarily
   },
@@ -24,7 +26,7 @@ ldapClient.on("error", (err) => {
 // Function to authenticate a user in Active Directory
 const authenticate = async (username, password) => {
   try {
-    const adInstance = await connectToAD(); // Ensure AD connection is established
+    const adInstance = await connectToAD(); // Always use a fresh instance
 
     // Fetch user details first to check account status
     const user = await findUser(username);
@@ -34,45 +36,48 @@ const authenticate = async (username, password) => {
 
     // Check if the account is disabled (bit 1 indicates disabled account)
     if (accountControl == 514) {
-      logger.error(`User account disabled.`);
+      logger.error("User account disabled.");
       throw new UnauthorizedError("Account is disabled, please contact admin.");
     }
 
-    // Proceed with authentication if the account is not disabled
-    await new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
+      let isHandled = false; // Guard flag
+
       adInstance.authenticate(username, password, (err, auth) => {
+        if (isHandled) return; // Ignore subsequent invocations
+        isHandled = true; // Mark as handled
+
         if (err) {
+          logger.error(`[AD] Authentication failed: ${err.message}`);
           if (
             err.message.includes(
               "80090308: LdapErr: DSID-0C090449, comment: AcceptSecurityContext error, data 775"
             )
           ) {
-            logger.error(`[AD] Authentication failed: ${err.message}`);
-            reject(
+            return reject(
               new BadRequestError(
                 "Your account has been locked, Contact Admin!"
               )
             );
-          } else {
-            logger.error(`[AD] Authentication failed: ${err.message}`);
-            reject(new BadRequestError("Invalid credentials."));
           }
-        } else if (!auth) {
-          logger.error("[AD] Authentication failed: Invalid credentials.");
-          reject(new BadRequestError("Invalid credentials."));
-        } else {
-          logger.success("[AD] Authentication successful.");
-          resolve(auth); // Resolve on successful authentication
+          return reject(new BadRequestError("Invalid credentials."));
         }
+
+        if (!auth) {
+          logger.error("[AD] Authentication failed: Invalid credentials.");
+          return reject(new BadRequestError("Invalid credentials."));
+        }
+
+        logger.success("[AD] Authentication successful.");
+        resolve({
+          user,
+          // memberOfGroups,
+        });
       });
     });
-
-    return user; // Return user details after successful authentication
   } catch (error) {
-    logger.error(
-      "Error during authentication and user fetch: " + error.message
-    );
-    throw error; // Reject if there is an error during authentication or user fetching
+    logger.error("Error during authentication: " + error.message);
+    throw error;
   }
 };
 
@@ -167,11 +172,10 @@ const unBind = async () => {
       ldapClient.unbind((err) => {
         if (err) {
           logger.error(`Failed to unbind from AD: ${err.message}`);
-          reject(new Error("AD unbind failed: " + err.message));
-        } else {
-          logger.success(`Successfully unbound from AD`);
-          resolve(); // Successfully unbound from AD
+          return reject(new Error("AD unbind failed: " + err.message));
         }
+        logger.success("Successfully unbound from AD.");
+        resolve();
       });
     });
   } catch (error) {
@@ -260,32 +264,93 @@ const deleteEntry = async (dn) => {
   }
 };
 
-const groupList = async (username) => {
-  logger.success(`Fetching group list for user ${username}`);
+// const groupList = async (username) => {
+//   logger.success(`Fetching group list for user ${username}`);
+//   try {
+//     const adInstance = await connectToAD();
+
+//     return new Promise((resolve, reject) => {
+//       let resolved = false; // Guard flag
+//       const opts = {};
+
+//       adInstance.getGroupMembershipForUser(opts, username, (err, groups) => {
+//         if (resolved) return; // Prevent multiple invocations
+//         resolved = true; // Mark as resolved
+
+//         if (err) {
+//           logger.error(
+//             `Error fetching groups for user ${username}: ${err.message}`
+//           );
+//           return reject(new Error("Failed to fetch group membership."));
+//         }
+
+//         if (!groups || groups.length === 0) {
+//           logger.warn(`No groups found for user: ${username}`);
+//           return resolve([]); // Resolve with an empty array
+//         }
+
+//         // console.log("Groups list: ", groups);
+//         // console.log(`Groups list: ${JSON.stringify(groups, null, 2)}`);
+//         resolve(groups); // Resolve with group data
+//       });
+//     });
+//   } catch (error) {
+//     logger.error(`Error in groupList: ${error.message}`);
+//     throw error;
+//   }
+// };
+
+
+// Function to fetch group list for a user (using ldaps -> getting CB error with ad2 package)
+const groupList = async (userDN, password, email) => {
+  logger.success(`Fetching group list for user with email: ${userDN}`);
+
   try {
-    const adInstance = await connectToAD();
-
+    await bind(userDN, password); // Bind to AD using email and password
+    // Use the ldapClient instance created earlier
     return new Promise((resolve, reject) => {
-      let resolved = false; // Guard flag to prevent multiple invocations
+      const groups = [];
 
-      adInstance.getGroupMembershipForUser(username, (err, groups) => {
-        if (resolved) return; // If already resolved/rejected, ignore
-        resolved = true;
+      // Search filter to match email (mail attribute)
+      const opts = {
+        filter: `(userPrincipalName=${email})`, // Search for email
+        scope: "sub", // Search in the entire subtree
+        attributes: ["cn", "mail", "memberOf"], // Attributes to retrieve
+      };
 
+      // Perform the search using ldapClient
+      ldapClient.search(process.env.AD_BASE_DN, opts, (err, res) => {
         if (err) {
-          logger.error(
-            `Error fetching groups for user ${username}: ${err.message}`
-          );
-          reject(new Error("Failed to fetch group membership."));
-        } else if (!groups || groups.length === 0) {
-          logger.warn(`No groups found for user: ${username}`);
-          resolve([]); // Return an empty array if no groups
-        } else {
-          logger.info(
-            `Groups fetched for user ${username}: ${JSON.stringify(groups)}`
-          );
-          resolve(groups); // Return the fetched groups
+          ldapClient.unbind(); // Ensure connection is closed
+          logger.error(`LDAP Search Error: ${err.message}`);
+          return reject(new Error("Failed to fetch group membership."));
         }
+
+        res.on("searchEntry", (entry) => {
+          const user = entry.object;
+          if (user.memberOf) {
+            const userGroups = Array.isArray(user.memberOf)
+              ? user.memberOf
+              : [user.memberOf]; // Ensure memberOf is an array
+            userGroups.forEach((group) => {
+              groups.push({ cn: group });
+            });
+          }
+        });
+
+        res.on("error", (err) => {
+          ldapClient.unbind(); // Ensure connection is closed
+          logger.error(`LDAP Search Stream Error: ${err.message}`);
+          reject(new Error("Failed to fetch group membership."));
+        });
+
+        res.on("end", () => {
+          ldapClient.unbind(); // Ensure connection is closed
+          logger.success(
+            `Group membership fetched successfully for email: ${email}`
+          );
+          resolve(groups); // Resolve with the user's group list
+        });
       });
     });
   } catch (error) {
@@ -293,6 +358,31 @@ const groupList = async (username) => {
     throw error;
   }
 };
+
+// const groupList = async (username) => {
+//   logger.success(`Fetching group list for user ${username}`);
+//   try {
+//     const adInstance = await connectToAD();
+
+//     // Promisify the `getGroupMembershipForUser` method
+//     const getGroupMembershipForUser = promisify(
+//       adInstance.getGroupMembershipForUser
+//     ).bind(adInstance);
+
+//     // Use the promisified function to fetch groups
+//     const groups = await getGroupMembershipForUser(username);
+
+//     if (!groups || groups.length === 0) {
+//       logger.warn(`No groups found for user: ${username}`);
+//       return []; // Return an empty array if no groups
+//     }
+
+//     return groups; // Return the fetched groups
+//   } catch (error) {
+//     logger.error(`Error in groupList: ${error.message}`);
+//     throw error;
+//   }
+// };
 
 export {
   authenticate,

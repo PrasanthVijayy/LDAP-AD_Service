@@ -37,7 +37,7 @@ class GroupService {
     try {
       console.log("Service: listGroups - Started");
       await bind(process.env.LDAP_ADMIN_DN, process.env.LDAP_ADMIN_PASSWORD);
-      const baseDN = process.env.LDAP_BASE_DN || "ou=groups,dc=example,dc=com";
+      const baseDN = process.env.LDAP_BASE_DN;
       const searchFilter = filter
         ? `(${filter})`
         : "(objectClass=groupOfNames)";

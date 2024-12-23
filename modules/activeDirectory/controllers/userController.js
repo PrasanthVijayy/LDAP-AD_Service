@@ -771,15 +771,19 @@ class UserController {
       // Create a session for the user
       req.session.user = {
         email: email,
-        userType: "user",
+        userType: message?.userType,
         username: message?.userName,
         OU: message?.userOU,
         authMethod: "Password",
         authType: authType,
+        isAdmin: message?.isAdmin ? true : false,
+        userDN: message?.userDN,
       };
       req.session.cookie.maxAge = 30 * 60 * 1000; // 30 minutes
 
-      logger.warn("Data passed to session:", req.session.user);
+      logger.warn(
+        `Data passed to session: ${JSON.stringify(req.session.user)}`
+      );
 
       // Set the `logged_in` cookie
       res.cookie("logged_in", "yes", {
@@ -797,7 +801,9 @@ class UserController {
         message: message.message,
         sessionId: req.session.id,
         email: email,
-        // OU: fetchedOU || OU, // Include the fetched OU or the provided OU
+        userType: message?.userType,
+        isAdmin: message?.isAdmin ,
+        OU: message?.userOU, // Include the fetched OU or the provided OU
       });
     } catch (error) {
       logger.success("[AD] Controller: login - Error", error);
@@ -826,6 +832,30 @@ class UserController {
       });
     } catch (error) {
       logger.success("[AD] Controller: listUpdatedUsers - Error", error);
+      next(error);
+    }
+  };
+
+  groupMembership = async (req, res, next) => {
+    try {
+      logger.success("[AD] Controller: groupMembership - Started");
+
+      const { email } = req.body;
+
+      if (!email) {
+        throw new BadRequestError(
+          "Email is required to fetch group membership."
+        );
+      }
+
+      const groups = await this.userService.groupMembership(email);
+
+      logger.success("[AD] Controller: groupMembership - Completed");
+      res.status(200).json(groups);
+    } catch (error) {
+      logger.error(
+        `[AD] Controller: groupMembership - Error: ${error.message}`
+      );
       next(error);
     }
   };

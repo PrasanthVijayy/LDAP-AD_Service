@@ -13,8 +13,8 @@ class OrganizationController {
     try {
       logger.success("[AD] Controller: createOrganization - Started");
 
-      const { organizationName, description } = req.body;
-
+      // const { organizationName, description } = req.body;
+      // const payload = req.body;
       const encryptedData = req.body.data;
       const payload = decryptPayload(encryptedData); // Decrypt input data
 

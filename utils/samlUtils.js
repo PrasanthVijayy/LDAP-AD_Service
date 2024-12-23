@@ -5,7 +5,7 @@ export const samlUtils = {
   entryPoint: "https://sso.cybernexa.com/adfs/ls/idpinitiatedsignonpage.aspx",
   issuer: "https://192.168.0.145/",
   callbackUrl: "https://192.168.0.145/login/callback",
-  idpCert: fs.readFileSync("Certificates/idp-certificate.pem", "utf-8"),
+  idpCert: fs.readFileSync("Certificates/LATEST.pem", "utf-8"),
   identifierFormat: null,
   logoutURL: "https://sso.cybernexa.com/adfs/ls/?wa=wsignout1.0",
 };
