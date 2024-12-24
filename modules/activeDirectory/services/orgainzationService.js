@@ -73,6 +73,46 @@ class OrganizationService {
       throw error;
     }
   }
+
+  async listContainers(filter) {
+    try {
+      logger.success("[AD] Service: listContainers - Started");
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const baseDN = process.env.AD_BASE_DN;
+      const searchFilter = filter ? `(${filter})` : "(objectClass=container)";
+      const scope = "sub";
+      const rawContainers = await search(baseDN, searchFilter, scope);
+
+      console.log("filter:", filter || null);
+      logger.success("[AD] Service: listContainers - Unbind initiated");
+      await unBind(); // Unbind the user
+
+      logger.success("[AD] Service: listContainers - Completed");
+
+      // Filter the containers to include only those with the proper CN format (CN=...,DC=...,DC=...)
+      const properContainers = rawContainers.filter((container) =>
+        /^CN=[^,]+,DC=[^,]+,DC=[^,]+$/.test(container.dn)
+      );
+
+      // Transform the filtered container data
+      const containers = properContainers.map((container) => ({
+        dn: container.dn,
+        containerDN: container.ou || null,
+        description: container.description || null,
+      }));
+
+      if (containers.length === 0) {
+        throw new NotFoundError("No containers found.");
+      }
+
+      return { Count: containers.length, containers: containers };
+    } catch (error) {
+      logger.error(`[AD] Service: listContainers - Error - Unbind initiated`);
+      await unBind(); // Unbind the user
+      console.error("Service: listContainers - Error", error);
+      throw error;
+    }
+  }
 }
 
 export default OrganizationService;

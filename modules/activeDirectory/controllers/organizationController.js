@@ -50,6 +50,21 @@ class OrganizationController {
       next(error);
     }
   };
+
+  listContainers = async (req, res, next) => {
+    try {
+      logger.info("[AD] Controller: listContainers - Started");
+      const filter = req.query.filter || "";
+      const containers = await this.organizationService.listContainers(filter);
+      const encryptData = encryptPayload(containers);
+      logger.info("[AD] Controller: listContainers - Completed");
+      // res.status(200).json(containers);
+      res.status(200).json({ data: encryptData });
+    } catch (error) {
+      console.error("[AD] Controller: listContainers - Error", error);
+      next(error);
+    }
+  };
 }
 
 export default OrganizationController;
