@@ -51,7 +51,7 @@ const authenticate = async (username, password) => {
           logger.error(`[AD] Authentication failed: ${err.message}`);
           if (
             err.message.includes(
-              "80090308: LdapErr: DSID-0C090449, comment: AcceptSecurityContext error, data 775"
+              "80090308: LdapErr: DSID-0C09042A, comment: AcceptSecurityContext error, data 775, v3839"
             )
           ) {
             return reject(
@@ -59,8 +59,9 @@ const authenticate = async (username, password) => {
                 "Your account has been locked, Contact Admin!"
               )
             );
+          } else {
+            return reject(new BadRequestError("Invalid credentials."));
           }
-          return reject(new BadRequestError("Invalid credentials."));
         }
 
         if (!auth) {
