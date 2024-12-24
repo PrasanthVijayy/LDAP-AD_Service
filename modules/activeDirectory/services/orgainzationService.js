@@ -1,4 +1,4 @@
-import { search, add, bind } from "../../../utils/adUtils.js";
+import { search, add, bind, unBind } from "../../../utils/adUtils.js";
 import { NotFoundError, ConflictError } from "../../../utils/error.js";
 import { connectToAD } from "../../../config/adConfig.js";
 import logger from "../../../config/logger.js";
@@ -22,9 +22,14 @@ class OrganizationService {
       // Add the new organization
       await add(organizationDN, organizationAttributes);
 
+      logger.success("[AD] Service: createOrganization - Unbind initiated");
+      await unBind(); // Unbind the user
+
       logger.success("[AD] Service: createOrganization - Completed");
       return { message: "Organization created successfully." };
     } catch (error) {
+      logger.error(`[AD] Service: login - Error - Unbind initiated`);
+      await unBind(); // Unbind the user
       console.error("Service: createOrganization - Error", error);
       if (error.message.includes("00002071")) {
         throw new ConflictError("Organization already exists.");
@@ -46,6 +51,9 @@ class OrganizationService {
       const rawOrganizations = await search(baseDN, searchFilter, scope);
 
       console.log("filter:", filter || null);
+      logger.success("[AD] Service: listOrganizaitons - Unbind initiated");
+      await unBind(); // Unbind the user
+
       logger.success("[AD] Service: listOrganizaitons - Completed");
       const organizations = rawOrganizations.map((organization) => ({
         dn: organization.dn,
@@ -57,6 +65,10 @@ class OrganizationService {
       }
       return { Count: organizations.length, organizations };
     } catch (error) {
+      logger.error(
+        `[AD] Service: listOrganizaitons - Error - Unbind initiated`
+      );
+      await unBind(); // Unbind the user
       console.error("Service: listOrganizaitons - Error", error);
       throw error;
     }

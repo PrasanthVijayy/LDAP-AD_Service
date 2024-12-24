@@ -1,4 +1,4 @@
-import { bind, add, search, modify } from "../../../utils/adUtils.js";
+import { bind, add, search, modify, unBind } from "../../../utils/adUtils.js";
 import {
   BadRequestError,
   ConflictError,
@@ -23,11 +23,15 @@ class GroupService {
 
       await add(groupDN, groupAttributes);
 
+      logger.success("[AD] Service: createGroup - Unbind initiated");
+      await unBind(); // Unbind the user
+
       logger.success("[AD] Service: createGroup - Completed");
       return { message: "Group created successfully." };
     } catch (error) {
+      logger.error("[AD] Service: createGroup - Error - Unbind initiated");
+      await unBind(); // Unbind the user
       console.log("[AD] Service: createGroup - Error", error);
-
       if (error.message.includes("00002071")) {
         throw new ConflictError(`Group ${groupName} already exists.`);
       } else if (error.message.includes("0000208D")) {
@@ -62,7 +66,6 @@ class GroupService {
       const searchFilter = filter ? `(${filter})` : "(objectClass=group)";
       const scope = "sub";
       const rawGroups = await search(baseDN, searchFilter, scope);
-      logger.success("[AD] Service: listGroups - Completed");
 
       // Filter only groups with 'OU' in the distinguished name
       const ouBasedGroups = rawGroups.filter((group) =>
@@ -80,8 +83,15 @@ class GroupService {
       if (groups.length === 0) {
         throw new NotFoundError("No groups found.");
       }
+
+      logger.success("[AD] Service: listGroups - Unbind initiated");
+      await unBind(); // Unbind the user
+
+      logger.success("[AD] Service: listGroups - Completed");
       return { count: groups.length, groups };
     } catch (error) {
+      logger.error("[AD] Service: listGroups - Error - Unbind initiated");
+      await unBind(); // Unbind the user
       console.log("Service: listGroups - Error", error);
       throw error;
     }
@@ -117,9 +127,13 @@ class GroupService {
         },
       ];
       await modify(groupDN, changes);
+      logger.success("[AD] Service: addToGroup - Unbind initiated");
+      await unBind(); // Unbind the user
       logger.success("[AD] Service: addToGroup - Completed");
       return { message: "User added to group successfully." };
     } catch (error) {
+      logger.error("[AD] Service: addToGroup - Error - Unbind initiated");
+      await unBind(); // Unbind the user
       console.log("Service: addToGroup - Error", error);
       if (error.message.includes("0000208D")) {
         throw new NotFoundError(`Group ${groupName} does not exist.`);
@@ -160,6 +174,9 @@ class GroupService {
         },
       ];
       await modify(groupDN, changes);
+      logger.success("[AD] Service: addToGroup - Unbind initiated");
+      await unBind(); // Unbind the user
+
       logger.success("[AD] Service: deleteFromGroup - Completed");
       return {
         message: "User deleted from group successfully.",
@@ -167,6 +184,8 @@ class GroupService {
         groupOU: groupOU,
       };
     } catch (error) {
+      logger.error("[AD] Service: deleteFromGroup - Error - Unbind initiated");
+      await unBind(); // Unbind the user
       console.log("Service: deleteFromGroup - Error", error);
       // Error if group does not exist
       if (error.message.includes("0000208D")) {
@@ -203,11 +222,15 @@ class GroupService {
 
       // Trimming empty / whitespace members (default stored in LDAP server)
       members = members.filter((member) => member && member.trim() !== "");
+      logger.success("[AD] Service: addToGroup - Unbind initiated");
+      await unBind(); // Unbind the user
 
       logger.success("[AD] Service: membersInGroup - Completed");
 
       return { count: members.length, members };
     } catch (error) {
+      logger.error("[AD] Service: membersInGroup - Error - Unbind initiated");
+      await unBind(); // Unbind the user
       console.log("[AD] Service: membersInGroup - Error", error);
       // This error applies for same for invalid group name and OU, so OU is made in controller.
       if (error.message.includes("0000208D")) {
@@ -251,9 +274,14 @@ class GroupService {
         },
       ];
       await modify(groupDN, changes);
+      logger.success("[AD] Service: addAdminGroup - Unbind initiated");
+      await unBind(); // Unbind the user
+
       console.log("[AD] Service: addAdminGroup - Completed");
       return { message: "User added to admin group successfully." };
     } catch (error) {
+      logger.error("[AD] Service: addAdminGroup - Error - Unbind initiated");
+      await unBind(); // Unbind the user
       console.log("Service: addAdminGroup - Error", error);
       if (error.message.includes("0000208D")) {
         throw new NotFoundError(`Group '${groupName}' does not exist.`);
@@ -299,6 +327,11 @@ class GroupService {
         },
       ];
       await modify(groupDN, changes);
+      logger.success(
+        "[AD] Service: deleteFromGroup (Admin) - Unbind initiated"
+      );
+      await unBind(); // Unbind the user
+
       logger.success("[AD] Service: deleteFromGroup (Admin) - Completed");
       return {
         message: "User deleted from group successfully.",
@@ -306,6 +339,10 @@ class GroupService {
         groupOU: groupOU,
       };
     } catch (error) {
+      logger.error(
+        "[AD] Service: deleteFromGroup (Admin) - Error - Unbind initiated"
+      );
+      await unBind(); // Unbind the user
       console.log("[AD] Service: deleteFromGroup (Admin) - Error", error);
       // Error if group does not exist
       if (error.message.includes("0000208D")) {

@@ -1,4 +1,4 @@
-import { bind, search } from "../../../utils/adUtils.js";
+import { bind, search, unBind } from "../../../utils/adUtils.js";
 import logger from "../../../config/logger.js";
 
 class DomainService {
@@ -20,9 +20,14 @@ class DomainService {
         description: dc.description || null,
       }));
 
+      logger.success("[AD] Service: listDCs - Unbind initiated");
+      await unBind(); // Unbind the user
+
       // Return the DC entries
       return { count: dcs.length, dcs };
     } catch (error) {
+      logger.error("[AD] Service: listDCs - Error - Unbind initiated");
+      await unBind(); // Unbind the user
       console.log("[AD] Service: listDCs - Error", error);
       throw error;
     }
