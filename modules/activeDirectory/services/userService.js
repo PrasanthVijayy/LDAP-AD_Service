@@ -7,6 +7,8 @@ import {
   modify,
   deleteEntry,
   groupList,
+  findUser,
+  findGroup,
 } from "../../../utils/adUtils.js";
 import {
   BadRequestError,
@@ -15,8 +17,6 @@ import {
   UnauthorizedError,
 } from "../../../utils/error.js";
 import logger from "../../../config/logger.js";
-import { connectToAD } from "../../../config/adConfig.js";
-import { promisify } from "util";
 class UserService {
   //Commenting below function as it is not used anywhere (dt: 14/10)
 
@@ -27,78 +27,79 @@ class UserService {
   async addUser(payload) {
     try {
       logger.success("[AD] Service: addUser - Started");
+
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-      // const organizationalUnitName = payload.userOU;
-
-      const userDN = `cn=${payload.givenName},ou=${payload.userOU},${process.env.AD_BASE_DN}`;
-
-      // const uniqueUid = uid(10); // Generate a unique UID
+      // Ensure password is provided
       if (!payload.userPassword) {
         throw new BadRequestError("Missing password field");
       }
 
+      let dnKey = null;
+      if (payload.userOU) {
+        const filter = `(|(&(ou=${payload.userOU})(objectClass=organizationalUnit))(&(cn=${payload.userOU})(objectClass=container)))`;
+        const check = await search(process.env.AD_BASE_DN, filter);
+        console.warn("check", check);
+        const data = check[0];
+        console.warn("data", data);
+        dnKey = data?.cn ? "CN" : data?.ou ? "OU" : null; // Setting the key for the DN from the search result
+        console.warn("dnKey", dnKey);
+      }
+      // Construct the Distinguished Name (DN) for the new user
+      const userDN = `CN=${payload.firstName} ${payload.lastName},${dnKey}=${payload.userOU},${process.env.AD_BASE_DN}`;
+      console.log("Constructed userDN:", userDN);
+
+      // Construct the user attributes
       const userAttributes = {
-        // uid: uniqueUid,
-        cn: payload.givenName,
-        sn: payload.lastName,
-        objectClass: ["top", "person", "organizationalPerson", "user"],
-        givenName: payload.firstName, // Unique
-        displayName: `${payload.firstName} ${payload.lastName}`,
-        userPrincipalName: payload.mail,
-        sAMAccountName: payload.mail.split("@")[0], // Unique
-        unicodePwd: UserService.encodePassword(payload.userPassword),
-        telephoneNumber: payload.telephoneNumber,
-        streetAddress: payload.registeredAddress,
-        postalCode: payload.postalCode,
-        userAccountControl: "512",
-        // description: payload.description || "Regular User",
-        // title: payload.title || "user",
-        ou: payload.userOU, // Storing the OU for easy retrieval
+        cn: `${payload.firstName} ${payload.lastName}`, // Common Name
+        sn: payload.lastName, // Surname
+        objectClass: ["top", "person", "organizationalPerson", "user"], // Required classes
+        givenName: payload.firstName, // First Name
+        displayName: `${payload.firstName} ${payload.lastName}`, // Display Name
+        userPrincipalName: payload.mail, // UPN (must be unique)
+        sAMAccountName: payload.mail.split("@")[0], // SAM account name (must be unique)
+        unicodePwd: UserService.encodePassword(payload.userPassword), // Encoded password
+        telephoneNumber: payload.telephoneNumber || null, // Optional attributes
+        streetAddress: payload.registeredAddress || null,
+        postalCode: payload.postalCode || null,
+        userAccountControl: "512", // Enabled account
       };
-      console.log("userAttributes", userAttributes);
-      logger.success("[AD] Service: addUser - Completed");
 
-      // if (payload.userPassword) {
-      //   const hashedPassword = createSSHAHash(payload.userPassword);
-      //   userAttributes.userPassword = hashedPassword;
+      console.log("User Attributes:", userAttributes);
 
-      //   // const encodedPassword = UserService.encodePassword(payload.userPassword);
-      //   // userAttributes.userPassword = encodedPassword;
-      // } else {
-      //   throw new BadRequestError("missing password field");
-      // }
-
-      logger.success("[AD] userDetails", userAttributes);
-
+      // Add the user to Active Directory
       await add(userDN, userAttributes);
+
       logger.success("[AD] Service: addUser - Completed");
 
+      // Unbind the connection
       logger.success("[AD] Service: addUser - Unbind initiated");
-      await unBind(); // Unbind the user
+      await unBind();
+
       return {
         message: "User added successfully.",
         userDetails: {
-          displayName: userAttributes?.displayName,
-          userPrincipalName: userAttributes?.userPrincipalName,
-          sAMAccountName: userAttributes?.sAMAccountName,
+          displayName: userAttributes.displayName,
+          userPrincipalName: userAttributes.userPrincipalName,
+          sAMAccountName: userAttributes.sAMAccountName,
         },
       };
     } catch (error) {
       logger.error(`[AD] Service: addUser - Error - Unbind initiated`);
-      await unBind(); // Unbind the user
+      await unBind();
 
-      console.log("[AD] Service: addUser - Error", error);
+      console.error("[AD] Service: addUser - Error", error);
+
+      // Handle specific AD errors
       if (error.message.includes("00002071")) {
         throw new BadRequestError("Username already created");
       } else if (error.message.includes("0000208D")) {
-        throw new BadRequestError("Invalid OU");
+        throw new BadRequestError(`Invalid ${payload.dnKey || "OU"}`);
       } else if (
         error.message.includes("00000524") ||
         error.message.includes("000021C8")
       ) {
         throw new BadRequestError("Email already exists");
       } else if (error.message.includes("0000052D")) {
-        // Password mismatch with provided password in AD
         throw new BadRequestError("Password not secured");
       } else {
         throw error;
@@ -115,7 +116,7 @@ class UserService {
 
       // Default search filter for all users
       let searchFilter =
-        "(&(objectClass=person)(objectClass=user)(objectClass=organizationalPerson))";
+        "(&(objectClass=person)(objectClass=user)(objectClass=organizationalPerson)(!(isCriticalSystemObject=TRUE)))";
       let statusFilter = null;
 
       // Parse filter string to extract valid conditions
@@ -127,15 +128,15 @@ class UserService {
           const [field, value] = part.split("=");
 
           if (field === "cn") {
-            filterConditions.push(`(cn=${value})`); // Username filter
+            filterConditions.push(`(samAccountName=${value})`); // Filter by Common Name
           } else if (field === "mail") {
-            filterConditions.push(`(mail=${value})`); // Email filter
+            filterConditions.push(`(mail=${value})`); // Filter by Email
           } else if (field === "telephoneNumber") {
-            filterConditions.push(`(telephoneNumber=${value})`); // Phone filter
+            filterConditions.push(`(telephoneNumber=${value})`); // Filter by Phone
           } else if (field === "status") {
-            statusFilter = value; // Status for post-filtering
+            statusFilter = value; // Post-process status filter
           } else if (field === "ou") {
-            filterConditions.push(`(ou=${value})`); // OU based filter
+            filterConditions.push(`(ou=${value})`); // Filter by OU
           }
         });
 
@@ -144,16 +145,17 @@ class UserService {
           searchFilter = `(&${searchFilter}${filterConditions.join("")})`;
         }
       }
-
-      logger.success("[AD] Searching for users with filter:", searchFilter);
-
       // Perform LDAP search
-      const scope = "sub";
-      const rawUsers = await search(baseDN, searchFilter, scope);
+      const rawUsers = await search(baseDN, searchFilter);
       logger.success("[AD] Service: listUsers - Search Completed");
 
-      // Filter only users whose DN contains 'OU='
-      const ouBasedUsers = rawUsers.filter((user) => user.dn.includes(",OU="));
+      // Filter only non-default and non-system users
+      const excludedCNs = ["Administrator", "Guest", "DefaultAccount"];
+      const ouBasedUsers = rawUsers.filter(
+        (user) =>
+          !excludedCNs.includes(user.cn) && // Exclude default system accounts
+          (user.dn.includes(",OU=") || user.dn.includes(",CN=")) // Include valid containers/OUs
+      );
 
       // Map the OU-based users to structured data
       const users = ouBasedUsers.map((user) => {
@@ -177,10 +179,6 @@ class UserService {
           status = "unknown";
         }
 
-        // Extract OU from DN
-        // const ouMatch = user.dn.match(/ou=([^,]+)/i);
-        // const userOU = ouMatch ? ouMatch[1] : "Unknown";
-
         return {
           dn: user.dn,
           empID: user.employeeNumber,
@@ -188,7 +186,7 @@ class UserService {
           userType: user.title,
           firstName: user.gn,
           lastName: user.sn,
-          userName: user.cn,
+          userName: user.sAMAccountName, // To show unique username
           email: user.userPrincipalName,
           phone: user.telephoneNumber,
           address: user.streetAddress,
@@ -216,16 +214,27 @@ class UserService {
     }
   }
 
-  async resetPassword(username, password, confirmPassword, userOU) {
+  async resetPassword(payload) {
     try {
       logger.success("[AD] Service: resetPassword - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-      const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
 
-      if (password !== confirmPassword) {
+      // Check if user exists
+      const userData = await findUser(payload.username);
+
+      const userBaseDN = userData?.dn; // Get userDN
+      const username = userData?.cn; // Fetch CN from DN
+      console.log("username", username);
+
+      const dnKeyMatch = userBaseDN.match(/,(CN|OU)=/); // Extract the DN key
+      const dnKey = dnKeyMatch[1] || "OU"; // Default to OU if no match else extracted value
+
+      const userDN = `cn=${username},${dnKey}=${payload.userOU},${process.env.AD_BASE_DN}`;
+
+      if (payload.password !== payload.confirmPassword) {
         throw new BadRequestError("Passwords do not match");
       } else {
-        const newPassword = UserService.encodePassword(password);
+        const newPassword = UserService.encodePassword(payload.password);
 
         const changes = [
           {
@@ -240,19 +249,18 @@ class UserService {
       }
 
       logger.success("[AD] Service: resetPassword - Completed");
-
       logger.success("[AD] Service: resetPassword - Unbind initiated");
       await unBind(); // Unbind the user
 
       return { message: "Password reset successfully." };
     } catch (error) {
+      console.log("[AD] Service: resetPassword - Error", error);
       logger.error(`[AD] Service: resetPassword - Error - Unbind initiated`);
       await unBind(); // Unbind the user
 
-      console.log("[AD] Service: resetPassword - Error", error);
       if (
         error.message.includes(
-          "0000208D: NameErr: DSID-03100245, problem 2001 (NO_OBJECT)"
+          "0000208D: NameErr: DSID-03100241, problem 2001 (NO_OBJECT), data 0"
         )
       ) {
         throw new NotFoundError("User not found");
@@ -262,11 +270,20 @@ class UserService {
     }
   }
 
-  async deleteUser(username, userOU) {
+  async deleteUser(payload) {
     try {
       logger.success("[AD] Service: deleteUser - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-      const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
+
+      const userData = await findUser(payload.username);
+      const userBaseDN = userData?.dn; // Get userDN
+      const username = userData?.cn; // Fetch CN from DN
+      console.log("username", username);
+
+      const dnKeyMatch = userBaseDN.match(/,(CN|OU)=/); // Extract the DN key
+      const dnKey = dnKeyMatch[1] || "OU"; // Default to OU if no match else extracted value
+
+      const userDN = `cn=${username},${dnKey}=${payload.userOU},${process.env.AD_BASE_DN}`;
 
       await deleteEntry(userDN); // Delete user from LDAP (initally it was just flag within a attribute)
       logger.success("[AD] Service: deleteUser - Completed");
@@ -287,50 +304,81 @@ class UserService {
     }
   }
 
-  async updateUser(username, userOU, attributes) {
+  async updateUser(payload) {
     try {
       logger.success("[AD] Service: updateUser - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-      const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
 
+      const userData = await findUser(payload.username);
+      const userBaseDN = userData?.dn; // Get userDN
+      const username = userData?.cn; // Fetch CN from DN
+      console.log("username", username);
+
+      const dnKeyMatch = userBaseDN.match(/,(CN|OU)=/); // Extract the DN key
+      const dnKey = dnKeyMatch[1] || "OU"; // Default to OU if no match else extracted value
+
+      // Commented the email check since AD do it by default
+      // if (payload.attributes.mail) {
+      //   const validEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      //   if (!validEmail.test(payload.attributes.mail)) {
+      //     throw new BadRequestError("Invalid email address");
+      //   }
+
+      //   // Check if email is the same as the current one
+      //   // if (attributes.mail === currentUser.mail) {
+      //   //   throw new BadRequestError("Update with new mail ID");
+      //   // }
+
+      //   // Check if email is already in use by another user
+      //   const emailInUse = await search(
+      //     process.env.AD_BASE_DN,
+      //     `(userPrincipleName=${payload.attributes.mail})`
+      //   );
+
+      //   if (emailInUse.length > 0 && emailInUse[0].cn !== payload.username) {
+      //     throw new ConflictError("Mail is already in use by another user");
+      //   }
+      // }
+
+      // Validate and check if phone number is different
+      if (payload.attributes.telephoneNumber) {
+        const validPhoneNumber = /^\d{10}$/;
+        if (!validPhoneNumber.test(payload.attributes.telephoneNumber)) {
+          throw new BadRequestError("Invalid phone number");
+        }
+
+        // Check if phone number is already in use by another user
+        const phoneInUse = await search(
+          `${process.env.AD_BASE_DN}`,
+          `(telephoneNumber=${payload.attributes.telephoneNumber})`
+        );
+
+        if (phoneInUse.length > 0 && phoneInUse[0].cn !== payload.username) {
+          throw new ConflictError(
+            "Phone number is already in use by another user"
+          );
+        }
+      }
+
+      const userDN = `cn=${username},${dnKey}=${payload.userOU},${process.env.AD_BASE_DN}`;
+      console.log("userDN", userDN);
       let changes = [];
 
-      // Update only for requested attributes
-      if (attributes.mail) {
-        changes.push({
-          operation: "replace",
-          modification: { userPrincipalName: attributes.mail },
-        });
-      }
-
-      if (attributes.telephoneNumber) {
-        changes.push({
-          operation: "replace",
-          modification: { telephoneNumber: attributes.telephoneNumber },
-        });
-      }
-
-      if (attributes.registeredAddress) {
-        changes.push({
-          operation: "replace",
-          modification: { streetAddress: attributes.registeredAddress },
-        });
-      }
-
-      if (attributes.postalCode) {
-        changes.push({
-          operation: "replace",
-          modification: { postalCode: attributes.postalCode },
-        });
-      }
-
-      //Adding timeStamp to lastest updated date
-      // changes.push({
-      //   operation: "replace",
-      //   modification: {
-      //     shadowLastChange: Date.now(),
-      //   },
-      // });
+      // Update only for requested attributes in effective way
+      Object.entries(payload.attributes).forEach(([key, value]) => {
+        if (value) {
+          const mapping = {
+            mail: "userPrincipalName",
+            telephoneNumber: "telephoneNumber",
+            registeredAddress: "streetAddress",
+            postalCode: "postalCode",
+          };
+          changes.push({
+            operation: "replace",
+            modification: { [mapping[key]]: value },
+          });
+        }
+      });
 
       await modify(userDN, changes);
       logger.success("[AD] Service: updateUser - Completed");
@@ -347,72 +395,114 @@ class UserService {
       if (error.message.includes("0000208D")) {
         throw new NotFoundError("User not found");
       } else if (error.message.includes("000021C8")) {
-        throw new BadRequestError("Email alrady in use");
+        throw new BadRequestError("Email is already in use by another user");
       } else {
         throw error;
       }
     }
   }
 
-  async updateContactDetails(username, userOU, attributes) {
+  async updateContactDetails(payload) {
     try {
       logger.success("[AD] Service: updateContactDetails - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
-      const userDN = `cn=${username},ou=${userOU},${process.env.AD_BASE_DN}`;
+      const userData = await findUser(payload.username);
+      const userBaseDN = userData?.dn; // Get userDN
+      const username = userData?.cn; // Fetch CN from DN
+      console.log("username", username);
+
+      const dnKeyMatch = userBaseDN.match(/,(CN|OU)=/); // Extract the DN key
+      const dnKey = dnKeyMatch[1] || "OU"; // Default to OU if no match else extracted value
+
+      if (payload.attributes.telephoneNumber) {
+        const validPhoneNumber = /^\d{10}$/;
+        if (!validPhoneNumber.test(payload.attributes.telephoneNumber)) {
+          throw new BadRequestError("Invalid phone number");
+        }
+
+        // Check if phone number is already in use by another user
+        const phoneInUse = await search(
+          `${process.env.AD_BASE_DN}`,
+          `(telephoneNumber=${payload.attributes.telephoneNumber})`
+        );
+
+        if (phoneInUse.length > 0 && phoneInUse[0].cn !== payload.username) {
+          throw new ConflictError(
+            "Phone number is already in use by another user"
+          );
+        }
+      }
+
+      const userDN = `cn=${username},${dnKey}=${payload.userOU},${process.env.AD_BASE_DN}`;
+      console.log("userDN", userDN);
 
       let changes = [];
 
-      if (attributes.mail) {
-        changes.push({
-          operation: "replace",
-          modification: { userPrincipalName: attributes.mail },
-        });
-      }
-
-      if (attributes.telephoneNumber) {
-        changes.push({
-          operation: "replace",
-          modification: { telephoneNumber: attributes.telephoneNumber },
-        });
-      }
+      Object.entries(payload.attributes).forEach(([key, value]) => {
+        if (value) {
+          const mapping = {
+            mail: "userPrincipalName",
+            telephoneNumber: "telephoneNumber",
+          };
+          changes.push({
+            operation: "replace",
+            modification: { [mapping[key]]: value },
+          });
+        }
+      });
 
       // Applying changes to the user
       await modify(userDN, changes);
 
       logger.success("[AD] Service: updateContactDetails - Completed");
 
-      logger.success("[AD] Service: addUser - Unbind initiated");
+      logger.success("[AD] Service: updateContactDetails - Unbind initiated");
       await unBind(); // Unbind the user
 
       return { message: "Contact details updated successfully." };
     } catch (error) {
+      console.error("[AD] Service: updateContactDetails - Error", error);
+
       logger.error(
         `[AD] Service: updateContactDetails - Error - Unbind initiated`
       );
       await unBind(); // Unbind the user
 
-      console.log("[AD] Service: updateContactDetails - Error", error);
       if (error.message.includes("0000208D")) {
         throw new NotFoundError("User not found");
       } else if (error.message.includes("000021C8")) {
-        throw new BadRequestError("Email alrady in use");
+        throw new BadRequestError("Email is already in use by another user");
       } else {
         throw error;
       }
     }
   }
 
-  async modifyUserStatus(username, OU, action) {
+  async modifyUserStatus(payload) {
     try {
-      console.log(`Service: modifyUserStatus - ${action} - Started`);
+      console.log(`Service: modifyUserStatus - ${payload.action} - Started`);
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
-      const userDN = `cn=${username},ou=${OU},${process.env.AD_BASE_DN}`;
+      // Validate action
+      if (!["enable", "disable"].includes(payload.action)) {
+        throw new BadRequestError("Invalid action.");
+      }
+
+      const userData = await findUser(payload.username);
+      const userBaseDN = userData?.dn; // Get userDN
+      const username = userData?.cn; // Fetch CN from DN
+      console.log("username", username);
+
+      const dnKeyMatch = userBaseDN.match(/,(CN|OU)=/); // Extract the DN key
+      const dnKey = dnKeyMatch[1] || "OU"; // Default to OU if no match else extracted value
+
+      const userDN = `cn=${username},${dnKey}=${payload.OU},${process.env.AD_BASE_DN}`;
+      console.log("userDN", userDN);
 
       // Fetch the current 'description' field of the user
       const searchResults = await search(
-        `ou=${OU},${process.env.AD_BASE_DN}`,
+        `${dnKey}=${payload.OU},${process.env.AD_BASE_DN}`,
         `(cn=${username})`
       );
 
@@ -424,14 +514,14 @@ class UserService {
 
       // Validation based on the current status and requested action
       if (
-        (action === "disable" && currentStatus == 514) ||
+        (payload.action === "disable" && currentStatus == 514) ||
         currentStatus == 66050
       ) {
         throw new ConflictError(`User already disabled.`);
       }
 
       if (
-        (action === "enable" && currentStatus == 512) ||
+        (payload.action === "enable" && currentStatus == 512) ||
         currentStatus == 66048
       ) {
         throw new ConflictError(`User already enabled.`);
@@ -439,7 +529,7 @@ class UserService {
 
       let modifications;
 
-      if (action === "disable") {
+      if (payload.action === "disable") {
         modifications = [
           {
             operation: "replace",
@@ -448,7 +538,7 @@ class UserService {
             },
           },
         ];
-      } else if (action === "enable") {
+      } else if (payload.action === "enable") {
         modifications = [
           {
             operation: "replace",
@@ -463,19 +553,18 @@ class UserService {
 
       // Apply the modifications to the user
       await modify(userDN, modifications);
-      console.log(`Service: modifyUserStatus - ${action} - Completed`);
+      console.log(`Service: modifyUserStatus - ${payload.action} - Completed`);
 
       logger.success("[AD] Service: modifyUserStatus - Unbind initiated");
       await unBind(); // Unbind the user
 
-      return { message: `User ${action}d successfully.` };
+      return { message: `User ${payload.action}d successfully.` };
     } catch (error) {
+      console.error(`Service: modifyUserStatus - Error`, error);
       logger.error(`[AD] Service: modifyUserStatus - Error - Unbind initiated`);
       await unBind(); // Unbind the user
-
-      console.log(`Service: modifyUserStatus - Error`, error);
-      if (error.message.includes("No Such Object")) {
-        throw new NotFoundError(`User '${username}' not found.`);
+      if (error.message.includes("0000208D: NameErr: DSID-03100245")) {
+        throw new NotFoundError(`User not found.`);
       }
       throw error;
     }
@@ -519,8 +608,13 @@ class UserService {
       // Bind with LDAP admin credentials
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
-      // Define the group's distinguished name (DN)
-      const groupDN = `cn=${payload.groupName},ou=${payload.groupOU},${process.env.AD_BASE_DN}`;
+      const groupExists = await findGroup(payload.groupName);
+      const groupBaseDN = groupExists?.dn; // Get userDN
+      const dnKeyMatch = groupBaseDN?.match(/,(CN|OU)=/); // Extract the DN key
+      const dnKey = dnKeyMatch?.[1] || "OU"; // Default to OU if no match else extracted value
+
+      const groupDN = `cn=${payload.groupName},${dnKey}=${payload.groupOU},${process.env.AD_BASE_DN}`;
+      console.log("groupDN", groupDN);
 
       // Search for all members (users) in the group
       const searchFilter = `(objectClass=*)`; // Ensure it fetches all attributes
@@ -610,9 +704,23 @@ class UserService {
 
   async userLockAction(payload) {
     try {
-      console.log(`Service: userLockAction - ${payload.action} - Started`);
+      console.log(`[AD] Service: userLockAction - ${payload.action} - Started`);
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-      const userDN = `cn=${payload.username},ou=${payload.userOU},${process.env.AD_BASE_DN}`;
+
+      if (!["unlock"].includes(payload.action)) {
+        throw new BadRequestError(`Invalid action`);
+      }
+
+      const userData = await findUser(payload.username);
+      const userBaseDN = userData?.dn; // Get userDN
+      const username = userData?.cn; // Fetch CN from DN
+      console.log("username", username);
+
+      const dnKeyMatch = userBaseDN.match(/,(CN|OU)=/); // Extract the DN key
+      const dnKey = dnKeyMatch[1] || "OU"; // Default to OU if no match else extracted value
+
+      const userDN = `cn=${username},${dnKey}=${payload.userOU},${process.env.AD_BASE_DN}`;
+      console.log("userDN", userDN);
 
       let modifications = [];
 
@@ -635,7 +743,9 @@ class UserService {
       logger.success("[AD] Service: userLockAction - Unbind initiated");
       await unBind(); // Unbind the user
 
-      console.log(`Service: userLockAction - ${payload.action} - Completed`);
+      console.log(
+        `[AD] Service: userLockAction - ${payload.action} - Completed`
+      );
       return { message: `User ${payload.action}ed successfully` };
     } catch (error) {
       logger.error(`[AD] Service: userLockAction - Error - Unbind initiated`);
@@ -679,51 +789,38 @@ class UserService {
     }
   }
 
-  async searchUser(username, userOU) {
+  async searchUser(payload) {
     try {
       logger.success("[AD] Service: searchUser - Started");
 
       // Bind using the LDAP admin or a service account
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
-      // Define the search base, including the OU if provided
-      const searchBase = userOU
-        ? `ou=${userOU},${process.env.AD_BASE_DN}`
-        : `${process.env.AD_BASE_DN}`;
-
-      // Updated search filter to check both `cn` and `objectClass=person`
-      const searchFilter = `(&(cn=${username})(objectClass=person))`;
-
-      // Perform the search in LDAP
-      const userExists = await search(searchBase, searchFilter);
-
-      if (userExists.length === 0) {
-        throw new NotFoundError("User not found.");
-      }
+      const userData = await findUser(payload.username);
 
       logger.success("[AD] Service: searchUser - Unbind initiated");
       await unBind(); // Unbind the user
 
       logger.success("[AD] Service: searchUser - Completed");
+
+      // If future use cases are needed
+      const userArray = [userData];
+
       // Return user details in the desired format
-      return userExists.map((user) => ({
-        firstName: user.cn,
-        lastName: user.sn,
-        username: user.givenName,
-        mail: user.userPrincipalName,
-        address: user.streetAddressess,
-        postalCode: user.postalCode,
-        phoneNumber: user.telephoneNumber,
+      return userArray.map((user) => ({
+        firstName: user?.cn,
+        lastName: user?.sn,
+        username: user?.givenName,
+        mail: user?.userPrincipalName,
+        address: user?.streetAddressess || "N/A",
+        postalCode: user?.postalCode || "N/A",
+        phoneNumber: user?.telephoneNumber || "N/A",
       }));
     } catch (error) {
+      console.error(`[AD] Service: searchUser - Error, ${error}`);
       logger.error(`[AD] Service: searchUser - Error - Unbind initiated`);
       await unBind(); // Unbind the user
-      if (error.message.includes("Search operation failed: No Such Object")) {
-        throw new NotFoundError("User not found.");
-      } else {
-        console.log("[AD] Service: searchUser - Error", error);
-        throw error;
-      }
+      throw error;
     }
   }
 
@@ -731,7 +828,16 @@ class UserService {
     try {
       logger.success("[AD] Service: chpwd - Started");
 
-      const userDN = `cn=${payload.username},ou=${payload.userOU},${process.env.AD_BASE_DN}`;
+      const userData = await findUser(payload.username);
+      const userBaseDN = userData?.dn; // Get userDN
+      const username = userData?.cn; // Fetch CN from DN
+      console.log("username", username);
+
+      const dnKeyMatch = userBaseDN.match(/,(CN|OU)=/); // Extract the DN key
+      const dnKey = dnKeyMatch[1] || "OU"; // Default to OU if no match else extracted value
+
+      const userDN = `cn=${username},${dnKey}=${payload.userOU},${process.env.AD_BASE_DN}`;
+      console.log("userDN", userDN);
 
       //General AD binding
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
@@ -746,17 +852,6 @@ class UserService {
           "New password and confirmation do not match."
         );
       }
-
-      // Retrieve user information
-      // const searchResults = await search(userDN, "(objectClass=*)");
-
-      // if (searchResults.length === 0) {
-      //   throw new NotFoundError("User not found.");
-      // }
-
-      // const user = searchResults[0];
-      // const userPassword = user.userPassword; // Retrieve the currently stored password
-
       // Hash the new password using SSHA
       const hashedNewPassword = UserService.encodePassword(payload.newPassword);
 
@@ -810,13 +905,14 @@ class UserService {
       const cnMatches = userDN?.match(/CN=([^,]+)/g);
 
       // Use the OU if it exists; otherwise, fallback to the second CN
-      const userOU = ouMatch
-        ? ouMatch[1] // Extract the OU value
-        : cnMatches?.[1]?.replace("CN=", ""); // Extract the second CN if no OU
+      const userOU = ouMatch ? ouMatch[1]?.replace("OU=", "") : null;
+      const userCN = cnMatches ? cnMatches[1]?.replace("CN=", "") : null;
+      const userIdent = userOU ? userOU : userCN;
 
       console.warn(`userDN: ${userDN}`);
       console.warn(`userData: ${userName}`);
-      console.warn(`userou: ${userOU}`);
+      console.warn(`userOU: ${userOU} | userCN: ${userCN}`);
+      console.log(`userIdent: ${userIdent}`);
 
       const Groups = await groupList(userDN, password, email);
 
@@ -835,29 +931,28 @@ class UserService {
 
       const isAdmin = Groups.some((group) => {
         const groupName = group.cn.split(",")[0].replace("CN=", "");
-        if (adminGroups.includes(groupName)) {
-          console.log(`User is a part of admin group: ${group.cn}`);
-          return true;
-        }
-        return false;
+        return adminGroups.includes(groupName);
       });
 
-      logger.warn(`Is user a admin: ${isAdmin ? "admin " : "user"}`);
-
       logger.success("[AD] Service: login - Unbind initiated");
-      await unBind(); // Unbind the user
+      await unBind(); // Unbind the user after processing
 
       logger.success("[AD] Service: login - Completed");
+
+      // Return user details with the correct identifier (CN or OU)
       return {
         message: "Login successful.",
         userName: userName,
-        userOU: userOU,
+        userIdent: userIdent, // Return the user's CN or OU
         userType: isAdmin ? "admin" : "user",
-        isAdmin: isAdmin,
-      }; // Return success and user details
+        isAdmin: isAdmin, // Return the user's admin status
+        userOU: userOU, // Return the userOU if it's available
+        userCN: userCN, // Return the userCN if it's available
+        userDN: userDN, // Return the user's DN
+      };
     } catch (error) {
       logger.error(`[AD] Service: login - Error - Unbind initiated`);
-      await unBind(); // Unbind the user
+      await unBind(); // Unbind the user if an error occurs
       if (error.message.includes("80090308")) {
         throw new BadRequestError("Account locked, contact admin.");
       }
@@ -898,31 +993,35 @@ class UserService {
     }
   }
 
-  async groupMembership(email) {
-    try {
-      logger.success("[AD] Service: groupMembership - Started");
+  // async listDeletedUsers() {
+  //   try {
+  //     logger.success("[AD] Service: listDeletedUsers - Started");
 
-      const adInstance = await connectToAD(); // Connect to AD
-      const opts = {}; // Placeholder for optional parameters (if needed)
+  //     // Bind using the admin DN
+  //     await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
-      // Promisify the `getGroupMembershipForUser` method for simplicity
-      const getGroupMembershipForUser = promisify(
-        adInstance.getGroupMembershipForUser
-      ).bind(adInstance);
+  //     // Specify the base DN and any additional filter options if needed
+  //     const opts = {
+  //       baseDN: `CN=Deleted Objects,CN=Configuration,DC=cylock,DC=com`, // Correct base DN
+  //     };
 
-      // Fetch the group membership
-      const groupsList = await getGroupMembershipForUser(opts, email);
+  //     // Fetch deleted objects
+  //     const deletedData = await deletedObjects(opts);
 
-      logger.success("[AD] Service: groupMembership - Completed");
-      return groupsList; // Return the group list
-    } catch (error) {
-      logger.error(`[AD] Service: groupMembership - Error - Unbind initiated`);
-      await unBind(); // Unbind the user
+  //     console.log("deletedData", deletedData);
 
-      logger.error(`[AD] Service: groupMembership - Error: ${error.message}`);
-      throw error; // Throw the error for the controller to handle
-    }
-  }
+  //     // Unbind after completing the operation
+  //     logger.success("[AD] Service: listDeletedUsers - Unbind initiated");
+  //     await unBind(); // Unbind the user
+
+  //     logger.success("[AD] Service: listDeletedUsers - Completed");
+
+  //     return { count: deletedData.length, deletedData }; // Return the deleted data
+  //   } catch (error) {
+  //     console.log("[AD] Service: listDeletedUsers - Error", error);
+  //     throw error;
+  //   }
+  // }
 }
 
 export default UserService;

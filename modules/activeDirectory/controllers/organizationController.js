@@ -1,7 +1,7 @@
 "use strict"; // Using strict mode
 
 import OrganizationService from "../../activeDirectory/services/orgainzationService.js";
-import { BadRequestError, ConflictError } from "../../../utils/error.js";
+import { BadRequestError } from "../../../utils/error.js";
 import { encryptPayload, decryptPayload } from "../../../utils/encryption.js";
 import logger from "../../../config/logger.js";
 class OrganizationController {
@@ -47,6 +47,21 @@ class OrganizationController {
       res.status(200).json({ data: encryptData });
     } catch (error) {
       console.error("[AD] Controller: listOrganizaitons - Error", error);
+      next(error);
+    }
+  };
+
+  listContainers = async (req, res, next) => {
+    try {
+      logger.info("[AD] Controller: listContainers - Started");
+      const filter = req.query.filter || "";
+      const containers = await this.organizationService.listContainers(filter);
+      const encryptData = encryptPayload(containers);
+      logger.info("[AD] Controller: listContainers - Completed");
+      // res.status(200).json(containers);
+      res.status(200).json({ data: encryptData });
+    } catch (error) {
+      console.error("[AD] Controller: listContainers - Error", error);
       next(error);
     }
   };

@@ -197,7 +197,7 @@ export const renderRoutes = (app) => {
           userType: ldapUser?.title,
           OU: ldapUser?.ou || null,
           authMethod: "SAML",
-          authType: "ldap", // Directly set authType to LDAP for SAML users (since no updates made further)
+          authType: "ad", // Directly set authType to ad since no dynamic connections
         };
 
         // Set session expiration dynamically based on SAML assertion

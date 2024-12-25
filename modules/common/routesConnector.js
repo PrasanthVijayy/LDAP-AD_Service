@@ -28,13 +28,6 @@ export const connectRoutes = async (app, authType) => {
         (layer) => !loadedRoutes.includes(layer.name) // Exclude loaded routes
       );
 
-      // Previously mentioned ldap api prefix since it is beeen loaded continuously (Removed dt:17/12)
-      // app._router.stack = app._router.stack.filter(
-      //   (layer) =>
-      //     !loadedRoutes.includes(layer.name) && // Exclude loaded routes
-      //     !(layer.route && layer.route.path.startsWith("/LDAP/v1")) // Exclude OpenLDAP-specific paths
-      // );
-
       loadedRoutes = []; // Clear the list of loaded routes
     }
 

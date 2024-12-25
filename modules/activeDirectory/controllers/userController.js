@@ -2,14 +2,8 @@
 
 import dotenv from "dotenv";
 import UserService from "../../activeDirectory/services/userService.js";
-import {
-  BadRequestError,
-  ConflictError,
-  NotFoundError,
-} from "../../../utils/error.js";
-import { bind, search } from "../../../utils/adUtils.js";
+import { BadRequestError } from "../../../utils/error.js";
 import { encryptPayload, decryptPayload } from "../../../utils/encryption.js";
-import OrganizationService from "../../activeDirectory/services/orgainzationService.js";
 import GroupService from "../../activeDirectory/services/groupService.js";
 import { connectDirectory } from "../../../utils/directoryConnector.js";
 import logger from "../../../config/logger.js";
@@ -18,7 +12,6 @@ dotenv.config();
 class UserController {
   constructor() {
     this.userService = new UserService();
-    this.organizationService = new OrganizationService();
     this.groupService = new GroupService();
   }
 
@@ -46,55 +39,6 @@ class UserController {
           new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
         );
       }
-
-      // Validate title
-      // if (!["user", "admin"].includes(payload.title)) {
-      //   throw new BadRequestError("Title should be either user or admin");
-      // }
-
-      // Checking if OU exists
-      if (payload.userOU) {
-        try {
-          await this.organizationService.listOrganizaitons(
-            `ou=${payload.userOU}`
-          );
-        } catch (error) {
-          if (error.name === "NotFoundError") {
-            error.message = `Invalid user OU: ${payload.userOU}`;
-          }
-          throw error;
-        }
-      }
-
-      // if (payload.telephoneNumber) {
-      //   const phoneExist = await search(
-      //     `ou=${payload.userOU},${process.env.AD_BASE_DN}`,
-      //     `(telephoneNumber=${payload.telephoneNumber})`
-      //   );
-      //   if (phoneExist.length > 0) {
-      //     throw new ConflictError(`Phone number already exists.`);
-      //   }
-
-      //   const validPhone = /^\d{10}$/;
-      //   if (!validPhone.test(payload.telephoneNumber)) {
-      //     throw new BadRequestError("Invalid phone number.");
-      //   }
-      // }
-
-      // if (payload.mail) {
-      //   const emailExist = await search(
-      //     `ou=${payload.userOU},${process.env.AD_BASE_DN}`,
-      //     `(mail=${payload.mail})`
-      //   );
-      //   if (emailExist.length > 0) {
-      //     throw new ConflictError(`Email already exists.`);
-      //   }
-
-      //   const validEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-      //   if (!validEmail.test(payload.mail)) {
-      //     throw new BadRequestError("Invalid email address.");
-      //   }
-      // }
 
       const message = await this.userService.addUser(payload);
       logger.success("[AD] Controller: addUser - Completed");
@@ -133,12 +77,13 @@ class UserController {
       const { username, password, confirmPassword, userOU } = payload;
 
       // const { username, password, confirmPassword, userOU } = req.body;
+      // const payload = req.body;
 
       let missingFields = [];
-      if (!username) missingFields.push("username");
-      if (!password) missingFields.push("password");
-      if (!confirmPassword) missingFields.push("confirmPassword");
-      if (!userOU) missingFields.push("userOU");
+      if (!payload.username) missingFields.push("username");
+      if (!payload.password) missingFields.push("password");
+      if (!payload.confirmPassword) missingFields.push("confirmPassword");
+      if (!payload.userOU) missingFields.push("userOU");
 
       if (missingFields.length > 0) {
         return next(
@@ -146,43 +91,7 @@ class UserController {
         );
       }
 
-      // Checking the OU is valid
-      if (userOU) {
-        try {
-          await this.organizationService.listOrganizaitons(`ou=${userOU}`);
-        } catch (error) {
-          if (error.name === "NotFoundError") {
-            error.message = `Invalid user OU: ${userOU}`;
-          }
-          throw error;
-        }
-      }
-
-      // const userExists = await search(
-      //   `ou=${userOU},${process.env.AD_BASE_DN}`,
-      //   `(cn=${username})`
-      // );
-
-      // if (userExists.length === 0) {
-      //   throw new BadRequestError(`User not found.`);
-      // }
-
-      // const passwordPattern =
-      //   /^(?=.*[0-9])(?=.*[!@#$%^&*()_+[\]{};':"\\|,.<>/?]).{6,}$/;
-
-      // // Validate password format
-      // if (!passwordPattern.test(password)) {
-      //   throw new BadRequestError(
-      //     "Password must be atleast 6 characters with one number and one special character."
-      //   );
-      // }
-
-      const message = await this.userService.resetPassword(
-        username,
-        password,
-        confirmPassword,
-        userOU
-      );
+      const message = await this.userService.resetPassword(payload);
       logger.success("[AD] Controller: resetPassword - Completed");
       res.status(200).json(message);
     } catch (error) {
@@ -197,29 +106,19 @@ class UserController {
       logger.success("[AD] Controller: deleteUser - Started");
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
-
       const { username, userOU } = payload;
+
       // const { username, userOU } = req.body;
+      // const payload = req.body;
       let missingFields = [];
-      if (!username) missingFields.push("username");
-      if (!userOU) missingFields.push("userOU");
+      if (!payload.username) missingFields.push("username");
+      if (!payload.userOU) missingFields.push("userOU");
 
       if (missingFields.length > 0) {
         throw new BadRequestError(`Missing ${missingFields.join(", ")}`);
       }
 
-      // returns error if userOU is invalid
-      if (userOU) {
-        try {
-          await this.organizationService.listOrganizaitons(`ou=${userOU}`);
-        } catch (error) {
-          if (error.name === "NotFoundError") {
-            throw new NotFoundError(`Invalid userOU - ${userOU}`);
-          }
-        }
-      }
-      // In openLdap we need to delete user from all groups, AD itself do that internally.
-      const message = await this.userService.deleteUser(username, userOU);
+      const message = await this.userService.deleteUser(payload);
 
       logger.success("[AD] Controller: deleteUser - Completed");
       res.status(200).json({ message });
@@ -236,110 +135,22 @@ class UserController {
 
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
-
       const { username, userOU, attributes } = payload;
+
       // const { username, userOU, attributes } = req.body;
+      // const payload = req.body;
 
       let missingFields = [];
-      if (!username) missingFields.push("username");
-      if (!userOU) missingFields.push("userOU");
-      if (!attributes) missingFields.push("attributes");
+      if (!payload.username) missingFields.push("username");
+      if (!payload.userOU) missingFields.push("userOU");
+      if (!payload.attributes) missingFields.push("attributes");
       if (missingFields.length > 0) {
         return next(
           new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
         );
       }
 
-      if (userOU) {
-        try {
-          await this.organizationService.listOrganizaitons(`ou=${userOU}`);
-        } catch (error) {
-          if (error.name === "NotFoundError") {
-            throw new NotFoundError(`Invalid userOU - ${userOU}`);
-          }
-          throw error;
-        }
-      }
-      // Before fetching the data from AD, need to bind with the admin user
-      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-
-      // Prevent updating username - feature can be used in future
-
-      // if (attributes.username || attributes.sn || attributes.cn) {
-      //   throw new BadRequestError("Name fields cannot be updated.");
-      // }
-
-      // Check if user exists and fetch their current attributes
-      // const userExists = await search(
-      //   `ou=${userOU},${process.env.AD_BASE_DN}`,
-      //   `(cn=${username})`
-      // );
-      // if (userExists.length === 0) {
-      //   throw new NotFoundError("User not found");
-      // }
-
-      // const currentUser = userExists[0];
-
-      // // Validate the account state
-      // if (currentUser.shadowFlag == 1) {
-      //   throw new BadRequestError("Cannot update a deleted user");
-      // } else if (currentUser.shadowInactive == 1) {
-      //   throw new BadRequestError("Cannot update an inactive user");
-      // }
-
-      // Validate and check if email is different
-      if (attributes.mail) {
-        const validEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        if (!validEmail.test(attributes.mail)) {
-          throw new BadRequestError("Invalid email address");
-        }
-
-        // Check if email is the same as the current one
-        // if (attributes.mail === currentUser.mail) {
-        //   throw new BadRequestError("Update with new mail ID");
-        // }
-
-        // Check if email is already in use by another user
-        const emailInUse = await search(
-          process.env.AD_BASE_DN,
-          `(userPrincipleName=${attributes.mail})`
-        );
-
-        if (emailInUse.length > 0 && emailInUse[0].cn !== username) {
-          throw new ConflictError("Mail is already in use by another user");
-        }
-      }
-
-      // Validate and check if phone number is different
-      if (attributes.telephoneNumber) {
-        const validPhoneNumber = /^\d{10}$/;
-        if (!validPhoneNumber.test(attributes.telephoneNumber)) {
-          throw new BadRequestError("Invalid phone number");
-        }
-
-        // Check if phone number is the same as the current one
-        // if (attributes.telephoneNumber === currentUser.telephoneNumber) {
-        //   throw new BadRequestError("Update with new phone number");
-        // }
-
-        // Check if phone number is already in use by another user
-        const phoneInUse = await search(
-          `ou=${userOU},${process.env.AD_BASE_DN}`,
-          `(telephoneNumber=${attributes.telephoneNumber})`
-        );
-
-        if (phoneInUse.length > 0 && phoneInUse[0].cn !== username) {
-          throw new ConflictError(
-            "Phone number is already in use by another user"
-          );
-        }
-      }
-
-      const data = await this.userService.updateUser(
-        username,
-        userOU,
-        attributes
-      );
+      const data = await this.userService.updateUser(payload);
       logger.success("[AD] Controller: updateUser - Completed");
       res.status(202).json(data);
     } catch (error) {
@@ -355,15 +166,15 @@ class UserController {
 
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
-
       const { username, userOU, attributes } = payload;
 
       // const { username, userOU, attributes } = req.body;
+      // const payload = req.body;
 
       let missingFields = [];
-      if (!username) missingFields.push("username");
-      if (!userOU) missingFields.push("userOU");
-      if (!attributes.mail || !attributes.telephoneNumber)
+      if (!payload.username) missingFields.push("username");
+      if (!payload.userOU) missingFields.push("userOU");
+      if (!payload.attributes.mail || !payload.attributes.telephoneNumber)
         missingFields.push("email or phone number");
 
       if (missingFields.length > 0) {
@@ -372,20 +183,9 @@ class UserController {
         );
       }
 
-      if (userOU) {
-        try {
-          await this.organizationService.listOrganizaitons(`ou=${userOU}`);
-        } catch (error) {
-          if (error.name === "NotFoundError") {
-            throw new NotFoundError(`Invalid userOU - ${userOU}`);
-          }
-          throw error;
-        }
-      }
-
       // Ensure only 'mail' and 'telephoneNumber' are allowed
       const validFields = ["mail", "telephoneNumber"];
-      const invalidFields = Object.keys(attributes).filter(
+      const invalidFields = Object.keys(payload.attributes).filter(
         (attr) => !validFields.includes(attr)
       );
 
@@ -393,72 +193,7 @@ class UserController {
         throw new BadRequestError("Only mail and telephoneNumber are allowed");
       }
 
-      // Before fetching the data from AD, need to bind with the admin user
-      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-
-      // const userExist = await search(
-      //   `ou=${userOU},${process.env.AD_BASE_DN}`,
-      //   `(cn=${username})`
-      // );
-      // if (userExist.length === 0) {
-      //   throw new NotFoundError("User not found");
-      // }
-
-      // const currentUser = userExist[0];
-
-      // Validate and check if email is different
-      if (attributes.mail) {
-        // const validEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        // if (!validEmail.test(attributes.mail)) {
-        //   throw new BadRequestError("Invalid email address");
-        // }
-
-        // // Check if email is the same as the current one
-        // if (attributes.mail === currentUser.mail) {
-        //   throw new BadRequestError("Update with new mail ID");
-        // }
-
-        // Check if email is already in use by another user
-        const emailInUse = await search(
-          `ou=${userOU},${process.env.AD_BASE_DN}`,
-          `(userPrincipleName=${attributes.mail})`
-        );
-
-        if (emailInUse.length > 0 && emailInUse[0].cn !== username) {
-          throw new ConflictError("Mail is already in use by another user");
-        }
-      }
-
-      // Validate and check if phone number is different
-      if (attributes.telephoneNumber) {
-        // const validPhoneNumber = /^\d{10}$/;
-        // if (!validPhoneNumber.test(attributes.telephoneNumber)) {
-        //   throw new BadRequestError("Invalid phone number");
-        // }
-
-        // // Check if phone number is the same as the current one
-        // if (attributes.telephoneNumber === currentUser.telephoneNumber) {
-        //   throw new BadRequestError("Update with new phone number");
-        // }
-
-        // Check if phone number is already in use by another user
-        const phoneInUse = await search(
-          `ou=${userOU},${process.env.AD_BASE_DN}`,
-          `(telephoneNumber=${attributes.telephoneNumber})`
-        );
-
-        if (phoneInUse.length > 0 && phoneInUse[0].cn !== username) {
-          throw new ConflictError(
-            "Phone number is already in use by another user"
-          );
-        }
-      }
-
-      const details = await this.userService.updateContactDetails(
-        username,
-        userOU,
-        attributes
-      );
+      const details = await this.userService.updateContactDetails(payload);
       logger.success("[AD] Controller: changeEmailPhone - Completed");
       res.status(202).json(details);
     } catch (error) {
@@ -471,56 +206,25 @@ class UserController {
   updateUserStatus = async (req, res, next) => {
     try {
       logger.success("[AD] Controller: updateUserStatus - Started");
-      // const { username, action, OU } = req.body;
+
       const encryptedData = req.body.data; // Decrypt the encrypted data
       const payload = decryptPayload(encryptedData); // Decrypt the data
 
-      const { username, action, OU } = payload;
+      // const { username, action, OU } = req.body;
+      // const payload = req.body;
 
       // Validate required fields
       let missingFields = [];
-      if (!username) missingFields.push("username");
-      if (!action) missingFields.push("action");
-      if (!OU) missingFields.push("OU");
+      if (!payload.username) missingFields.push("username");
+      if (!payload.action) missingFields.push("action");
+      if (!payload.OU) missingFields.push("OU");
       if (missingFields.length > 0) {
         return next(
           new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
         );
       }
 
-      // Check if OU exists
-      if (OU) {
-        try {
-          await this.organizationService.listOrganizaitons(`ou=${OU}`);
-        } catch (error) {
-          if (error.name === "NotFoundError") {
-            error.message = `Invalid userOU - ${OU}`;
-          }
-          throw error;
-        }
-      }
-
-      // Validate action
-      if (!["enable", "disable"].includes(action)) {
-        return next(
-          new BadRequestError("Action should be either enable or disable")
-        );
-      }
-
-      // Check if user exists
-      // const userExists = await search(
-      //   `ou=users,${process.env.AD_BASE_DN}`,
-      //   `(cn=${username})`
-      // );
-      // if (userExists.length === 0) {
-      //   throw new NotFoundError(`User not found.`);
-      // }
-
-      const message = await this.userService.modifyUserStatus(
-        username,
-        OU,
-        action
-      );
+      const message = await this.userService.modifyUserStatus(payload);
       logger.success("[AD] Controller: updateUserStatus - Completed");
       res.status(202).json(message);
     } catch (error) {
@@ -551,25 +255,16 @@ class UserController {
   lockGroupMembers = async (req, res, next) => {
     try {
       logger.success("[AD] Controller: disableUser - Started");
-      // const { groupName, groupOU } = req.body;
-      // const payload = req.body;
+
       const encryptedData = req.body.data;
       const payload = decryptPayload(encryptedData); // Decrypt the data
+
+      // const { groupName, groupOU } = req.body;
+      // const payload = req.body;
 
       if (!payload.groupName)
         throw new BadRequestError("Group name is required");
       if (!payload.groupOU) throw new BadRequestError("Group OU is required");
-
-      // Check if given OU is valid
-      await this.organizationService.listOrganizaitons(`ou=${payload.groupOU}`);
-
-      // const groupExists = await search(
-      //   `ou=groups,${process.env.AD_BASE_DN}`,
-      //   `(cn=${groupName})`
-      // );
-      // if (groupExists.length === 0) {
-      //   throw new NotFoundError("Group not found");
-      // }
 
       const message = await this.userService.lockGroupMembers(payload);
       logger.success("[AD] Controller: disableUser - Completed");
@@ -599,31 +294,6 @@ class UserController {
           new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
         );
       }
-
-      // Checking the requested OU is valid
-      if (payload.userOU) {
-        try {
-          await this.organizationService.listOrganizaitons(
-            `ou=${payload.userOU}`
-          );
-        } catch (error) {
-          if (error.name === "NotFoundError") {
-            error.message = `Invalid userOU: ${payload.userOU}`;
-          }
-          throw error;
-        }
-      }
-
-      if (!["unlock"].includes(payload.action)) {
-        throw new BadRequestError("Only unlock action is allowed");
-      }
-      // const userExists = await search(
-      //   `ou=${userOU},${process.env.AD_BASE_DN}`,
-      //   `(cn=${username})`
-      // );
-      // if (userExists.length === 0) {
-      //   throw new NotFoundError("User not found");
-      // }
 
       const message = await this.userService.userLockAction(payload);
       logger.success("[AD] Controller: modifyUserLockStatus - Completed");
@@ -659,30 +329,19 @@ class UserController {
 
       // Decrypt the incoming encrypted parameters
       const encryptedUsername = req.query.username;
-      const encryptedUserOU = req.query.userOU;
-
-      // Decrypt the values
       const username = decryptPayload(encryptedUsername);
-      const userOU = encryptedUserOU ? decryptPayload(encryptedUserOU) : null;
+      const payload = { username };
 
-      // const { username, userOU } = req.query;
+      // const { username } = req.query;
+      // const payload = req.query;
+
       // Check for missing fields after decryption
-      if (!username) {
+      if (!payload.username) {
         return next(new BadRequestError("Missing fields: username"));
       }
-      //  if(!userOU){
-      //   return next(new BadRequestError("Missing fields: userOU"));
-      //  }
 
-      // const userExists = await search(
-      //   `ou=${userOU},${process.env.AD_BASE_DN}`,
-      //   `(cn=${username})`
-      // );
-      // if (userExists.length === 0) {
-      //   throw new NotFoundError(`User not found.`);
-      // }
+      const users = await this.userService.searchUser(payload);
       logger.success("[AD] Controller: searchUser - Completed");
-      const users = await this.userService.searchUser(username, userOU);
       res
         .status(200)
         .json({ message: "User fetched successfully.", users: users });
@@ -706,7 +365,6 @@ class UserController {
       //   confirmPassword,
       //   userOU,
       // } = req.body;
-
       // const payload = req.body;
 
       let missingFields = [];
@@ -721,15 +379,6 @@ class UserController {
           new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
         );
       }
-
-      // const userExists = await search(
-      //   `ou=users,${process.env.AD_BASE_DN}`,
-      //   `(cn=${username})`
-      // );
-
-      // if (userExists.length === 0) {
-      //   throw new NotFoundError(`User not found.`);
-      // }
 
       const message = await this.userService.chpwd(payload);
       logger.success("[AD] Controller: chpwd - Completed");
@@ -746,8 +395,6 @@ class UserController {
       logger.success("[AD] Controller: login - Started");
 
       const encryptedData = req.body.data; // Decrypt the encrypted data
-
-      // Decrypt the data
       const decryptedData = decryptPayload(encryptedData);
       const { email, password, authType } = decryptedData;
       // const { email, password, authType } = req.body;
@@ -756,8 +403,6 @@ class UserController {
       let missingFields = [];
       if (!email) missingFields.push("email");
       if (!password) missingFields.push("password");
-      // if (!userType) missingFields.push("userType");
-      // if (!OU) missingFields.push("OU");
       if (missingFields.length > 0) {
         return next(
           new BadRequestError(`Missing fields: ${missingFields.join(", ")}`)
@@ -768,22 +413,31 @@ class UserController {
 
       const message = await this.userService.login(email, password);
 
+      // Dynamically assign userIdent value as OU or CN key based on the fetched value
+      const userKey = message?.userIdent === message?.userOU ? "OU" : "CN"; // Check if userIdent corresponds to OU
+      const userValue = message?.userIdent;
+
       // Create a session for the user
       req.session.user = {
-        email: email,
-        userType: message?.userType,
-        username: message?.userName,
-        OU: message?.userOU,
-        authMethod: "Password",
-        authType: authType,
-        isAdmin: message?.isAdmin ? true : false,
-        userDN: message?.userDN,
+        email: email, // Adding user email to session
+        username: message?.userName, // Set the username for dashboard profile view
+        [userKey]: userValue, // Dynamically set OU or CN as key in session
+        authType: authType, // Set which ldap protocol for api use
+        authMethod: "Password", // Set pwd based or SSO based
+        userType: message?.userType, // Set the user type for dashboard view
+        isAdmin: message?.isAdmin ? true : false, // Additional check for admin
       };
+
+      req.session.ldap = {
+        authType: authType, // Set which ldap protocol for api use
+        userDN: message?.userDN, // Set the user DN
+        [userKey]: userValue, // Set the user DN part OU or CN both key and value
+        dnKey: userKey, // Set the DN key as OU or CN for dynamical use of API
+      };
+
       req.session.cookie.maxAge = 30 * 60 * 1000; // 30 minutes
 
-      logger.warn(
-        `Data passed to session: ${JSON.stringify(req.session.user)}`
-      );
+      console.log("session data:", req.session);
 
       // Set the `logged_in` cookie
       res.cookie("logged_in", "yes", {
@@ -801,9 +455,9 @@ class UserController {
         message: message.message,
         sessionId: req.session.id,
         email: email,
+        [userKey]: userValue, // Return dynamic key (OU or CN)
         userType: message?.userType,
-        isAdmin: message?.isAdmin ,
-        OU: message?.userOU, // Include the fetched OU or the provided OU
+        isAdmin: message?.isAdmin,
       });
     } catch (error) {
       logger.success("[AD] Controller: login - Error", error);
@@ -836,29 +490,20 @@ class UserController {
     }
   };
 
-  groupMembership = async (req, res, next) => {
-    try {
-      logger.success("[AD] Controller: groupMembership - Started");
-
-      const { email } = req.body;
-
-      if (!email) {
-        throw new BadRequestError(
-          "Email is required to fetch group membership."
-        );
-      }
-
-      const groups = await this.userService.groupMembership(email);
-
-      logger.success("[AD] Controller: groupMembership - Completed");
-      res.status(200).json(groups);
-    } catch (error) {
-      logger.error(
-        `[AD] Controller: groupMembership - Error: ${error.message}`
-      );
-      next(error);
-    }
-  };
+  // listDeletedUsers = async (req, res, next) => {
+  //   try {
+  //     logger.success("[AD] Controller: listDeletedUser - Started");
+  //     const deletedUsers = await this.userService.listDeletedUsers();
+  //     logger.success("[AD] Controller: listDeletedUser - Completed");
+  //     res.status(200).json({
+  //       message: "Deleted users fetched successfully.",
+  //       deletedUsers: deletedUsers,
+  //     });
+  //   } catch (error) {
+  //     logger.success("[AD] Controller: listDeletedUser - Error", error);
+  //     next(error);
+  //   }
+  // };
 }
 
 export default UserController;
