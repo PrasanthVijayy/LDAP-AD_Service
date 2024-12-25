@@ -25,6 +25,7 @@ ldapClient.on("error", (err) => {
 
 // Function to authenticate a user in Active Directory
 const authenticate = async (username, password) => {
+  logger.info(`[AD] Starting authenticating for user: ${username}`);
   try {
     const adInstance = await connectToAD(); // Always use a fresh instance
 
@@ -51,7 +52,7 @@ const authenticate = async (username, password) => {
           logger.error(`[AD] Authentication failed: ${err.message}`);
           if (
             err.message.includes(
-              "80090308: LdapErr: DSID-0C09042A, comment: AcceptSecurityContext error, data 775, v3839"
+              "80090308: LdapErr: DSID-0C09044B, comment: AcceptSecurityContext error, data 775, v3839"
             )
           ) {
             return reject(
@@ -59,7 +60,11 @@ const authenticate = async (username, password) => {
                 "Your account has been locked, Contact Admin!"
               )
             );
-          } else {
+          } else if (
+            err.message.includes(
+              "80090308: LdapErr: DSID-0C09044B, comment: AcceptSecurityContext error, data 52e, v3839"
+            )
+          ) {
             return reject(new BadRequestError("Invalid credentials."));
           }
         }
@@ -83,6 +88,7 @@ const authenticate = async (username, password) => {
 };
 
 const findUser = async (username) => {
+  logger.info(`[AD] Starting to fetch user details for: ${username}`);
   try {
     const adInstance = await connectToAD();
     return new Promise((resolve, reject) => {
@@ -91,7 +97,7 @@ const findUser = async (username) => {
           logger.error(`[AD] Failed to fetch user details: ${err.message}`);
           reject(new Error("User not found"));
         } else if (!user) {
-          logger.warn("[AD] No user details returned");
+          logger.error("[AD] No user details returned");
           reject(new BadRequestError("User not found"));
         } else {
           logger.info(
@@ -109,6 +115,7 @@ const findUser = async (username) => {
 
 // Function to search Active Directory for entries
 const search = async (baseDN, filter, scope = "sub") => {
+  logger.info(`[AD] Starting search for baseDN: ${baseDN}`);
   try {
     await connectToAD();
 
@@ -145,6 +152,7 @@ const search = async (baseDN, filter, scope = "sub") => {
 
 // Function to bind user to Active Directoryq
 const bind = async (dn, password) => {
+  logger.info(`[AD] Starting bind for user: ${dn}`);
   try {
     logger.info(`Attempting to bind to DN: ${dn}`);
     await connectToAD();
@@ -168,6 +176,7 @@ const bind = async (dn, password) => {
 
 // Function to unbind from Active Directory
 const unBind = async () => {
+  logger.info("[AD] Starting unbind");
   try {
     return new Promise((resolve, reject) => {
       ldapClient.unbind((err) => {
@@ -187,6 +196,7 @@ const unBind = async () => {
 
 // Function to add a new user/entry to Active Directory
 const add = async (dn, attributes) => {
+  logger.info(`Attempting to add entry: ${dn}`);
   try {
     await connectToAD(); // Ensure AD connection is established
 
@@ -301,7 +311,6 @@ const deleteEntry = async (dn) => {
 //   }
 // };
 
-
 // Function to fetch group list for a user (using ldaps -> getting CB error with ad2 package)
 const groupList = async (userDN, password, email) => {
   logger.success(`Fetching group list for user with email: ${userDN}`);
@@ -360,27 +369,82 @@ const groupList = async (userDN, password, email) => {
   }
 };
 
-// const groupList = async (username) => {
-//   logger.success(`Fetching group list for user ${username}`);
+const findGroup = async (groupName) => {
+  logger.success(`Fetching group details for ${groupName}`);
+  try {
+    const adInstance = await connectToAD();
+
+    return new Promise((resolve, reject) => {
+      adInstance.findGroup(groupName, (err, group) => {
+        if (err) {
+          logger.error(
+            `Error fetching group details for ${groupName}: ${err.message}`
+          );
+          return reject(new Error("Failed to fetch group details."));
+        } else {
+          logger.info(
+            `Group details fetched successfully: ${JSON.stringify(group)}`
+          );
+          resolve(group);
+        }
+      });
+    });
+  } catch (error) {
+    logger.error(`Error finding group in AD: ${error.message}`);
+    throw error;
+  }
+};
+
+// const deletedObjects = async (opts = {}) => {
 //   try {
 //     const adInstance = await connectToAD();
 
-//     // Promisify the `getGroupMembershipForUser` method
-//     const getGroupMembershipForUser = promisify(
-//       adInstance.getGroupMembershipForUser
-//     ).bind(adInstance);
+//     // Log baseDN and filter values for debugging
+//     console.log("Querying Deleted Objects with baseDN:", opts.baseDN);
+//     console.log("Using filter:", opts.filter);
 
-//     // Use the promisified function to fetch groups
-//     const groups = await getGroupMembershipForUser(username);
+//     const queryOpts = {
+//       baseDN:
+//         opts.baseDN ||
+//         "CN=Recycle Bin Feature,CN=Optional Features,CN=Directory Service,CN=Windows NT,CN=Services,CN=Configuration,DC=cylock,DC=com",
+//       filter: opts.filter || "(isDeleted=TRUE)", // Filter for deleted objects
+//       scope: opts.scope || "sub", // Ensure subtree search
+//     };
 
-//     if (!groups || groups.length === 0) {
-//       logger.warn(`No groups found for user: ${username}`);
-//       return []; // Return an empty array if no groups
-//     }
+//     console.log("Query Options:", JSON.stringify(queryOpts));
 
-//     return groups; // Return the fetched groups
+//     return new Promise((resolve, reject) => {
+//       adInstance.findDeletedObjects(queryOpts, (err, result) => {
+//         if (err) {
+//           // Handle error based on the specific LDAP error
+//           console.error("LDAP error fetching deleted objects:", err.message);
+
+//           if (err.message.includes("0000208D")) {
+//             logger.error(
+//               `Recycle Bin not enabled or 'Deleted Objects' container not found: ${err.message}`
+//             );
+//             return reject(
+//               new BadRequestError(
+//                 "Recycle Bin is not enabled or 'Deleted Objects' container does not exist."
+//               )
+//             );
+//           }
+
+//           logger.error(`Error fetching deleted objects: ${err.message}`);
+//           return reject(new Error("Failed to fetch deleted objects."));
+//         }
+
+//         if (!result || result.length === 0) {
+//           logger.warn("No deleted objects found.");
+//           return resolve([]); // Return empty array if no deleted objects
+//         }
+
+//         logger.info("Fetched deleted objects:", JSON.stringify(result));
+//         resolve(result);
+//       });
+//     });
 //   } catch (error) {
-//     logger.error(`Error in groupList: ${error.message}`);
+//     logger.error(`Error in findDeletedObjects: ${error.message}`);
 //     throw error;
 //   }
 // };
@@ -395,4 +459,6 @@ export {
   modify,
   deleteEntry,
   groupList,
+  findGroup,
+  // deletedObjects,
 };

@@ -1,7 +1,7 @@
 "use strict"; // Using strict mode
 
 import OrganizationService from "../../activeDirectory/services/orgainzationService.js";
-import { BadRequestError, ConflictError } from "../../../utils/error.js";
+import { BadRequestError } from "../../../utils/error.js";
 import { encryptPayload, decryptPayload } from "../../../utils/encryption.js";
 import logger from "../../../config/logger.js";
 class OrganizationController {

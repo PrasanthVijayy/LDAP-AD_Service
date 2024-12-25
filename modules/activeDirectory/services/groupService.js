@@ -1,4 +1,12 @@
-import { bind, add, search, modify, unBind } from "../../../utils/adUtils.js";
+import {
+  bind,
+  add,
+  search,
+  modify,
+  unBind,
+  groupList,
+  findUser,
+} from "../../../utils/adUtils.js";
 import {
   BadRequestError,
   ConflictError,
@@ -7,16 +15,69 @@ import {
 import logger from "../../../config/logger.js";
 
 class GroupService {
-  async createGroup(groupName, description, groupValue, groupOU) {
+  async createGroup(payload) {
     try {
-      console.log("Service: createGroup - Started");
+      console.log("[AD] Service: createGroup - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-      const groupDN = `cn=${groupName},ou=${groupOU},${process.env.AD_BASE_DN}`;
+
+      //validation for groupType while creating
+      if (!["admin", "general"].includes(payload.groupType)) {
+        throw new BadRequestError("Invalid group type");
+      }
+
+      // Validate `groupScope` (must be 'domainLocal', 'universal', or 'global')
+      if (
+        !["Domain local", "Universal", "Global"].includes(payload.groupScope)
+      ) {
+        throw new BadRequestError("Invalid group scope");
+      }
+
+      // Validate `groupName` format
+      const groupNamePattern = /^[a-zA-Z0-9_-]+$/;
+      if (!groupNamePattern.test(payload.groupName)) {
+        throw new BadRequestError("Invalid group name format");
+      }
+
+      let dnKey = null;
+      if (payload.groupOU) {
+        const filter = `(|(&(ou=${payload.groupOU})(objectClass=organizationalUnit))(&(cn=${payload.groupOU})(objectClass=container)))`;
+        const check = await search(process.env.AD_BASE_DN, filter);
+        console.warn("check", check);
+        const data = check[0];
+        console.warn("data", data);
+        dnKey = data?.cn ? "CN" : data?.ou ? "OU" : null; // Setting the key for the DN from the search result
+        console.warn("dnKey", dnKey);
+      }
+      // Construct the Distinguished Name (DN) for the new group dynamically
+      const groupDN = `cn=${payload.groupName},${dnKey}=${payload.groupOU},${process.env.AD_BASE_DN}`;
+      console.log("groupDN", groupDN);
+
+      const GROUP_TYPES = {
+        admin: 0x80000000, // Security group
+        general: 0x00000000, // Distribution group
+      };
+
+      const GROUP_SCOPES = {
+        "Domain local": 0x4,
+        Universal: 0x8,
+        Global: 0x2,
+      };
+
+      const typeValue = GROUP_TYPES[payload.groupType];
+      const scopeValue = GROUP_SCOPES[payload.groupScope];
+      const groupValue = typeValue | scopeValue; // Combine using bitwise OR
+
+      console.warn("groupValue", groupValue);
+      console.warn(
+        `typeValue: ${typeValue}, scopeValue: ${scopeValue}, groupValue: ${groupValue}`
+      );
+
       const groupAttributes = {
-        cn: groupName,
+        cn: payload.groupName,
         objectClass: ["top", "group"],
         groupType: groupValue,
-        description: description || "Default group",
+        description:
+          payload.description || `A ${typeValue} based ${scopeValue} group`,
       };
 
       console.log("Attributes", groupAttributes);
@@ -29,13 +90,13 @@ class GroupService {
       logger.success("[AD] Service: createGroup - Completed");
       return { message: "Group created successfully." };
     } catch (error) {
+      console.error(`[AD] Service: createGroup - Error, ${error}`);
       logger.error("[AD] Service: createGroup - Error - Unbind initiated");
       await unBind(); // Unbind the user
-      console.log("[AD] Service: createGroup - Error", error);
       if (error.message.includes("00002071")) {
-        throw new ConflictError(`Group ${groupName} already exists.`);
+        throw new ConflictError(`Group name already exists`);
       } else if (error.message.includes("0000208D")) {
-        throw new NotFoundError(`OU ${groupOU} does not exist.`);
+        throw new NotFoundError(`Invalid OU`);
       } else if (error.message.includes("00002141")) {
         throw new BadRequestError(`Invalid group type`);
       } else {
@@ -68,21 +129,17 @@ class GroupService {
       const rawGroups = await search(baseDN, searchFilter, scope);
 
       // Filter only groups with 'OU' in the distinguished name
-      const ouBasedGroups = rawGroups.filter((group) =>
-        group.dn.includes(",OU=")
-      );
+      // const ouBasedGroups = rawGroups.filter((group) =>
+      //   group.dn.includes(",OU=")
+      // );
 
-      const groups = ouBasedGroups.map((group) => ({
+      const groups = rawGroups.map((group) => ({
         dn: group.dn,
         groupName: group.cn,
         description: group.description || "No description available",
         groupType: GroupService.mapGroupType(group.groupType),
-        isAdmin: group.groupType < 0, // Check if group is admin group for client-side JS
+        isAdminGroup: group.groupType < 0, // Check if group is admin group for UI identification
       }));
-
-      if (groups.length === 0) {
-        throw new NotFoundError("No groups found.");
-      }
 
       logger.success("[AD] Service: listGroups - Unbind initiated");
       await unBind(); // Unbind the user
@@ -97,12 +154,42 @@ class GroupService {
     }
   }
 
-  async addToGroup(groupName, member, groupOU, memberOU) {
+  async addToGroup(payload) {
     try {
       logger.success("[AD] Service: addToGroup - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-      const groupDN = `cn=${groupName},ou=${groupOU},${process.env.AD_BASE_DN}`;
-      const userDN = `cn=${member},ou=${memberOU},${process.env.AD_BASE_DN}`;
+
+      const [groupSearch, userSearch] = await Promise.all([
+        // Promise for groupSearch
+        search(
+          process.env.AD_BASE_DN,
+          `(|(&(ou=${payload.groupOU})(objectClass=organizationalUnit))(&(cn=${payload.groupOU})(objectClass=container)))`
+        ),
+        // Promise for userSearch
+        search(
+          process.env.AD_BASE_DN,
+          `(|(&(ou=${payload.memberOU})(objectClass=organizationalUnit))(&(cn=${payload.memberOU})(objectClass=container)))`
+        ),
+      ]);
+
+      const groupData = groupSearch[0];
+      const groupDnKey = groupData?.cn ? "CN" : groupData?.ou ? "OU" : null;
+
+      const userData = userSearch[0];
+      const userDnKey = userData?.cn ? "CN" : userData?.ou ? "OU" : null;
+
+      if (!groupDnKey) throw new BadRequestError("Invalid groupOU");
+      if (!userDnKey) throw new BadRequestError("Invalid memberOU");
+
+      // Since the cn is not same as samAccountName, we need to fetch the cn from the dn
+      const userDetails = await findUser(payload.member);
+      const username = userDetails?.cn; // Fetch CN from DN
+
+      const groupDN = `cn=${payload.groupName},${groupDnKey}=${payload.groupOU},${process.env.AD_BASE_DN}`;
+      const userDN = `cn=${username},${userDnKey}=${payload.memberOU},${process.env.AD_BASE_DN}`;
+
+      console.log("groupDN", groupDN);
+      console.log("userDN", userDN);
 
       // Allowing only nonAdmin group - as per requirements (check endpoint list)
       const groupDetails = await search(groupDN, "(objectClass=group)");
@@ -111,7 +198,7 @@ class GroupService {
 
       if (!allowedGroup.includes(groupDetails[0]?.groupType)) {
         throw new BadRequestError(
-          `Cannot access the admin group - ${groupName}`
+          `Cannot access the admin group - ${payload.groupName}`
         );
       }
 
@@ -136,23 +223,55 @@ class GroupService {
       await unBind(); // Unbind the user
       console.log("Service: addToGroup - Error", error);
       if (error.message.includes("0000208D")) {
-        throw new NotFoundError(`Group ${groupName} does not exist.`);
+        throw new NotFoundError(`Invalid group details`);
       } else if (error.message.includes("00000525")) {
-        throw new NotFoundError(`User ${member} does not exist.`);
+        throw new NotFoundError(`Invalid user details`);
       } else if (error.message.includes("00000562")) {
-        throw new ConflictError(`User '${member}' already exists in group.`);
+        throw new ConflictError(
+          `User '${payload.member}' already exists in group`
+        );
       } else {
         throw error;
       }
     }
   }
 
-  async deleteFromGroup(groupName, groupOU, member, memberOU) {
+  async deleteFromGroup(payload) {
     try {
       logger.success("[AD] Service: deleteFromGroup - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-      const groupDN = `cn=${groupName},ou=${groupOU},${process.env.AD_BASE_DN}`;
-      const userDN = `cn=${member},ou=${memberOU},${process.env.AD_BASE_DN}`;
+
+      const [groupSearch, userSearch] = await Promise.all([
+        // Promise for groupSearch
+        search(
+          process.env.AD_BASE_DN,
+          `(|(&(ou=${payload.groupOU})(objectClass=organizationalUnit))(&(cn=${payload.groupOU})(objectClass=container)))`
+        ),
+        // Promise for userSearch
+        search(
+          process.env.AD_BASE_DN,
+          `(|(&(ou=${payload.memberOU})(objectClass=organizationalUnit))(&(cn=${payload.memberOU})(objectClass=container)))`
+        ),
+      ]);
+
+      const groupData = groupSearch[0];
+      const groupDnKey = groupData?.cn ? "CN" : groupData?.ou ? "OU" : null;
+
+      const userData = userSearch[0];
+      const userDnKey = userData?.cn ? "CN" : userData?.ou ? "OU" : null;
+
+      if (!groupDnKey) throw new BadRequestError("Invalid groupOU");
+      if (!userDnKey) throw new BadRequestError("Invalid memberOU");
+
+      // Since the cn is not same as samAccountName, we need to fetch the cn from the dn
+      const userDetails = await findUser(payload.member);
+      const username = userDetails?.cn; // Fetch CN from DN
+
+      const groupDN = `cn=${payload.groupName},${groupDnKey}=${payload.groupOU},${process.env.AD_BASE_DN}`;
+      const userDN = `cn=${username},${userDnKey}=${payload.memberOU},${process.env.AD_BASE_DN}`;
+
+      console.log("groupDN", groupDN);
+      console.log("userDN", userDN);
 
       // Allowing only nonAdmin group - as per requirements (check endpoint list)
       const groupDetails = await search(groupDN, "(objectClass=group)");
@@ -161,7 +280,7 @@ class GroupService {
 
       if (!allowedGroup.includes(groupDetails[0]?.groupType)) {
         throw new BadRequestError(
-          `Cannot access the admin group - ${groupName}`
+          `Cannot access the admin group - ${payload.groupName}`
         );
       }
 
@@ -180,8 +299,8 @@ class GroupService {
       logger.success("[AD] Service: deleteFromGroup - Completed");
       return {
         message: "User deleted from group successfully.",
-        groupName: groupName,
-        groupOU: groupOU,
+        groupName: payload.groupName,
+        groupOU: payload.groupOU,
       };
     } catch (error) {
       logger.error("[AD] Service: deleteFromGroup - Error - Unbind initiated");
@@ -189,12 +308,12 @@ class GroupService {
       console.log("Service: deleteFromGroup - Error", error);
       // Error if group does not exist
       if (error.message.includes("0000208D")) {
-        throw new NotFoundError(`Group ${groupName} does not exist.`);
+        throw new NotFoundError(`Invaild group details`);
       }
       //Error if member is not in group while deleting
       if (error.message.includes("00000561")) {
         throw new BadRequestError(
-          `User '${member}' is not a member of the group.`
+          `User '${payload.member}' is not a member of the group.`
         );
       } else {
         throw error;
@@ -202,7 +321,7 @@ class GroupService {
     }
   }
 
-  async membersInGroup(groupName, OU) {
+  async membersInGroup(payload) {
     try {
       logger.success("[AD] Service: membersInGroup - Started");
 
@@ -210,7 +329,23 @@ class GroupService {
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
 
       // Construct groupDN using the provided OU (or default 'groups')
-      const groupDN = `cn=${groupName},ou=${OU},${process.env.AD_BASE_DN}`;
+      let dnKey = null;
+      if (payload.OU) {
+        const filter = `(|(&(ou=${payload.OU})(objectClass=organizationalUnit))(&(cn=${payload.OU})(objectClass=container)))`;
+        const check = await search(process.env.AD_BASE_DN, filter);
+        console.warn("check", check);
+        const data = check[0];
+        console.warn("data", data);
+        dnKey = data?.cn ? "CN" : data?.ou ? "OU" : null; // Setting the key for the DN from the search result
+        console.warn("dnKey", dnKey);
+      }
+      // Throw error if groupOU is invalid
+      if (!dnKey) throw new BadRequestError("Invalid groupOU");
+
+      // Construct the Distinguished Name (DN) for the new group dynamically
+      const groupDN = `cn=${payload.groupName},${dnKey}=${payload.OU},${process.env.AD_BASE_DN}`;
+      console.log("groupDN", groupDN);
+
       const groupDetails = await search(groupDN, "(objectClass=group)");
 
       // Extract members from the group details
@@ -229,24 +364,52 @@ class GroupService {
 
       return { count: members.length, members };
     } catch (error) {
+      console.error(`[AD] Service: membersInGroup - Error: ${error}`);
       logger.error("[AD] Service: membersInGroup - Error - Unbind initiated");
       await unBind(); // Unbind the user
-      console.log("[AD] Service: membersInGroup - Error", error);
-      // This error applies for same for invalid group name and OU, so OU is made in controller.
       if (error.message.includes("0000208D")) {
-        throw new NotFoundError(`Group ${groupName} does not exist.`);
+        throw new NotFoundError(`Invalid group details`);
       } else {
         throw error;
       }
     }
   }
 
-  async addToAdminGroup(groupName, member, groupOU, memberOU) {
+  async addToAdminGroup(payload) {
     try {
       logger.success("[AD] Service: addAdminGroup - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-      const groupDN = `cn=${groupName},ou=${groupOU},${process.env.AD_BASE_DN}`;
-      const userDN = `cn=${member},ou=${memberOU},${process.env.AD_BASE_DN}`;
+      const [groupSearch, userSearch] = await Promise.all([
+        // Promise for groupSearch
+        search(
+          process.env.AD_BASE_DN,
+          `(|(&(ou=${payload.groupOU})(objectClass=organizationalUnit))(&(cn=${payload.groupOU})(objectClass=container)))`
+        ),
+        // Promise for userSearch
+        search(
+          process.env.AD_BASE_DN,
+          `(|(&(ou=${payload.memberOU})(objectClass=organizationalUnit))(&(cn=${payload.memberOU})(objectClass=container)))`
+        ),
+      ]);
+
+      const groupData = groupSearch[0];
+      const groupDnKey = groupData?.cn ? "CN" : groupData?.ou ? "OU" : null;
+
+      const userData = userSearch[0];
+      const userDnKey = userData?.cn ? "CN" : userData?.ou ? "OU" : null;
+
+      if (!groupDnKey) throw new BadRequestError("Invalid groupOU");
+      if (!userDnKey) throw new BadRequestError("Invalid memberOU");
+
+      // Since the cn is not same as samAccountName, we need to fetch the cn from the dn
+      const userDetails = await findUser(payload.member);
+      const username = userDetails?.cn; // Fetch CN from DN
+
+      const groupDN = `cn=${payload.groupName},${groupDnKey}=${payload.groupOU},${process.env.AD_BASE_DN}`;
+      const userDN = `cn=${username},${userDnKey}=${payload.memberOU},${process.env.AD_BASE_DN}`;
+
+      console.log("groupDN", groupDN);
+      console.log("userDN", userDN);
 
       const groupDetails = await search(groupDN, "(objectClass=group)");
 
@@ -261,7 +424,7 @@ class GroupService {
 
       if (!allowedGroup.includes(groupDetails[0]?.groupType)) {
         throw new BadRequestError(
-          `Cannot access the nonAdmin group - ${groupName}`
+          `Cannot access the nonAdmin group - ${payload.groupName}`
         );
       }
 
@@ -284,23 +447,54 @@ class GroupService {
       await unBind(); // Unbind the user
       console.log("Service: addAdminGroup - Error", error);
       if (error.message.includes("0000208D")) {
-        throw new NotFoundError(`Group '${groupName}' does not exist.`);
+        throw new NotFoundError(`Invalid group details`);
       } else if (error.message.includes("00000525")) {
-        throw new NotFoundError(`User '${member}' does not exist.`);
+        throw new NotFoundError(`User '${payload.member}' does not exist.`);
       } else if (error.message.includes("00000562")) {
-        throw new ConflictError(`User '${member}' already exists in group.`);
+        throw new ConflictError(
+          `User '${payload.member}' already exists in group.`
+        );
       } else {
         throw error;
       }
     }
   }
 
-  async deleteFromAdminGroup(groupName, groupOU, member, memberOU) {
+  async deleteFromAdminGroup(payload) {
     try {
       logger.success("[AD] Service: deleteFromGroup (Admin) - Started");
       await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
-      const groupDN = `cn=${groupName},ou=${groupOU},${process.env.AD_BASE_DN}`;
-      const userDN = `cn=${member},ou=${memberOU},${process.env.AD_BASE_DN}`;
+      const [groupSearch, userSearch] = await Promise.all([
+        // Promise for groupSearch
+        search(
+          process.env.AD_BASE_DN,
+          `(|(&(ou=${payload.groupOU})(objectClass=organizationalUnit))(&(cn=${payload.groupOU})(objectClass=container)))`
+        ),
+        // Promise for userSearch
+        search(
+          process.env.AD_BASE_DN,
+          `(|(&(ou=${payload.memberOU})(objectClass=organizationalUnit))(&(cn=${payload.memberOU})(objectClass=container)))`
+        ),
+      ]);
+
+      const groupData = groupSearch[0];
+      const groupDnKey = groupData?.cn ? "CN" : groupData?.ou ? "OU" : null;
+
+      const userData = userSearch[0];
+      const userDnKey = userData?.cn ? "CN" : userData?.ou ? "OU" : null;
+
+      if (!groupDnKey) throw new BadRequestError("Invalid groupOU");
+      if (!userDnKey) throw new BadRequestError("Invalid memberOU");
+
+      // Since the cn is not same as samAccountName, we need to fetch the cn from the dn
+      const userDetails = await findUser(payload.member);
+      const username = userDetails?.cn; // Fetch CN from DN
+
+      const groupDN = `cn=${payload.groupName},${groupDnKey}=${payload.groupOU},${process.env.AD_BASE_DN}`;
+      const userDN = `cn=${username},${userDnKey}=${payload.memberOU},${process.env.AD_BASE_DN}`;
+
+      console.log("groupDN", groupDN);
+      console.log("userDN", userDN);
 
       // Allowing only nonAdmin group - as per requirements (check endpoint list)
       const groupDetails = await search(groupDN, "(objectClass=group)");
@@ -314,7 +508,7 @@ class GroupService {
 
       if (!allowedGroup.includes(groupDetails[0]?.groupType)) {
         throw new BadRequestError(
-          `Cannot access the nonAdmin group - ${groupName}`
+          `Cannot access the nonAdmin group - ${payload.groupName}`
         );
       }
 
@@ -335,8 +529,8 @@ class GroupService {
       logger.success("[AD] Service: deleteFromGroup (Admin) - Completed");
       return {
         message: "User deleted from group successfully.",
-        groupName: groupName,
-        groupOU: groupOU,
+        groupName: payload.groupName,
+        groupOU: payload.groupOU,
       };
     } catch (error) {
       logger.error(
@@ -346,12 +540,12 @@ class GroupService {
       console.log("[AD] Service: deleteFromGroup (Admin) - Error", error);
       // Error if group does not exist
       if (error.message.includes("0000208D")) {
-        throw new NotFoundError(`Group ${groupName} does not exist.`);
+        throw new NotFoundError(`Invalid group details`);
       }
       //Error if member is not in group while deleting
       if (error.message.includes("00000561")) {
         throw new BadRequestError(
-          `User '${member}' is not a member of the group.`
+          `User '${payload.member}' is not a member of the group.`
         );
       } else {
         throw error;
