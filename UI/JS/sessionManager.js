@@ -34,6 +34,8 @@ async function validateSession() {
       if (data.status === "success" && data.user) {
         const validatedUserType = data.user.userType;
 
+        localStorage.setItem("authType", data?.user?.authType); // Setting authType in local storage for further use
+
         // Redirect to their respective dashboard if on the login page
         if (window.location.pathname === "/") {
           redirectToDashboard(validatedUserType);

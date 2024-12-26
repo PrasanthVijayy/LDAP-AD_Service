@@ -116,9 +116,6 @@ async function toggleUIData() {
   }
 }
 
-// Commented since we are using after getting the authType from API (used below).
-// window.addEventListener("load", toggleUIData);
-
 // Form submission event for creating a new group
 document
   .getElementById("createGroupForm")
@@ -490,7 +487,13 @@ async function viewGroupDetails(groupName, groupType, groupOU, isAdmin) {
 }
 
 // Display group members in modal with add/delete functionality
-function displayGroupMembersModal(groupName, groupType, groupOU, members, isAdmin) {
+function displayGroupMembersModal(
+  groupName,
+  groupType,
+  groupOU,
+  members,
+  isAdmin
+) {
   const membersList = document.getElementById("membersList");
   membersList.innerHTML = ""; // Clear previous content
 

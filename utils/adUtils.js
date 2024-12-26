@@ -275,41 +275,35 @@ const deleteEntry = async (dn) => {
   }
 };
 
-// const groupList = async (username) => {
-//   logger.success(`Fetching group list for user ${username}`);
-//   try {
-//     const adInstance = await connectToAD();
+const findData = async (filter) => {
+  logger.info(`Fetching details with filter: ${filter}`);
+  try {
+    const adInstance = await connectToAD();
 
-//     return new Promise((resolve, reject) => {
-//       let resolved = false; // Guard flag
-//       const opts = {};
+    return new Promise((resolve, reject) => {
+      // Use the provided filter or default to filtering by group membership`;
 
-//       adInstance.getGroupMembershipForUser(opts, username, (err, groups) => {
-//         if (resolved) return; // Prevent multiple invocations
-//         resolved = true; // Mark as resolved
+      if (!filter) throw new BadRequestError("No filter provided"); // Ensure a filter is provided
 
-//         if (err) {
-//           logger.error(
-//             `Error fetching groups for user ${username}: ${err.message}`
-//           );
-//           return reject(new Error("Failed to fetch group membership."));
-//         }
-
-//         if (!groups || groups.length === 0) {
-//           logger.warn(`No groups found for user: ${username}`);
-//           return resolve([]); // Resolve with an empty array
-//         }
-
-//         // console.log("Groups list: ", groups);
-//         // console.log(`Groups list: ${JSON.stringify(groups, null, 2)}`);
-//         resolve(groups); // Resolve with group data
-//       });
-//     });
-//   } catch (error) {
-//     logger.error(`Error in groupList: ${error.message}`);
-//     throw error;
-//   }
-// };
+      adInstance.find(
+        {
+          filter,
+          attributes: ["dn", "memberOf", "cn", "sAMAccountName", "userPrincipalName"], // Mention only required attributes
+        },
+        (err, result) => {
+          if (err) {
+            logger.error(`Error fetching LDAP data: ${err.message}`);
+            return reject(new Error("Failed to fetch LDAP data."));
+          }
+          resolve(result); // Resolve with the result
+        }
+      );
+    });
+  } catch (error) {
+    logger.error(`Error in fetchLDAPData: ${error.message}`);
+    throw error;
+  }
+};
 
 // Function to fetch group list for a user (using ldaps -> getting CB error with ad2 package)
 const groupList = async (userDN, password, email) => {
@@ -460,5 +454,6 @@ export {
   deleteEntry,
   groupList,
   findGroup,
+  findData,
   // deletedObjects,
 };

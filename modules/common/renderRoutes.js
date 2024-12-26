@@ -8,6 +8,7 @@ import { search } from "../../utils/ldapUtils.js";
 import { samlUtils } from "../../utils/samlUtils.js";
 import { connectRoutes } from "./routesConnector.js";
 import { connectDirectory } from "../../utils/directoryConnector.js";
+import { findData } from "../../utils/adUtils.js";
 
 export const renderRoutes = (app) => {
   // Render index page
@@ -139,43 +140,23 @@ export const renderRoutes = (app) => {
           return res.redirect("/saml/login");
         }
 
-        const authType = "ldap"; // Set authType to LDAP for SAML users
-
-        // Set authType in session for dynamic route loading
+        const authType = "ad"; // Set authType to LDAP for SAML users
         req.session.method = { authType };
 
         try {
-          await connectDirectory(authType); // Connect to directory (LDAP by default as of now)
-          await connectRoutes(app, authType); // Load dynamic routes based on authType
+          await connectDirectory(authType);
+          await connectRoutes(app, authType);
           logger.success(`Dynamic routes loaded for authType: ${authType}`);
         } catch (routeError) {
           logger.error("Failed to load dynamic routes:", routeError);
           return res.redirect("/saml/login");
         }
 
-        // Extract employeeNumber from SAML response
-        const employeeNumber = req.user?.empID;
-
-        if (!employeeNumber) {
-          logger.warn("Employee number not found in SAML response.");
-          return res.redirect("/saml/login");
-        }
-
-        // Query OpenLDAP for the employee number
-        const ldapResults = await search(
-          process.env.LDAP_BASE_DN,
-          `(employeeNumber=${employeeNumber})`
-        );
-
-        if (ldapResults.length === 0) {
-          logger.error(
-            `Employee number ${employeeNumber} not found in OpenLDAP.`
-          );
-
-          // Destroy SP session
+        if (!req.user?.empID) {
+          logger.warn("Employee ID not found in SAML profile.");
           req.session.destroy((err) => {
             if (err) {
-              logger.error("Failed to destroy SP session:", err);
+              logger.error("Failed to destroy session:", err);
             }
           });
           logger.info(`API URL:, ${process.env.APP_LOGIN_URL}`); // Getting correct URL
@@ -186,18 +167,23 @@ export const renderRoutes = (app) => {
           return res.redirect(idpLogoutUrl);
         }
 
-        // Employee exists in OpenLDAP - Proceed with setting session
-        const ldapUser = ldapResults[0];
-        console.log("ldap user data from SAML Login:", ldapUser);
-
+        // Set session for the user
         req.session.user = {
-          username: ldapUser?.cn,
-          employeeNumber: employeeNumber,
-          mail: ldapUser?.mail,
-          userType: ldapUser?.title,
-          OU: ldapUser?.ou || null,
+          email: req.user?.email,
+          username: req.user?.username,
+          empID: req.user?.empID,
+          authType: authType,
           authMethod: "SAML",
-          authType: "ad", // Directly set authType to ad since no dynamic connections
+          userType: req.user?.role,
+          OU: req.user?.userOU || req.user?.userCN,
+          isAdmin: req.user.role === "admin" ? true : false,
+        };
+
+        req.session.ldap = {
+          authType: authType,
+          userDN: req.user?.dn,
+          [req.user?.userIdent]: req.user?.userOU || req.user?.userCN, // Fetch either OU / CN from SAML user profile
+          dnKey: req.user?.userIdent, // Fetch either OU / CN from SAML user profile
         };
 
         // Set session expiration dynamically based on SAML assertion
@@ -209,16 +195,25 @@ export const renderRoutes = (app) => {
         } else {
           req.session.cookie.maxAge = 30 * 60 * 1000; // Default to 30 minutes
         }
-
-        // Redirect to user dashboard based on role
-        if (req.session?.user?.role === "admin") {
+        // Redirect user based on role
+        if (req.user?.role) {
+          // If admin
           return res.redirect("/directoryManagement/admin");
         } else {
+          // else user
           return res.redirect("/directoryManagement/user");
         }
       } catch (error) {
         logger.error("Error during SAML callback processing:", error);
-        res.redirect("/saml/login");
+        req.session.destroy((err) => {
+          if (err) {
+            logger.error(
+              "Failed to destroy session during error handling:",
+              err
+            );
+          }
+        });
+        return res.redirect("/saml/login");
       }
     }
   );

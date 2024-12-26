@@ -91,7 +91,9 @@ class UserService {
 
       // Handle specific AD errors
       if (error.message.includes("00002071")) {
-        throw new BadRequestError("Username already created");
+        throw new BadRequestError(
+          "Username already created, try using different name for firstname and username"
+        );
       } else if (error.message.includes("0000208D")) {
         throw new BadRequestError(`Invalid ${payload.dnKey || "OU"}`);
       } else if (
@@ -914,10 +916,8 @@ class UserService {
       console.warn(`userOU: ${userOU} | userCN: ${userCN}`);
       console.log(`userIdent: ${userIdent}`);
 
+      // Fetch authenticating user joined group list to check user is admin or not
       const Groups = await groupList(userDN, password, email);
-
-      // Calling listGroupsOnUser API to check if user is admin or not
-      // const groupDetails = await this.groupMembership(email);
 
       console.log("groupDetails", Groups);
 
@@ -929,6 +929,7 @@ class UserService {
         "Schema Admins",
       ];
 
+      // Confirm as admin if user is any of the admin groups
       const isAdmin = Groups.some((group) => {
         const groupName = group.cn.split(",")[0].replace("CN=", "");
         return adminGroups.includes(groupName);

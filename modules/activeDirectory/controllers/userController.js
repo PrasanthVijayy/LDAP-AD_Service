@@ -490,6 +490,7 @@ class UserController {
     }
   };
 
+
   // listDeletedUsers = async (req, res, next) => {
   //   try {
   //     logger.success("[AD] Controller: listDeletedUser - Started");

@@ -1,6 +1,7 @@
 // sessionRoutes.js
 import express from "express";
 import { sessionMiddleware } from "../../middleware/sessionMiddleware.js";
+import { samlUtils } from "../../utils/samlUtils.js";
 import csrfProtection from "../../UI/libs/csurfProtection.js";
 import dotenv from "dotenv";
 import { BadRequestError } from "../../utils/error.js";
@@ -14,7 +15,9 @@ const sessionRoute = (app) => {
   // SESSION CHECK ROUTE
   router.get("/check", csrfProtection, sessionMiddleware, (req, res) => {
     console.warn(
-      `Session for user: ${req.user.username || req.user.email} & sessionID: ${req.sessionID}`
+      `Session for user: ${req.user.username || req.user.email} & sessionID: ${
+        req.sessionID
+      }`
     );
     console.log("Session data:", req.session);
     res.status(200).json({
@@ -33,8 +36,7 @@ const sessionRoute = (app) => {
         );
 
         // IdP logout URL with RelayState
-        const idpLogoutUrl =
-          "https://sso.cybernexa.com/adfs/ls/?wa=wsignout1.0";
+        const idpLogoutUrl = samlUtils?.logoutURL; // Logout URL called from SAML utils file
         const relayState = encodeURIComponent(process.env.APP_LOGIN_URL);
 
         const logoutUrlWithRelayState = `${idpLogoutUrl}&RelayState=${relayState}`;
