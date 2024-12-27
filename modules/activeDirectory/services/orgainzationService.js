@@ -97,7 +97,7 @@ class OrganizationService {
       // Transform the filtered container data
       const containers = properContainers.map((container) => ({
         dn: container.dn,
-        containerDN: container.ou || null,
+        containerDN: container.cn || null,
         description: container.description || null,
       }));
 
@@ -110,6 +110,64 @@ class OrganizationService {
       logger.error(`[AD] Service: listContainers - Error - Unbind initiated`);
       await unBind(); // Unbind the user
       console.error("Service: listContainers - Error", error);
+      throw error;
+    }
+  }
+
+  async directoryEntities() {
+    try {
+      logger.success("[AD] Service: directoryEntities - Started");
+      await bind(process.env.AD_ADMIN_DN, process.env.AD_ADMIN_PASSWORD);
+      const baseDN = process.env.AD_BASE_DN;
+
+      // Search for organizational units
+      const ouSearchFilter = "(objectClass=organizationalUnit)";
+      const ouScope = "sub";
+      const rawOUs = await search(baseDN, ouSearchFilter, ouScope);
+
+      // Search for containers
+      const containerSearchFilter = "(objectClass=container)";
+      const containerScope = "sub";
+      const rawContainers = await search(
+        baseDN,
+        containerSearchFilter,
+        containerScope
+      );
+
+      // Filter the containers to include only those with the proper CN format (CN=...,DC=...,DC=...)
+      const properContainers = rawContainers.filter((container) =>
+        /^CN=[^,]+,DC=[^,]+,DC=[^,]+$/.test(container.dn)
+      );
+
+      logger.success("[AD] Service: directoryEntities - Unbind initiated");
+      await unBind(); // Unbind the user
+
+      logger.success("[AD] Service: directoryEntities - Completed");
+
+      // Map the results to a uniform structure
+      const organizationalUnits = rawOUs.map((ou) => ({
+        type: "Organizational Unit",
+        dn: ou.dn,
+        name: ou.ou || null,
+        description: ou.description || null,
+      }));
+
+      const containers = properContainers.map((container) => ({
+        type: "Container",
+        dn: container.dn,
+        name: container.cn || null,
+        description: container.description || null,
+      }));
+
+      const combinedEntities = [...organizationalUnits, ...containers];
+      return {
+        Count: organizationalUnits.length + containers.length,
+        Entites: combinedEntities,
+      };
+    } catch (error) {
+      logger.error("[AD] Service: directoryEntities - Error", error);
+      await unBind(); // Unbind the user
+      console.error("Service: directoryEntities - Error", error);
       throw error;
     }
   }

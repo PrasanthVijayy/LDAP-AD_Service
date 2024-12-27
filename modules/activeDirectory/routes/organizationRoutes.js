@@ -14,5 +14,6 @@ const adOrganizationRoutes = (app) => {
   router.post("/createOrganization", csrfProtection, sessionMiddleware, apiLimiter(), organizationController.createOrganization); // Create organization - additional
   router.get("/listOrganizations", csrfProtection, sessionMiddleware, apiLimiter(), organizationController.listOrganizaitons); // List organizations
   router.get("/listContainers",  csrfProtection, sessionMiddleware, apiLimiter(), organizationController.listContainers); // List containers
+  router.get("/directoryEntities", csrfProtection, sessionMiddleware,   apiLimiter(), organizationController.directoryEntities); // List both OU & CN for dynamic access
 };
 export default adOrganizationRoutes;
