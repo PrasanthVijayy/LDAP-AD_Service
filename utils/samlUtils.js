@@ -5,7 +5,7 @@ export const samlUtils = {
   entryPoint: "https://sso.cybernexa.com/adfs/ls/idpinitiatedsignonpage.aspx",
   issuer: "https://192.168.0.145/",
   callbackUrl: "https://192.168.0.145/login/callback",
-  idpCert: fs.readFileSync("Certificates/LATEST.pem", "utf-8"),
+  idpCert: fs.readFileSync("Certificates/adCert_ip144.pem", "utf-8"),
   identifierFormat: null,
   logoutURL: "https://sso.cybernexa.com/adfs/ls/?wa=wsignout1.0",
 };
@@ -15,7 +15,7 @@ export const samlUtils = {
 //   entryPoint: "https://sso.cybernexa.com/adfs/ls",
 //   issuer: "https://remote.cybernexa.com/",
 //   callbackUrl: "https://remote.cybernexa.com/login/callback",
-//   idpCert: fs.readFileSync("/root/auth_app/adfs_certificate.cer", "utf-8"),
+//   idpCert: fs.readFileSync("Certificates/adCert_AWS.pem", "utf-8"),
 //   identifierFormat: null,
 //   logoutURL: "https://sso.cybernexa.com/adfs/ls/?wa=wsignout1.0",
 // };
