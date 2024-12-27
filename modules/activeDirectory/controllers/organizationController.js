@@ -65,6 +65,20 @@ class OrganizationController {
       next(error);
     }
   };
+
+  directoryEntities = async (req, res, next) => {
+    try {
+      logger.success("[AD] Controller: directoryEntities - Started");
+      const entities = await this.organizationService.directoryEntities();
+      const encryptData = encryptPayload(entities);
+      logger.success("[AD] Controller: directoryEntities - Completed");
+      res.status(200).json({ data: encryptData });
+      // res.status(200).json(entities);
+    } catch (error) {
+      console.error("[AD] Controller: directoryEntities - Error", error);
+      next(error);
+    }
+  };
 }
 
 export default OrganizationController;
