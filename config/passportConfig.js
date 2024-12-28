@@ -21,12 +21,13 @@ export const setupPassport = () => {
         debug: true,
         acceptedClockSkewMs: 0,
         wantAuthnResponseSigned: false,
+        wantAssertionsSigned: true, // Ensure assertions are signed
       },
       async (profile, done) => {
         try {
           const empId =
             profile.attributes[
-              "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"
+              "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn"
             ] || "Unknown";
 
           profile.empID = empId;
@@ -82,7 +83,9 @@ export const setupPassport = () => {
                 );
               }
             } else {
-              logger.error("No 'memberOf' attribute found.");
+              logger.warn(
+                "INFO: Authenticated user is not a member in any admin groups."
+              );
             }
           });
 
@@ -92,13 +95,13 @@ export const setupPassport = () => {
           profile.userCN = userCN;
           profile.userOU = userOU;
           profile.userDN = userDN;
-          profile.username = username[1];
-          profile.sAMAccountName = users[0]?.sAMAccountName;
-          profile.email = users[0]?.userPrincipalName;
+          profile.username = username?.[1] || "";
+          profile.sAMAccountName = users?.[0]?.sAMAccountName || "";
+          profile.email = users?.[0]?.userPrincipalName || "";
 
           return done(null, profile);
         } catch (error) {
-          console.error("Error processing SAML profile:", error);
+          logger.error(`Error processing SAML profile: ${error}`);
           return done(error, null);
         }
       }

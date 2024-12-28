@@ -44,7 +44,7 @@ export const securityHeaders = (app) => {
       "Cache-Control",
       "private, no-cache, no-store, must-revalidate"
     );
-    res.setHeader("Expires", "-1");
+    res.setHeader("Expires", "0");
     res.setHeader("Pragma", "no-cache");
 
     // Custom CSP Header - instead using in Helmet (This works)

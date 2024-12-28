@@ -137,9 +137,10 @@ if (profileLogo) {
 
         if (data.status === "success" && data.user) {
           // Fill in the user details in the modal
-          userNameElem.textContent = data.user.username;
-          userRoleElem.textContent = data.user.userType;
-          userOUElem.textContent = data.user.OU;
+          userNameElem.textContent =
+            data?.user?.samAccountName || data?.user?.username; // username -> openLdap / samAccountName -> AD
+          userRoleElem.textContent = data?.user?.userType;
+          userOUElem.textContent = data?.user?.OU || data?.user?.CN; // OU -> openLdap / OU & CN -> AD
 
           // Show the modal with the user details
           profileModal.style.display = "flex";

@@ -898,9 +898,10 @@ class UserService {
       // Authenticate user
       const userData = await authenticate(email, password);
 
-      // console.log("userData", userData);
+      // Fetch user details after successful authentication
       const userDN = userData?.user?.dn;
       const userName = userData?.user?.cn;
+      const samAccountName = userData?.user?.sAMAccountName;
 
       // Extract both CN and OU components (based on userDN)
       const ouMatch = userDN?.match(/OU=([^,]+)/);
@@ -950,6 +951,7 @@ class UserService {
         userOU: userOU, // Return the userOU if it's available
         userCN: userCN, // Return the userCN if it's available
         userDN: userDN, // Return the user's DN
+        samAccountName: samAccountName, // Return the user's samAccountName for fetch user details (since this is unique across AD)
       };
     } catch (error) {
       logger.error(`[AD] Service: login - Error - Unbind initiated`);

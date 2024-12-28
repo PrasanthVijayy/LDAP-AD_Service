@@ -162,17 +162,8 @@ async function handleLogin() {
   const apiUrlSelect = `${scriptBaseAPI}/session/auth/select`; // authSelect API endpoint
   const apiUrlAuthenticate = `${baseAPI}/users/authenticate`; // authenticate API endpoint
 
-  // Encrypt data before sending
-  // const data = encryptData({
-  //   username: username,
-  //   password: password,
-  //   userType: userType,
-  //   OU: ouName,
-  //   authType: authType,
-  // });
-
-  let data = {}; // Passing payload based on authType
-
+  let data = {};
+  let adUserType, isAdmin; // Used for dashboard redirection based on AD login
   if (authType === "ldap") {
     data = encryptData({
       username: username,
@@ -183,13 +174,13 @@ async function handleLogin() {
     });
   } else if (authType === "ad") {
     const email = document.getElementById("email").value;
-    // const adPassword = document.getElementById("adPassword").value;
     data = encryptData({
       email: email,
       password: password,
       authType: authType,
     });
   }
+
   try {
     // Calling `auth/select` API to store authType in the session
     const selectResponse = await fetch(apiUrlSelect, {
@@ -218,24 +209,48 @@ async function handleLogin() {
 
     let result;
     try {
-      result = await authenticateResponse.json(); // Try to parse JSON
+      result = await authenticateResponse.json(); // Parse JSON
     } catch (err) {
       console.error("Failed to parse authenticate response JSON:", err);
       throw new Error("Unexpected server response format.");
     }
 
     if (authenticateResponse.ok) {
+      if (authType === "ad") {
+        const decryptedData = decryptPayload(result.data);
+        adUserType = decryptedData?.userType; // Returns admin / user
+        isAdmin = decryptedData?.isAdmin; // Additional validation for admin
+        console.warn("isAdmin", isAdmin);
+      }
+
       // Reset the login form
       document.getElementById("loginForm").reset();
-      localStorage.setItem("userType", userType);
-      localStorage.setItem("username", username);
-      localStorage.setItem("ouName", result.OU || ouName);
 
-      // Redirect to the appropriate dashboard
-      window.location.href =
-        userType === "admin"
-          ? "/directoryManagement/admin"
-          : "/directoryManagement/user";
+      // Store session data
+      sessionStorage.setItem(
+        "userType",
+        authType === "ad" ? adUserType : userType
+      );
+      sessionStorage.setItem("username", username);
+      sessionStorage.setItem("ouName", result.OU || ouName);
+
+      // Redirect based on userType
+      if (authType === "ldap") {
+        window.location.replace(
+          userType === "admin"
+            ? "/directoryManagement/admin"
+            : "/directoryManagement/user"
+        );
+      } else if (authType === "ad" && adUserType === "admin") {
+        window.location.replace(
+          isAdmin === true
+            ? "/directoryManagement/admin"
+            : "/directoryManagement/user"
+        );
+      } else {
+        alert("Invalid authentication type selected.");
+        window.location.replace("/");
+      }
     } else {
       console.error("Authentication failed:", result.message);
       alert(result.message || "Login failed. Please try again.");
@@ -245,6 +260,18 @@ async function handleLogin() {
     alert(error.message || "An error occurred. Please try again later.");
   }
 }
+
+// Restrict back navigation
+window.addEventListener("popstate", (event) => {
+  if (sessionStorage.getItem("userType")) {
+    // Prevent navigating back to login if session is active
+    window.history.pushState(null, "", window.location.href);
+    alert("You cannot navigate back to the login page while logged in.");
+  } else {
+    // Allow leaving the application if session is invalid
+    console.log("Session expired or invalid, allowing navigation.");
+  }
+});
 
 // Global variable to store users
 window.usersData = [];
@@ -295,7 +322,8 @@ async function fetchUsers() {
 // Function to extract the OU from the DN field
 function extractOU(dn) {
   const ouMatch = dn.match(/ou=([^,]+)/i); // Match the value after 'ou=' in the dn string
-  return ouMatch ? ouMatch[1] : "N/A"; // Return the matched OU, or 'N/A' if not found
+  const cnMatch = dn.match(/CN=([^,]+),CN=([^,]+)/i);
+  return ouMatch ? ouMatch[1] : cnMatch ? cnMatch[2] : "N/A"; // Return the matched OU, or 'N/A' if not found
 }
 
 const searchButton = document.getElementById("searchButton");
@@ -603,14 +631,14 @@ document.addEventListener("DOMContentLoaded", function () {
 // Show user details in the modal
 function showUserDetails(index) {
   const user = window.usersData[index];
-  document.getElementById("modalFullName").textContent = `${user.userName}`;
-  document.getElementById("modalDn").textContent = user.dn;
-  document.getElementById("modalEmail").textContent = user.email;
-  document.getElementById("modalPhone").textContent = user.phone;
-  document.getElementById("modalAddress").textContent = user.address;
-  document.getElementById("modalPostalCode").textContent = user.postalCode;
-  document.getElementById("modalStatus").textContent = user.status;
-  document.getElementById("modalUserType").textContent = user.userType;
+  document.getElementById("modalFullName").textContent = `${user?.userName}`;
+  document.getElementById("modalDn").textContent = user?.dn;
+  document.getElementById("modalEmail").textContent = user?.email;
+  document.getElementById("modalPhone").textContent = user?.phone;
+  document.getElementById("modalAddress").textContent = user?.address;
+  document.getElementById("modalPostalCode").textContent = user?.postalCode;
+  document.getElementById("modalStatus").textContent = user?.status;
+  document.getElementById("modalUserType").textContent = user?.userType;
 
   $("#userDetailsModal").modal("show");
 }
@@ -628,8 +656,7 @@ async function deleteUser(index) {
 
   // Extract userOU from the user's dn field
   const dn = userToDelete.dn;
-  const ouMatch = dn.match(/ou=([^,]+)/i); // Match 'ou=...' in the dn string
-  const userOU = ouMatch ? ouMatch[1] : null; // Get the OU value from the match
+  const userOU = extractOU(dn); // Match 'ou=...' in the dn string
 
   if (!userOU) {
     alert("Failed to extract OU from user DN.");
@@ -638,7 +665,7 @@ async function deleteUser(index) {
 
   const csrfToken = document.querySelector('input[name="_csrf"]').value; // CSRF token
 
-  //Dynamic API setup
+  // Dynamic API setup
   let baseAPI;
   try {
     baseAPI = getBaseAPI(authType); // Get the API prefix based on authType
@@ -668,7 +695,7 @@ async function deleteUser(index) {
       },
       body: JSON.stringify({ data }),
     });
-
+    // Handle rate-limiting errors
     if (response.status === 429) {
       alert(
         "Too many requests. Please wait a few minutes before trying again."
@@ -680,6 +707,7 @@ async function deleteUser(index) {
       alert(`${userToDelete.userName} was deleted successfully.`);
       fetchUsers(); // Refresh the users list after deletion
     } else {
+      // Handle other errors
       const errorResponse = await response.text(); // Get the response text for debugging
       console.error("Failed to delete user:", errorResponse);
       alert("Failed to delete user.");

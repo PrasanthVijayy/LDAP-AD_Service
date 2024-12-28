@@ -2,12 +2,12 @@ import fs from "fs";
 "use strict";
 
 export const samlUtils = {
-  entryPoint: "https://sso.cybernexa.com/adfs/ls/idpinitiatedsignonpage.aspx",
+  entryPoint: "https://adfs.cybernexa.com/adfs/ls/idpinitiatedsignonpage.aspx",
   issuer: "https://192.168.0.145/",
   callbackUrl: "https://192.168.0.145/login/callback",
   idpCert: fs.readFileSync("Certificates/adCert_ip144.pem", "utf-8"),
   identifierFormat: null,
-  logoutURL: "https://sso.cybernexa.com/adfs/ls/?wa=wsignout1.0",
+  logoutURL: "https://adfs.cybernexa.com/adfs/ls/?wa=wsignout1.0",
 };
 
 /*  ---------- SAML CONFIG - TESTING START ---------- */
