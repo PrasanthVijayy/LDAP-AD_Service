@@ -1,5 +1,6 @@
 "use strict"; // Using strict mode
 
+import logger from "../config/logger.js";
 import { UnauthorizedError } from "../utils/error.js";
 
 // Middleware to check session validity and manage `logged_in` cookie
@@ -23,9 +24,12 @@ export const sessionMiddleware = (req, res, next) => {
     });
 
     // Throw unauthorized error
-    throw new UnauthorizedError(
-      "Session expired or invalid. Please login again."
-    );
+    // throw new UnauthorizedError(
+    //   "Session expired or invalid. Please login again."
+    // );
+
+    logger.error("Session expired or invalid. Please login again.");
+    return res.status(401).redirect("/"); // Redirect to the login page
   }
 
   // Check if the session has expired based on maxAge
@@ -52,7 +56,10 @@ export const sessionMiddleware = (req, res, next) => {
     });
 
     // Throw unauthorized error if the session has expired
-    throw new UnauthorizedError("Session expired. Please login again.");
+    // throw new UnauthorizedError("Session expired. Please login again.");
+
+    logger.error("Session expired. Please login again.");
+    return res.status(401).redirect("/"); // Redirect to the login page
   }
 
   // Sync `logged_in` cookie with session state if not already "yes"

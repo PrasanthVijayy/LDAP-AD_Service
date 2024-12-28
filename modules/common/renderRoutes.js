@@ -4,11 +4,9 @@ import passport from "passport";
 import logger from "../../config/logger.js";
 import apiLimiter from "../../middleware/apiLimiter.js";
 import csrfProtection from "../../UI/libs/csurfProtection.js";
-import { search } from "../../utils/ldapUtils.js";
 import { samlUtils } from "../../utils/samlUtils.js";
 import { connectRoutes } from "./routesConnector.js";
 import { connectDirectory } from "../../utils/directoryConnector.js";
-import { findData } from "../../utils/adUtils.js";
 
 export const renderRoutes = (app) => {
   // Render index page
@@ -152,7 +150,7 @@ export const renderRoutes = (app) => {
           return res.redirect("/saml/login");
         }
 
-        if (!req.user?.empID) {
+        if (!req?.user?.empID) {
           logger.warn("Employee ID not found in SAML profile.");
           req.session.destroy((err) => {
             if (err) {
@@ -162,33 +160,35 @@ export const renderRoutes = (app) => {
           logger.info(`API URL:, ${process.env.APP_LOGIN_URL}`); // Getting correct URL
           // Redirect to IdP logout endpoint
           const idpLogoutUrl = `${
-            samlUtils.logoutURL
+            samlUtils?.logoutURL
           }&RelayState=${encodeURIComponent(process.env.APP_LOGIN_URL || "/")}`;
           return res.redirect(idpLogoutUrl);
         }
 
         // Set session for the user
         req.session.user = {
-          email: req.user?.email,
-          username: req.user?.username,
-          empID: req.user?.empID,
+          email: req?.user?.email,
+          username: req?.user?.username,
+          empID: req?.user?.empID,
           authType: authType,
           authMethod: "SAML",
-          userType: req.user?.role,
-          OU: req.user?.userOU || req.user?.userCN,
-          isAdmin: req.user.role === "admin" ? true : false,
+          userType: req?.user?.role,
+          OU: req?.user?.userOU || req.user?.userCN,
+          isAdmin: req?.user?.role === "admin" ? true : false,
         };
 
         req.session.ldap = {
           authType: authType,
-          userDN: req.user?.dn,
-          [req.user?.userIdent]: req.user?.userOU || req.user?.userCN, // Fetch either OU / CN from SAML user profile
-          dnKey: req.user?.userIdent, // Fetch either OU / CN from SAML user profile
+          userDN: req?.user?.userDN,
+          [req.user?.userIdent]: req?.user?.userOU || req?.user?.userCN, // Fetch either OU / CN from SAML user profile
+          dnKey: req?.user?.userIdent, // Fetch either OU / CN from SAML user profile
         };
 
         // Set session expiration dynamically based on SAML assertion
-        const rawAssertionXml = req.user.getAssertionXml();
-        const expiryDateMatch = rawAssertionXml.match(/NotOnOrAfter="([^"]+)"/);
+        const rawAssertionXml = req?.user?.getAssertionXml();
+        const expiryDateMatch = rawAssertionXml?.match(
+          /NotOnOrAfter="([^"]+)"/
+        );
         if (expiryDateMatch && expiryDateMatch[1]) {
           const expiryDate = new Date(expiryDateMatch[1]);
           req.session.cookie.maxAge = expiryDate - new Date();
@@ -196,20 +196,19 @@ export const renderRoutes = (app) => {
           req.session.cookie.maxAge = 30 * 60 * 1000; // Default to 30 minutes
         }
         // Redirect user based on role
-        if (req.user?.role) {
-          // If admin
+        if (req?.user?.role === "admin") {
           return res.redirect("/directoryManagement/admin");
-        } else {
-          // else user
+        } else if (req?.user?.role === "user") {
           return res.redirect("/directoryManagement/user");
+        } else {
+          return res.redirect("/");
         }
       } catch (error) {
-        logger.error("Error during SAML callback processing:", error);
+        logger.error(`Error during SAML callback processing: ${error}`);
         req.session.destroy((err) => {
           if (err) {
             logger.error(
-              "Failed to destroy session during error handling:",
-              err
+              `Failed to destroy session during error handling: ${err}`
             );
           }
         });
@@ -227,6 +226,7 @@ export const renderRoutes = (app) => {
         logger.error("Session destroy error:", err);
         res.redirect("/");
       }
+      res.clearCookie("sessionID");
     });
     res.redirect("/");
   });

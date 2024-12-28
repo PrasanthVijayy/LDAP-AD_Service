@@ -48,6 +48,9 @@ class GroupService {
         dnKey = data?.cn ? "CN" : data?.ou ? "OU" : null; // Setting the key for the DN from the search result
         console.warn("dnKey", dnKey);
       }
+      // Throw error if groupOU is invalid
+      if (!dnKey) throw new BadRequestError("Invalid groupOU");
+
       // Construct the Distinguished Name (DN) for the new group dynamically
       const groupDN = `cn=${payload.groupName},${dnKey}=${payload.groupOU},${process.env.AD_BASE_DN}`;
       console.log("groupDN", groupDN);
@@ -129,11 +132,11 @@ class GroupService {
       const rawGroups = await search(baseDN, searchFilter, scope);
 
       // Filter only groups with 'OU' in the distinguished name
-      // const ouBasedGroups = rawGroups.filter((group) =>
-      //   group.dn.includes(",OU=")
-      // );
+      const exculdeBuiltinGroup = rawGroups.filter((group) =>
+        !group.dn.includes(",CN=Builtin")
+      );
 
-      const groups = rawGroups.map((group) => ({
+      const groups = exculdeBuiltinGroup.map((group) => ({
         dn: group.dn,
         groupName: group.cn,
         description: group.description || "No description available",
@@ -142,7 +145,7 @@ class GroupService {
       }));
 
       logger.success("[AD] Service: listGroups - Unbind initiated");
-      await unBind(); // Unbind the user
+      // await unBind(); // Unbind the user
 
       logger.success("[AD] Service: listGroups - Completed");
       return { count: groups.length, groups };

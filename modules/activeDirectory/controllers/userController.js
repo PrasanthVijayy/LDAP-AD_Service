@@ -426,6 +426,7 @@ class UserController {
         authMethod: "Password", // Set pwd based or SSO based
         userType: message?.userType, // Set the user type for dashboard view
         isAdmin: message?.isAdmin ? true : false, // Additional check for admin
+        samAccountName: message?.samAccountName,
       };
 
       req.session.ldap = {
@@ -450,14 +451,18 @@ class UserController {
 
       logger.success("[AD] Controller: login - Completed");
 
-      // Send a clearer response with the required data
-      res.status(202).json({
-        message: message.message,
+      const securedPayload = encryptPayload({
         sessionId: req.session.id,
         email: email,
         [userKey]: userValue, // Return dynamic key (OU or CN)
         userType: message?.userType,
         isAdmin: message?.isAdmin,
+      });
+
+      // Send a clearer response with the required data
+      res.status(202).json({
+        message: message.message,
+        data: securedPayload,
       });
     } catch (error) {
       logger.success("[AD] Controller: login - Error", error);
@@ -489,7 +494,6 @@ class UserController {
       next(error);
     }
   };
-
 
   // listDeletedUsers = async (req, res, next) => {
   //   try {

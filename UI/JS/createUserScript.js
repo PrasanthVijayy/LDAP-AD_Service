@@ -146,11 +146,14 @@ $(document).ready(function () {
 
   // Restrict input to alphabets for firstName, lastName, and username fields
   $("#firstName, #lastName, #givenName").on("input", function () {
-    this.value = this.value.replace(/[^a-zA-Z]/g, ""); // Remove non-alphabetic characters
+    this.value = this.value.replace(/[^a-zA-Z0-9]/g, ""); // Remove non-alphanumeric characters
     if (this.value.length > 0) {
       displaySuccess(this.id);
     } else {
-      displayError(this.id, "This field can only contain alphabets.");
+      displayError(
+        this.id,
+        "This field can only contain alphabets and number."
+      );
     }
   });
 

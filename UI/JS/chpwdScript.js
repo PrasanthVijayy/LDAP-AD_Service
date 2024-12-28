@@ -34,8 +34,8 @@ async function checkSession() {
         const sessionData = await response.json();
 
         dynamicAuthType = sessionData?.user?.authType;
-        sessionUsername = sessionData?.user?.username;
-        sessionUserOU = sessionData?.user?.OU;
+        sessionUsername = sessionData?.user?.samAccountName;
+        sessionUserOU = sessionData?.user?.OU || sessionData?.user?.CN; // Use CN if OU is not available
 
         return dynamicAuthType; // Passing the authType
       } else {
