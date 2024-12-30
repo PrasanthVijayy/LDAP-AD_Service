@@ -220,7 +220,6 @@ async function handleLogin() {
         const decryptedData = decryptPayload(result.data);
         adUserType = decryptedData?.userType; // Returns admin / user
         isAdmin = decryptedData?.isAdmin; // Additional validation for admin
-        console.warn("isAdmin", isAdmin);
       }
 
       // Reset the login form
@@ -248,7 +247,6 @@ async function handleLogin() {
             : "/directoryManagement/user"
         );
       } else {
-        alert("Invalid authentication type selected.");
         window.location.replace("/");
       }
     } else {
@@ -257,6 +255,7 @@ async function handleLogin() {
     }
   } catch (error) {
     console.error("Error during login:", error);
+    location.reload();
     alert(error.message || "An error occurred. Please try again later.");
   }
 }
@@ -505,6 +504,17 @@ async function checkSession() {
   return dynamicAuthType;
 }
 
+// async function toggleUIData() {
+//   const visibleArea = document.getElementById("visibleScope");
+//   if (authType == "ad") {
+//     // Show the dropdown only for AD
+//     visibleArea.style.display = "block";
+//   } else {
+//     // Hide the dropdown for non-AD
+//     visibleArea.style.display = "none";
+//   }
+// }
+
 // Fetch the authType at the beginning while page loading
 if (window.location.pathname === "/directoryManagement/listUsers") {
   window.addEventListener("load", async () => {
@@ -714,6 +724,7 @@ async function deleteUser(index) {
     }
   } catch (error) {
     console.error("Error deleting user:", error);
+    location.reload();
     alert("An error occurred. Please try again later.");
   }
 }
@@ -771,12 +782,14 @@ async function toggleUserLock(index, action) {
       fetchUsers(); // Refresh user list after action
     } else {
       console.error(result.message || "Failed to toggle user lock:", response);
+      location.reload();
       alert(
         "An error occurred while trying to toggle user lock. Please try again later."
       );
     }
   } catch (error) {
     console.error("Error toggling user lock:", error);
+    location.reload();
     alert("An error occurred. Please try again later.");
   }
 }
@@ -852,6 +865,7 @@ async function toggleUserAccess(index, action) {
     }
   } catch (error) {
     console.error("Error toggling user action:", error);
+    location.reload();
     alert("An error occurred. Please try again later.");
   }
 }
@@ -1121,6 +1135,7 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         } catch (error) {
           console.error("Error updating user details:", error);
+          location.reload();
           alert("An error occurred. Please try again later.");
         }
 

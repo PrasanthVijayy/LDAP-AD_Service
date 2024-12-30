@@ -94,8 +94,28 @@ $(document).ready(function () {
   }
   // Fetch organizations and populate OU dropdown
   async function fetchOrganizations() {
+    // Dynamic setup for API prefix
+    let baseAPI;
     try {
-      const apiUrl = `${baseAPI}/organizations/listOrganizations`;
+      baseAPI = getBaseAPI(authType);
+    } catch (error) {
+      console.error("Error determining base API URL:", error.message);
+      alert("Invalid authentication type selected.");
+      return;
+    }
+
+    try {
+      let endpoint;
+      if (authType === "ldap") {
+        endpoint = "listOrganizations";
+      } else if (authType === "ad") {
+        endpoint = "directoryEntities";
+      } else {
+        console.error("Unsupported authentication type");
+        return;
+      }
+
+      const apiUrl = `${baseAPI}/organizations/${endpoint}`;
       const response = await fetch(apiUrl, {
         method: "GET",
         headers: {
@@ -112,32 +132,27 @@ $(document).ready(function () {
         return; // Stop further execution
       }
 
-      if (response.ok) {
-        const result = await response.json();
-        const decryptedData = decryptPayload(result.data);
-        const organizations = decryptedData.organizations;
+      const result = await response.json();
+      const decryptedData = decryptPayload(result.data);
+      const groupsOU = decryptedData.Entites;
 
-        const ouDropdown = $("#organizationDN");
-        ouDropdown.empty(); // Clear any existing options
-        ouDropdown.append(
-          `<option value="">Select Organizational Unit</option>`
-        );
+      // Clear and populate the dropdown menu with options
+      const ouDropdown = $("#organizationDN");
+      ouDropdown.empty(); // Clear previous items
 
-        // Populate the dropdown with organizationDN values
-        organizations.forEach((org) => {
-          ouDropdown.append(
-            `<option value="${org.organizationDN}">${org.organizationDN}</option>`
-          );
+      // Append default option
+      ouDropdown.append('<option value="">Select OU</option>');
+
+      // Populate dropdown with OUs
+      if (response.ok && groupsOU && groupsOU.length > 0) {
+        groupsOU.forEach((ou) => {
+          ouDropdown.append(`<option value="${ou.name}">${ou.name}</option>`);
         });
       } else {
-        displayError("organizationDN", "Failed to load organizations.");
+        console.error("Failed to load OUs");
       }
     } catch (error) {
-      console.error("Error fetching organizations:", error);
-      displayError(
-        "organizationDN",
-        "An error occurred while loading organizations."
-      );
+      console.error("Error fetching OUs:", error);
     }
   }
 
@@ -277,6 +292,7 @@ $(document).ready(function () {
       }
     } catch (error) {
       console.error("Error creating user:", error);
+      window.location.reload(); // Relaod the page if any issue
       alert(
         "An error occurred while creating the user. Please try again later."
       );

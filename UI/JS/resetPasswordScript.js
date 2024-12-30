@@ -49,7 +49,17 @@ async function fetchOrganizationalUnits() {
   }
 
   try {
-    const apiUrl = `${baseAPI}/organizations/listOrganizations`;
+    let endpoint;
+    if (authType === "ldap") {
+      endpoint = "listOrganizations";
+    } else if (authType === "ad") {
+      endpoint = "directoryEntities";
+    } else {
+      console.error("Unsupported authentication type");
+      return;
+    }
+
+    const apiUrl = `${baseAPI}/organizations/${endpoint}`;
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
@@ -68,7 +78,7 @@ async function fetchOrganizationalUnits() {
 
     const result = await response.json();
     const decryptedData = decryptPayload(result.data);
-    const groupsOU = decryptedData.organizations;
+    const groupsOU = decryptedData.Entites;
 
     // Clear and populate the dropdown menu with options
     const ouDropdown = $("#organizationDN");
@@ -80,9 +90,7 @@ async function fetchOrganizationalUnits() {
     // Populate dropdown with OUs
     if (response.ok && groupsOU && groupsOU.length > 0) {
       groupsOU.forEach((ou) => {
-        ouDropdown.append(
-          `<option value="${ou.organizationDN}">${ou.organizationDN}</option>`
-        );
+        ouDropdown.append(`<option value="${ou.name}">${ou.name}</option>`);
       });
     } else {
       console.error("Failed to load OUs");
