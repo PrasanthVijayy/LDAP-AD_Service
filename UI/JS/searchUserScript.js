@@ -34,8 +34,9 @@ function decryptPayload(cipherText) {
 
 // On page load, populate OU dropdown and attach the form submission handler
 document.addEventListener("DOMContentLoaded", () => {
-  fetchOrganizationalUnits(); // Fetch OU list and populate dropdown
-
+  if (!authType === "ad") {
+    fetchOrganizationalUnits(); // Fetch OU list and populate dropdown
+  }
   // Attach the submit event handler to the form
   document
     .getElementById("searchUserForm")
@@ -47,7 +48,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Fetch list of OUs from the API
 async function fetchOrganizationalUnits() {
-  // Dynamic setup for API prefix
   let baseAPI;
   try {
     baseAPI = getBaseAPI(authType);
@@ -58,7 +58,20 @@ async function fetchOrganizationalUnits() {
   }
 
   try {
-    const apiUrl = `${baseAPI}/organizations/listOrganizations`;
+    let endpoint;
+    let dataList;
+
+    // Determine the endpoint based on authType
+    if (authType === "ldap") {
+      endpoint = "listOrganizations";
+    } else if (authType === "ad") {
+      endpoint = "directoryEntities";
+    } else {
+      console.error("Unsupported authentication type");
+      return;
+    }
+
+    const apiUrl = `${baseAPI}/organizations/${endpoint}`;
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
@@ -72,24 +85,42 @@ async function fetchOrganizationalUnits() {
       alert(
         "Too many requests. Please wait a few minutes before trying again."
       );
-      return; // Stop further execution
+      return;
     }
 
     const result = await response.json();
     const decryptedData = decryptPayload(result.data);
-    const memberOU = decryptedData.organizations;
+
+    // Extract data list based on authType
+    if (authType === "ad") {
+      dataList = decryptedData.Entites;
+    } else if (authType === "ldap") {
+      dataList = decryptedData.organizations;
+    }
 
     const ouDropdown = document.getElementById("ouDropdown");
 
-    if (response.ok && memberOU && memberOU.length > 0) {
-      memberOU.forEach((ou) => {
+    if(authType === "ad") ouDropdown.style.display = "none"; 
+    
+    ouDropdown.innerHTML = ""; // Clear previous options
+
+    if (response.ok && dataList && dataList.length > 0) {
+      dataList.forEach((item) => {
         const option = document.createElement("option");
-        option.value = ou.organizationDN;
-        option.textContent = ou.organizationDN;
+
+        // Set the value and textContent dynamically based on authType
+        if (authType === "ad") {
+          option.value = item.name; // Use "name" for AD
+          option.textContent = item.name;
+        } else if (authType === "ldap") {
+          option.value = item.organizationDN; // Use "organizationDN" for LDAP
+          option.textContent = item.organizationDN;
+        }
+
         ouDropdown.appendChild(option);
       });
     } else {
-      console.error("Failed to load OUs");
+      console.error("Failed to load OUs or Containers");
     }
   } catch (error) {
     console.error("Error fetching OUs:", error);

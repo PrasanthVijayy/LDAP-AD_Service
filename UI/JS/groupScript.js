@@ -40,18 +40,31 @@ $(document).ready(function () {
 
 // Fetch list of OUs from the API
 async function fetchOrganizationalUnits() {
-  // Dynamic setup for API prefix
   let baseAPI;
   try {
     baseAPI = getBaseAPI(authType);
   } catch (error) {
     console.error("Error determining base API URL:", error.message);
     alert("Invalid authentication type selected.");
-    return [];
+    return;
   }
 
   try {
-    const apiUrl = `${baseAPI}/organizations/listOrganizations`;
+    let endpoint;
+    let dataList;
+
+    // Determine the endpoint based on authType
+    if (authType === "ldap") {
+      endpoint = "listOrganizations";
+    } else if (authType === "ad") {
+      endpoint = "directoryEntities";
+    } else {
+      console.error("Unsupported authentication type");
+      return;
+    }
+
+    const apiUrl = `${baseAPI}/organizations/${endpoint}`;
+
     const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
@@ -65,22 +78,58 @@ async function fetchOrganizationalUnits() {
       alert(
         "Too many requests. Please wait a few minutes before trying again."
       );
-      return []; // Stop further execution
+      return;
+    }
+
+    if (!response.ok) {
+      console.error(`API call failed with status ${response.status}`);
+      return;
     }
 
     const result = await response.json();
-    const decryptedData = decryptPayload(result.data);
-    const groupsOU = decryptedData.organizations;
 
-    if (response.ok && groupsOU && groupsOU.length > 0) {
-      return groupsOU;
+    const decryptedData = decryptPayload(result.data);
+
+    if (authType === "ad") {
+      dataList = decryptedData.Entites;
+    } else if (authType === "ldap") {
+      dataList = decryptedData.organizations;
+    }
+
+    // Ensure the dropdown is selected correctly
+    const ouDropdown = document.getElementById("organizationDN"); // Native DOM method
+    if (!ouDropdown) {
+      console.error("Dropdown element not found in the DOM.");
+      return;
+    }
+
+    ouDropdown.innerHTML = ""; // Clear previous items
+
+    // Append default option
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "Select OU";
+    ouDropdown.appendChild(defaultOption);
+
+    // Populate dropdown with OUs
+    if (response.ok && dataList && dataList.length > 0) {
+      dataList.forEach((item) => {
+        const option = document.createElement("option");
+
+        if (authType === "ad") {
+          option.value = item.name; // Use "name" for AD
+          option.textContent = item.name;
+        } else if (authType === "ldap") {
+          option.value = item.organizationDN; // Use "dn" for LDAP
+          option.textContent = item.organizationDN;
+        }
+        ouDropdown.appendChild(option);
+      });
     } else {
-      console.error("Failed to load OUs");
-      return [];
+      console.error("No organizational units available to load.");
     }
   } catch (error) {
     console.error("Error fetching OUs:", error);
-    return [];
   }
 }
 
@@ -229,7 +278,8 @@ async function fetchGroups() {
 // Function to extract the OU from the DN field
 function extractOU(dn) {
   const ouMatch = dn.match(/ou=([^,]+)/i); // Match the value after 'ou=' in the dn string
-  return ouMatch ? ouMatch[1] : "N/A"; // Return the matched OU, or 'N/A' if not found
+  const cnMatch = dn.match(/CN=([^,]+),CN=([^,]+)/i);
+  return ouMatch ? ouMatch[1] : cnMatch ? cnMatch[2] : "N/A"; // Return the matched OU, or 'N/A' if not found
 }
 
 // Loading the authType single time without misusing the API
@@ -273,6 +323,7 @@ function populateGroupsTable(groups) {
   tableBody.innerHTML = ""; // Clear previous content
 
   groups.forEach((group, index) => {
+    console.log("group data:", group);
     const groupOU = extractOU(group.dn) || "N/A"; // Extract groupOU from DN
     const row = document.createElement("tr");
 
@@ -304,7 +355,12 @@ function populateGroupsTable(groups) {
     // Attach event listeners
     lockButton.addEventListener("click", () => lockGroupMembers(index));
     viewButton.addEventListener("click", () =>
-      viewGroupDetails(group.groupName, group.groupType, groupOU, group.isAdmin)
+      viewGroupDetails(
+        group.groupName,
+        group.groupType,
+        groupOU,
+        group.isAdminGroup
+      )
     );
 
     tableBody.appendChild(row);
@@ -434,7 +490,7 @@ async function lockGroupMembers(index) {
 }
 
 // View group details and members
-async function viewGroupDetails(groupName, groupType, groupOU, isAdmin) {
+async function viewGroupDetails(groupName, groupType, groupOU, isAdminGroup) {
   // Dynamic setup for API prefix
   let baseAPI;
   try {
@@ -476,7 +532,13 @@ async function viewGroupDetails(groupName, groupType, groupOU, isAdmin) {
       const result = await response.json();
       const decryptedData = decryptPayload(result.data);
       const members = decryptedData.members;
-      displayGroupMembersModal(groupName, groupType, groupOU, members, isAdmin);
+      displayGroupMembersModal(
+        groupName,
+        groupType,
+        groupOU,
+        members,
+        isAdminGroup
+      );
     } else {
       alert(`Failed to load members for group "${groupName}".`);
     }
@@ -492,7 +554,7 @@ function displayGroupMembersModal(
   groupType,
   groupOU,
   members,
-  isAdmin
+  isAdminGroup
 ) {
   const membersList = document.getElementById("membersList");
   membersList.innerHTML = ""; // Clear previous content
@@ -511,7 +573,7 @@ function displayGroupMembersModal(
   document
     .getElementById("addMemberBtn")
     .addEventListener("click", function () {
-      openAddMemberInput(groupName, groupType, groupOU, isAdmin);
+      openAddMemberInput(groupName, groupType, groupOU, isAdminGroup);
     });
 
   // Check if members list is empty
@@ -536,7 +598,13 @@ function displayGroupMembersModal(
       deleteButton.innerHTML = `<img src="/directoryManagement/images/removeUser.png" alt="Delete" class="navigation-icon">`;
 
       deleteButton.addEventListener("click", () => {
-        removeMemberFromGroup(groupName, groupType, groupOU, member);
+        removeMemberFromGroup(
+          groupName,
+          groupType,
+          groupOU,
+          isAdminGroup,
+          member
+        );
       });
 
       listItem.appendChild(deleteButton);
@@ -561,24 +629,8 @@ function displayGroupMembersModal(
   });
 }
 
-// Function to populate OU dropdown options
-async function populateOUOptions(dropdown) {
-  const groupsOU = await fetchOrganizationalUnits();
-
-  // Clear previous items
-  dropdown.innerHTML = '<option value="">-- Select Member OU --</option>';
-
-  // Populate dropdown with OUs
-  groupsOU.forEach((ou) => {
-    const option = document.createElement("option");
-    option.value = ou.organizationDN;
-    option.textContent = ou.organizationDN;
-    dropdown.appendChild(option);
-  });
-}
-
 // Open input field to add new member with OU dropdown
-function openAddMemberInput(groupName, groupType, groupOU, isAdmin) {
+function openAddMemberInput(groupName, groupType, groupOU, isAdminGroup) {
   const membersList = document.getElementById("membersList");
 
   // Check if input fields already exist and prevent duplicates
@@ -608,11 +660,11 @@ function openAddMemberInput(groupName, groupType, groupOU, isAdmin) {
   ouDropdownCol.classList.add("col-md-6");
   const memberOULabel = document.createElement("label");
   memberOULabel.textContent = "Member OU:";
-  const addMemberOU = document.createElement("select");
+  const addMemberOU = document.createElement("input");
+  addMemberOU.type = "text";
   addMemberOU.id = "addMemberOU";
+  addMemberOU.placeholder = "Enter member OU";
   addMemberOU.classList.add("form-control");
-  addMemberOU.innerHTML = `<option value="">-- Select Member OU --</option>`;
-  populateOUOptions(addMemberOU); // Populate dropdown with OU options
   ouDropdownCol.appendChild(memberOULabel);
   ouDropdownCol.appendChild(addMemberOU);
 
@@ -684,7 +736,7 @@ function openAddMemberInput(groupName, groupType, groupOU, isAdmin) {
         groupType,
         newMember,
         newMemberOU,
-        isAdmin
+        isAdminGroup
       );
       addMemberInput.value = "";
       addMemberOU.value = ""; // Reset dropdown after adding
@@ -704,10 +756,11 @@ async function addMemberToGroup(
   groupType,
   newMember,
   memberOU,
-  isAdmin
+  isAdminGroup
 ) {
   // Dynamic setup for API prefix
   let baseAPI;
+  let checkAdmin = isAdminGroup;
   try {
     baseAPI = getBaseAPI(authType);
   } catch (error) {
@@ -716,13 +769,20 @@ async function addMemberToGroup(
     return;
   }
 
+  if (checkAdmin === undefined || checkAdmin) {
+    //  As per AD, admin groups will be security categories
+    checkAdmin = groupType.toLowerCase().includes("security")
+      ? "admin"
+      : "user";
+  }
+
   // Determine the API endpoint based on isAdmin and authType
   let apiEndpoint;
 
   if (authType === "ldap") {
     apiEndpoint = groupType === "admin" ? "addToAdminGroup" : "addToGroup";
   } else if (authType === "ad") {
-    apiEndpoint = isAdmin ? "addToAdminGroup" : "addToGroup";
+    apiEndpoint = checkAdmin === "admin" ? "addToAdminGroup" : "addToGroup";
   } else {
     console.error("Unsupported authentication type");
     return;
@@ -818,8 +878,15 @@ function setInvalid(input, message) {
 }
 
 // Remove member from group
-async function removeMemberFromGroup(groupName, groupType, groupOU, member) {
+async function removeMemberFromGroup(
+  groupName,
+  groupType,
+  groupOU,
+  isAdminGroup,
+  member
+) {
   // Dynamic setup for API prefix
+  let checkAdmin = isAdminGroup;
   let baseAPI;
   try {
     baseAPI = getBaseAPI(authType);
@@ -829,10 +896,27 @@ async function removeMemberFromGroup(groupName, groupType, groupOU, member) {
     return;
   }
 
+  if (checkAdmin === undefined || checkAdmin) {
+    //  As per AD, admin groups will be security categories
+    checkAdmin = groupType.toLowerCase().includes("security")
+      ? "admin"
+      : "user";
+
+    console.log("checkAdmin", checkAdmin);
+  }
   try {
     // Use groupType to determine correct endpoint
-    const apiEndpoint =
-      groupType === "admin" ? "deleteFromAdminGroup" : "deleteFromGroup";
+    let apiEndpoint;
+    if (authType === "ldap") {
+      apiEndpoint =
+        groupType === "admin" ? "deleteFromAdminGroup" : "deleteFromGroup";
+    } else if (authType === "ad") {
+      apiEndpoint =
+        checkAdmin === "admin" ? "deleteFromAdminGroup" : "deleteFromGroup";
+    } else {
+      console.error("Unsupported authentication type");
+      return;
+    }
     const username = extractUsernameFromDN(member);
     const userOU = extractOU(member);
 

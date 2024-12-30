@@ -31,6 +31,7 @@ document
       }
     } catch (error) {
       console.error("Error during signout:", error);
+      window.location.replace("/");
       alert("Failed to sign out. Please try again.");
     }
   });
@@ -52,26 +53,28 @@ if (backButton) {
         const currentPage = window.location.pathname; // Get the current page URL path
 
         if (currentPage === "/editUser") {
-          window.location.href = "/directoryManagement/listUsers"; // Redirect to the list of users
+          window.location.replace("/directoryManagement/listUsers"); // Redirect to the list of users
         } else if (data.user?.userType === "admin") {
-          window.location.href = "/directoryManagement/admin"; // Admin dashboard
+          window.location.replace("/directoryManagement/admin"); // Admin dashboard
         } else if (data.user?.userType === "user") {
-          window.location.href = "/directoryManagement/user"; // User dashboard
+          window.location.replace("/directoryManagement/user"); // User dashboard
         } else {
           alert("Invalid session. Please login to continue");
-          window.location.href = "/"; // Login page
+          window.location.replace("/"); // Login page
         }
       } else {
         alert("Session expired or invalid. Please login to continue");
-        window.location.href = "/"; // Login page
+        localStorage.clear();
+        window.location.replace("/"); // Login page
       }
     } catch (error) {
       console.error("Error fetching session data:", error);
+      localStorage.clear(); // Clear localStorage data
+      window.location.replace("/"); // Replace to index page for login
       alert("Error fetching session data. Please try again.");
     }
   });
 }
-
 // Handle Home button click
 const homeButton = document.getElementById("homeButton");
 if (homeButton) {
@@ -87,16 +90,18 @@ if (homeButton) {
 
       if (data) {
         if (data.user?.userType === "admin") {
-          window.location.href = "/directoryManagement/admin"; // Admin dashboard
+          window.location.replace("/directoryManagement/admin"); // Admin dashboard
         } else if (data.user?.userType === "user") {
-          window.location.href = "/directoryManagement/user"; // Regular user dashboard
+          window.location.replace("/directoryManagement/user"); // Regular user dashboard
         }
       } else {
         alert("Already logged out. Please Login to continue");
-        window.location.href = "/"; // Login page
+        window.location.replace("/"); // Login page
       }
     } catch (error) {
       console.error("Error fetching session data:", error);
+      localStorage.clear(); // Clear localStorage data
+      window.location.replace("/"); // Replace to index page for login
       alert("Error fetching session data. Please try again.");
     }
   });
@@ -150,6 +155,8 @@ if (profileLogo) {
         }
       } catch (error) {
         console.error("Error fetching session data:", error);
+        localStorage.clear(); // Clear localStorage data
+        window.location.replace("/"); // Replace to index page for login
         alert("Error fetching session data. Please try again.");
       }
     }
