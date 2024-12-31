@@ -1,4 +1,3 @@
-
 package-lock.json
 
 node_modules
@@ -13,5 +12,10 @@ Logs
 
 expressjs-ldap-api*
 
+Documentation.docx
+
+Final documentation.pdf
+
 .env
+
 Certificates

@@ -1,0 +1,1881 @@
+{
+	"info": {
+		"_postman_id": "c18317dc-0814-46f5-b408-6b7390ac03b0",
+		"name": "LDAP Protocol Action (OpenLdap & Active Directory)",
+		"description": "This collection is stored below protocols:\n\n- Open Ldap\n    \n- Active Directory",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "37560782"
+	},
+	"item": [
+		{
+			"name": "LDAP - API",
+			"item": [
+				{
+					"name": "Group Operations",
+					"item": [
+						{
+							"name": "Create Group",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"groupName\": \"gexneral\",\r\n    \"groupType\": \"general\",\r\n    \"groupOU\":\"admin\",\r\n    \"description\":\"sdf\"\r\n\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/groups/createGroup",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"groups",
+										"createGroup"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Lock Group Members",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"groupName\":\"developers\",\r\n    \"groupOU\": \"departments\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/users/lockGroupMembers",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"users",
+										"lockGroupMembers"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List Groups",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{project}}/LDAP/v1/groups/listGroups",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"groups",
+										"listGroups"
+									],
+									"query": [
+										{
+											"key": "filter",
+											"value": "cn=admin",
+											"description": "Filter based group name",
+											"disabled": true
+										},
+										{
+											"key": "filter",
+											"value": "description=Default groupd",
+											"description": "Filter based on description",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Members in group",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/groups/membersInGroup?groupName=developers&OU=departments",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"groups",
+										"membersInGroup"
+									],
+									"query": [
+										{
+											"key": "groupName",
+											"value": "developers"
+										},
+										{
+											"key": "OU",
+											"value": "departments"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add to Group",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"groupName\": \"developers\",\r\n    \"groupOU\": \"departments\",\r\n    \"member\": \"prasanth\",\r\n    \"memberOU\": \"departments\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/groups/addToGroup",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"groups",
+										"addToGroup"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add to adminGroup",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"groupName\": \"admin\",\r\n    \"groupOU\":\"admin\",\r\n    \"member\":\"user\",\r\n    \"memberOU\":\"groups\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/groups/addToAdminGroup",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"groups",
+										"addToAdminGroup"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Remove from Group",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"groupName\": \"developers\",\r\n    \"groupOU\":\"departments\",\r\n    \"member\":\"prasanth\",\r\n    \"memberOU\": \"departments\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/groups/deleteFromGroup",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"groups",
+										"deleteFromGroup"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete members from all groups",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"member\": \"prasanth\",\r\n    \"memberOU\": \"departments\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/groups/deleteMemberFromGroups",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"groups",
+										"deleteMemberFromGroups"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Remove from Admin Group",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"groupName\": \"test3\",\r\n    \"groupOU\": \"groups\",\r\n    \"member\":\"prasanth\",\r\n    \"memberOU\":\"departments\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/groups/deleteFromAdminGroup",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"groups",
+										"deleteFromAdminGroup"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"description": "Group related endpoints."
+				},
+				{
+					"name": "Organizational Unit",
+					"item": [
+						{
+							"name": "List OU",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{project}}/LDAP/v1/organizations/listOrganizations",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"organizations",
+										"listOrganizations"
+									],
+									"query": [
+										{
+											"key": "filter",
+											"value": "ou=groups",
+											"description": "Filter based on OrganizantionDN",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create OU",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"organizationName\":\"ddeddfpas\",\r\n    \"description\": \"demo\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/organizations/createOrganization",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"organizations",
+										"createOrganization"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "User Operations",
+					"item": [
+						{
+							"name": "Self Service",
+							"item": [
+								{
+									"name": "Search User",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{project}}/LDAP/v1/users/search?username=prasanth",
+											"host": [
+												"{{project}}"
+											],
+											"path": [
+												"LDAP",
+												"v1",
+												"users",
+												"search"
+											],
+											"query": [
+												{
+													"key": "username",
+													"value": "prasanth"
+												},
+												{
+													"key": "userOU",
+													"value": "departments",
+													"disabled": true
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "User Login",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "// {\r\n//     \"username\": \"admin\",\r\n//     \"password\": \"Hello@123\",\r\n//     \"OU\": \"users\",\r\n//     \"userType\": \"admin\"\r\n// }\r\n{\r\n  \"data\": \"U2FsdGVkX1+E7Bg0ZBVMda151k9nhQJsTmuhVDOaf50hMAEIxGMVY8yV81EfXDuap0xzlTVULnMbVd2UKwmLKZie6Ju/LSXua2VwKiclgGEufibpOn3k4Obs+VDHwG3SvY3JvyRaeSW4Y3KqAzaOTg==\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{project}}/LDAP/v1/users/authenticate",
+											"host": [
+												"{{project}}"
+											],
+											"path": [
+												"LDAP",
+												"v1",
+												"users",
+												"authenticate"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Change Password",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"username\":\"general\",\r\n    \"userOU\": \"users\",\r\n    \"currentPassword\":\"Hello@123\",\r\n    \"newPassword\":\"Hello@123\",\r\n    \"confirmPassword\": \"Hello@123\"\r\n\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{project}}/LDAP/v1/users/chpwd",
+											"host": [
+												"{{project}}"
+											],
+											"path": [
+												"LDAP",
+												"v1",
+												"users",
+												"chpwd"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Session Check",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/session/check",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"session",
+										"check"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Session Check Copy",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/session/logout",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"session",
+										"logout"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add Users",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"title\":\"user\",\r\n    \"userOU\": \"groups\",\r\n    \"firstName\": \"Prasanth\",\r\n    \"lastName\": \"Vijay\",\r\n    \"givenName\": \"user\", // Required\r\n    \"userPassword\": \"Hello@123\", //Required\r\n    \"telephoneNumber\": \"3439513399\",\r\n    \"mail\": \"user6@example3.com\", //Required\r\n    \"registeredAddress\": \"123 Elm St\",\r\n    \"postalCode\": \"12345\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/users/addUser",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"users",
+										"addUser"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Unlock User",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "// OLD VERSION\r\n// {\r\n//     \"username\": \"Prasanth\",\r\n//     \"userOU\":\"departments\",\r\n//     \"action\": \"lock\"\r\n// }\r\n\r\n// NEW VERISON\r\n{\r\n    \"data\": \"U2FsdGVkX1+JxWoqDpzO42qaUcFDXUvB8KKbILCBH3WKWCb5rHONeux9J8gaUCOE8C8Fjko14LRGnPl9ipHb0AxA0vgQsnMvKpj2jDmny3hhR+WhfU07p2fbTMfzYc9K\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/users/userLockAction",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"users",
+										"userLockAction"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "list Disabled Users",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/users/getdisabledUsers",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"users",
+										"getdisabledUsers"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "list Locked Users",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/users/listLockedUsers",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"users",
+										"listLockedUsers"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Enable & Disable User",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\": \"sriram\",\r\n    \"OU\":\"users\",\r\n    \"action\" : \"disable\"\r\n\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/users/modifyUserAccess",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"users",
+										"modifyUserAccess"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List updated users",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/users/listUpdatedUsers",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"users",
+										"listUpdatedUsers"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Reset Password",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\":\"Prasanth5\",\r\n    \"password\":\"Hello@1234\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/users/resetPwd",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"users",
+										"resetPwd"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Change userAttributes",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\":\"Prasanth\", //Required\r\n    \"userOU\":\"departments\",\r\n    \"attributes\":{ \r\n        \"telephoneNumber\": \"0000000000\",\r\n        \"mail\":\"qdj@erglk.sd\",\r\n        \"registeredAddress\": \"ABCD \",\r\n        \"postalCode\":777777\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/users/updateUser",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"users",
+										"updateUser"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List Users",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/users/listUsers",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"users",
+										"listUsers"
+									],
+									"query": [
+										{
+											"key": "filter",
+											"value": "cn=prasanth",
+											"description": "Filter on user name",
+											"disabled": true
+										},
+										{
+											"key": "filter",
+											"value": "telephoneNumber=7887878787",
+											"description": "Filter based on phoneNumber",
+											"disabled": true
+										},
+										{
+											"key": "filter",
+											"value": "mail=dm2@sdf.sdf",
+											"description": "Filter bases on email",
+											"disabled": true
+										},
+										{
+											"key": "filter",
+											"value": "ou=departments",
+											"disabled": true
+										},
+										{
+											"key": "filter",
+											"value": "status=deleted",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete User",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\": \"prasanth\",\r\n    \"userOU\": \"departments\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/users/deleteUser",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"users",
+										"deleteUser"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Email & Phone",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\": \"PrasanthVijay1\",\r\n    \"attributes\": {\r\n        \"mail\": \"user@gmail.com\",\r\n        \"telephoneNumber\": \"5656565653\"\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/users/updateContactDetails",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"users",
+										"updateContactDetails"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Domain Controller",
+					"item": [
+						{
+							"name": "List DCs",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{project}}/LDAP/v1/dc/listDCs",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"dc",
+										"listDCs"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			],
+			"description": "Open ldap based endpoints will contain inside this folder."
+		},
+		{
+			"name": "AD - Enpoints",
+			"item": [
+				{
+					"name": "User Operations",
+					"item": [
+						{
+							"name": "Self Service",
+							"item": [
+								{
+									"name": "Search User",
+									"protocolProfileBehavior": {
+										"disableBodyPruning": true
+									},
+									"request": {
+										"method": "GET",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{project}}/AD/v1/users/search?username=demo11",
+											"host": [
+												"{{project}}"
+											],
+											"path": [
+												"AD",
+												"v1",
+												"users",
+												"search"
+											],
+											"query": [
+												{
+													"key": "username",
+													"value": "demo11"
+												},
+												{
+													"key": "userOU",
+													"value": "hi",
+													"disabled": true
+												}
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "User Login",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"email\": \"demo1@cylock.com\",\r\n    \"password\": \"Hello@123\",\r\n    \"authType\": \"ad\"\r\n    // \"OU\": \"users\",\r\n    // \"userType\": \"admin\"\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{project}}/AD/v1/users/authenticate",
+											"host": [
+												"{{project}}"
+											],
+											"path": [
+												"AD",
+												"v1",
+												"users",
+												"authenticate"
+											]
+										}
+									},
+									"response": []
+								},
+								{
+									"name": "Change Password",
+									"request": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\r\n    \"username\":\"demo11\",\r\n    \"userOU\": \"users\",\r\n    \"currentPassword\":\"Hello@123!\",\r\n    \"newPassword\":\"Hello@123\",\r\n    \"confirmPassword\": \"Hello@123\"\r\n\r\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{project}}/AD/v1/users/chpwd",
+											"host": [
+												"{{project}}"
+											],
+											"path": [
+												"AD",
+												"v1",
+												"users",
+												"chpwd"
+											]
+										}
+									},
+									"response": []
+								}
+							]
+						},
+						{
+							"name": "Session Check",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/session/check",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"session",
+										"check"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Session Check Copy",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/session/logout",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"session",
+										"logout"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add Users",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    // \"title\": \"user\", (Open ldap only).\r\n    \"userOU\": \"users\",\r\n    \"firstName\": \"prasanth\",\r\n    \"lastName\": \"vijay\",\r\n    \"givenName\": \"prasanth\",\r\n    \"userPassword\": \"Hello@123\",\r\n    \"telephoneNumber\": \"3439513399\",\r\n    \"mail\": \"prasanth2@cylock.com\",\r\n    \"registeredAddress\": \"123 Elm St\",\r\n    \"postalCode\": \"12345\",\r\n    \"employeeNumber\":\"EMP003\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/users/addUser",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"users",
+										"addUser"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Unlock User",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\": \"demo11\",\r\n    \"userOU\":\"users\",\r\n    \"action\": \"unlock\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/users/userLockAction",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"users",
+										"userLockAction"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "list Disabled Users",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/users/getdisabledUsers",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"users",
+										"getdisabledUsers"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "list Locked Users",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/users/listLockedUsers",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"users",
+										"listLockedUsers"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Enable & Disable User",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\": \"demo11\",\r\n    \"OU\":\"users\",\r\n    \"action\" : \"enable\"\r\n\r\n}\r\n",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/users/modifyUserAccess",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"users",
+										"modifyUserAccess"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List updated users",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/LDAP/v1/users/listUpdatedUsers",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"LDAP",
+										"v1",
+										"users",
+										"listUpdatedUsers"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Reset Password",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\":\"prasanth1\",\r\n    \"password\":\"Hello@123\",\r\n    \"confirmPassword\": \"Hello@123\",\r\n    \"userOU\":\"users\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/users/resetPwd",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"users",
+										"resetPwd"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Change userAttributes",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\":\"demo14\", //Required\r\n    \"userOU\":\"users\",\r\n    \"attributes\":{ \r\n        \"telephoneNumber\": \"2222222221\",\r\n        \"mail\":\"demo14@cylock.com\",\r\n        \"registeredAddress\": \"ABCDDDD\",\r\n        \"postalCode\":111111\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/users/updateUser",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"users",
+										"updateUser"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List Users",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/users/listUsers",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"users",
+										"listUsers"
+									],
+									"query": [
+										{
+											"key": "filter",
+											"value": "cn=prasanth1",
+											"description": "Filter on user name",
+											"disabled": true
+										},
+										{
+											"key": "filter",
+											"value": "telephoneNumber=3439513399",
+											"description": "Filter based on phoneNumber",
+											"disabled": true
+										},
+										{
+											"key": "filter",
+											"value": "ou=ad",
+											"disabled": true
+										},
+										{
+											"key": "filter",
+											"value": "status=disabled",
+											"disabled": true
+										},
+										{
+											"key": "filter",
+											"value": "mail=prasanth2@cylock.com",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete User",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\": \"fl\",\r\n    \"userOU\": \"ad\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/users/deleteUser",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"users",
+										"deleteUser"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Email & Phone",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\": \"demo11\",\r\n    \"userOU\": \"users\",\r\n    \"attributes\": {\r\n        \"mail\": \"demo11@cylock.com\",\r\n        \"telephoneNumber\": \"5656565623\"\r\n    }\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/users/updateContactDetails",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"users",
+										"updateContactDetails"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Group Operations",
+					"item": [
+						{
+							"name": "Create Group",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"groupName\": \"generalGroup\",\r\n    \"groupType\": \"general\",\r\n    \"groupOU\": \"MFA\",\r\n    \"groupScope\": \"Global\",\r\n    \"description\": \"testing purpose\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/groups/createGroup",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"groups",
+										"createGroup"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Lock Group Members",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"groupName\":\"s-G\",\r\n    \"groupOU\": \"users\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/users/lockGroupMembers",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"users",
+										"lockGroupMembers"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List Groups",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{project}}/AD/v1/groups/listGroups",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"groups",
+										"listGroups"
+									],
+									"query": [
+										{
+											"key": "filter",
+											"value": "cn=demo",
+											"disabled": true
+										},
+										{
+											"key": "filter",
+											"value": "description=Administrators have complete and unrestricted access to the computer/domain",
+											"description": "Filter based on description",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Members in group",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/groups/membersInGroup?groupName=admin&OU=users",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"groups",
+										"membersInGroup"
+									],
+									"query": [
+										{
+											"key": "groupName",
+											"value": "admin"
+										},
+										{
+											"key": "OU",
+											"value": "users"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add to Group",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"groupName\": \"d-g\",\r\n    \"groupOU\": \"hi\",\r\n    \"member\": \"demo11\",\r\n    \"memberOU\": \"hi\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/groups/addToGroup",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"groups",
+										"addToGroup"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add to adminGroup",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"groupName\": \"admin\",\r\n    \"groupOU\":\"users\",\r\n    \"member\":\"demo14\",\r\n    \"memberOU\":\"hi\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/groups/addToAdminGroup",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"groups",
+										"addToAdminGroup"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Remove from Group",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"groupName\": \"d-g\",\r\n    \"groupOU\":\"hi\",\r\n    \"member\":\"administrator\",\r\n    \"memberOU\": \"users\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/groups/deleteFromGroup",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"groups",
+										"deleteFromGroup"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete members from all groups",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"member\": \"prasanth\",\r\n    \"memberOU\": \"hi\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/groups/deleteMemberFromGroups",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"groups",
+										"deleteMemberFromGroups"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Remove from Admin Group",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"groupName\": \"admin\",\r\n    \"groupOU\": \"users\",\r\n    \"member\":\"demo11\",\r\n    \"memberOU\":\"users\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/groups/deleteFromAdminGroup",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"groups",
+										"deleteFromAdminGroup"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"description": "Group related endpoints."
+				},
+				{
+					"name": "Domain Controller",
+					"item": [
+						{
+							"name": "List DCs",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{project}}/AD/v1/dc/listDCs",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"dc",
+										"listDCs"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Organizational Unit",
+					"item": [
+						{
+							"name": "List Entities (OU&CN)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{project}}/AD/v1/organizations/directoryEntities",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"organizations",
+										"directoryEntities"
+									],
+									"query": [
+										{
+											"key": "filter",
+											"value": "ou=hi",
+											"description": "Filter based on OrganizantionDN",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List OU",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{project}}/AD/v1/organizations/listOrganizations",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"organizations",
+										"listOrganizations"
+									],
+									"query": [
+										{
+											"key": "filter",
+											"value": "ou=hi",
+											"description": "Filter based on OrganizantionDN",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "List Containers",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{project}}/AD/v1/organizations/listContainers",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"organizations",
+										"listContainers"
+									],
+									"query": [
+										{
+											"key": "filter",
+											"value": "cn=users",
+											"description": "Filter based on OrganizantionDN",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create OU",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"organizationName\":\"hi\",\r\n    \"description\": \"demo\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{project}}/AD/v1/organizations/createOrganization",
+									"host": [
+										"{{project}}"
+									],
+									"path": [
+										"AD",
+										"v1",
+										"organizations",
+										"createOrganization"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			],
+			"description": "Endpoints related to Active Directory will contained inside this folder."
+		}
+	]
+}
