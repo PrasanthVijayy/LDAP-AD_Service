@@ -1,7 +1,5 @@
 "use strict"; // Using strict mode
-
 import logger from "../config/logger.js";
-import { UnauthorizedError } from "../utils/error.js";
 
 // Middleware to check session validity and manage `logged_in` cookie
 export const sessionMiddleware = (req, res, next) => {

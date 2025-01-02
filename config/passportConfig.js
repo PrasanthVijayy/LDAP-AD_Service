@@ -19,18 +19,25 @@ export const setupPassport = () => {
         identifierFormat: samlUtils?.identifierFormat,
         algorithm: "sha256",
         debug: true,
-        acceptedClockSkewMs: 0,
+        acceptedClockSkewMs: -1,
         wantAuthnResponseSigned: false,
         wantAssertionsSigned: true, // Ensure assertions are signed
       },
       async (profile, done) => {
         try {
           const empId =
-            profile.attributes[
+            // Added chaining operator to handle null values from SAML profile
+            profile.attributes?.[
               "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn"
             ] || "Unknown";
 
           profile.empID = empId;
+
+          // If empId is "Unknown", handle it accordingly
+          if (empId === "Unknown") {
+            logger.warn("empId is Unknown.");
+            return done(new Error("empId is Unknown"), null);
+          }
 
           const filter = `(sn=${empId})`;
           const userData = await findData(filter);
@@ -67,7 +74,7 @@ export const setupPassport = () => {
                 : [user.memberOf];
 
               // Debugging: Print memberOf to check if it's correctly parsed as an array
-              console.log("user.memberOf (normalized):", memberOfArray);
+              console.log("user presence in admin groups", memberOfArray);
 
               const matchedGroups = memberOfArray.filter((group) => {
                 const groupName = group.split(",")[0].replace("CN=", "").trim();
