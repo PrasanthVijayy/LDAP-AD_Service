@@ -150,7 +150,9 @@ export const renderRoutes = (app) => {
           return res.redirect("/saml/login");
         }
 
-        if (!req?.user?.empID) {
+        const empID = req?.user?.empID || "Unknown";
+
+        if (empID === "Unknown") {
           logger.warn("Employee ID not found in SAML profile.");
           req.session.destroy((err) => {
             if (err) {
@@ -161,7 +163,7 @@ export const renderRoutes = (app) => {
           // Redirect to IdP logout endpoint
           const idpLogoutUrl = `${
             samlUtils?.logoutURL
-          }&RelayState=${encodeURIComponent(process.env.APP_LOGIN_URL || "/")}`;
+          }&RelayState=${encodeURIComponent(process.env.APP_LOGIN_URL)}`;
           return res.redirect(idpLogoutUrl);
         }
 
@@ -197,11 +199,19 @@ export const renderRoutes = (app) => {
         }
         // Redirect user based on role
         if (req?.user?.role === "admin") {
+          logger.warn("Redirecting to admin dashboard");
           return res.redirect("/directoryManagement/admin");
         } else if (req?.user?.role === "user") {
+          logger.warn("Redirecting to user dashboard");
           return res.redirect("/directoryManagement/user");
         } else {
-          return res.redirect("/");
+          logger.warn("Role not found in SAML profile.");
+          const idpLogoutUrl = `${
+            samlUtils?.logoutURL
+          }&RelayState=${encodeURIComponent(process.env.APP_LOGIN_URL)}`;
+          console.log("url", idpLogoutUrl);
+          logger.warn("Redirecting to IdP logout endpoint");
+          return res.redirect(idpLogoutUrl);
         }
       } catch (error) {
         logger.error(`Error during SAML callback processing: ${error}`);
@@ -221,13 +231,21 @@ export const renderRoutes = (app) => {
   app.post("/logout", apiLimiter(), (req, res) => {
     logger.info("Redirected to index after IdP logout");
 
-    req.session?.destroy((err) => {
-      if (err) {
-        logger.error("Session destroy error:", err);
-        res.redirect("/");
-      }
-      res.clearCookie("sessionID");
-    });
-    res.redirect("/");
+    if (req.session?.user?.authMethod === "SAML") {
+      const idpLogoutUrl = `${
+        samlUtils?.logoutURL
+      }&RelayState=${encodeURIComponent(process.env.APP_LOGIN_URL)}`;
+      return res.redirect(idpLogoutUrl);
+    } else {
+      console.warn("Logging out from local session");
+      req.session?.destroy((err) => {
+        if (err) {
+          logger.error("Session destroy error:", err);
+          return res.redirect("/"); // Ensure response is sent only once
+        }
+        res.clearCookie("sessionID");
+        return res.redirect("/"); // Ensure response is sent only once
+      });
+    }
   });
 };

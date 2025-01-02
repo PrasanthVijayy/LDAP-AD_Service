@@ -5,6 +5,7 @@ import { samlUtils } from "../../utils/samlUtils.js";
 import csrfProtection from "../../UI/libs/csurfProtection.js";
 import dotenv from "dotenv";
 import { BadRequestError } from "../../utils/error.js";
+import logger from "../../config/logger.js";
 
 dotenv.config();
 
@@ -14,7 +15,7 @@ const sessionRoute = (app) => {
 
   // SESSION CHECK ROUTE
   router.get("/check", csrfProtection, sessionMiddleware, (req, res) => {
-    console.warn(
+    logger.warn(
       `Session for user: ${req.user.username || req.user.email} & sessionID: ${
         req.sessionID
       }`
@@ -31,7 +32,7 @@ const sessionRoute = (app) => {
   router.post("/logout", (req, res) => {
     if (req.session) {
       if (req.session?.user?.authMethod === "SAML") {
-        console.warn(
+        logger.warn(
           `User "${req.session?.user?.username}" logging out from SAML auth`
         );
 
@@ -41,14 +42,14 @@ const sessionRoute = (app) => {
 
         const logoutUrlWithRelayState = `${idpLogoutUrl}&RelayState=${relayState}`;
 
-        console.warn(
+        logger.warn(
           `Redirecting user to SAML logout URL: ${logoutUrlWithRelayState}`
         );
 
         // Clear SP session
         req.session.destroy((err) => {
           if (err) {
-            console.error("Error destroying session:", err);
+            logger.error(`Error destroying session: ${err}`);
             return res
               .status(500)
               .json({ status: "error", message: "Failed to logout from SP" });
@@ -65,10 +66,11 @@ const sessionRoute = (app) => {
           });
         });
       } else {
+        logger.warn("Logging out from local session");
         // Handle non-SAML logout
         req.session.destroy((err) => {
           if (err) {
-            console.error("Error destroying session:", err);
+            logger.error("Error destroying session:", err);
             return res
               .status(500)
               .json({ status: "error", message: "Failed to logout" });
@@ -102,9 +104,10 @@ const sessionRoute = (app) => {
   // Route to handle selection of authType (LDAP/AD)
   router.post("/auth/select", (req, res) => {
     const { authType } = req.body;
-    console.log("Checking authType:", authType);
+    logger.info(`Checking authType: ${authType}`);
 
     if (!authType) {
+      logger.error("Authentication type not provided.");
       throw new BadRequestError("Authentication type not provided.");
     }
 
