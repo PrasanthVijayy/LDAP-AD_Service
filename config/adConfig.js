@@ -2,7 +2,6 @@
 import logger from "./logger.js";
 import ActiveDirectory from "activedirectory2";
 import dotenv from "dotenv";
-import fs from "fs";
 
 dotenv.config();
 
