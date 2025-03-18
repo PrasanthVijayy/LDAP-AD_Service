@@ -1,10 +1,8 @@
 "use strict"; // Using strict mode
 
 import ldap from "ldapjs";
-import dotenv from "dotenv";
 import logger from "../config/logger.js";
 
-dotenv.config();
 
 const ldapClient = ldap.createClient({
   url: process.env.LDAP_SERVER_URL,
