@@ -156,7 +156,7 @@ app.use(async (req, res, next) => {
 app.use(errorHandling);
 
 /* ------------ SERVER START ------------ */
-const PORT = 443;
+const PORT = process.env.PORT;
 const HOST = "0.0.0.0";
 // Use HTTPS to create the server
 https.createServer(credentials, app).listen(PORT, HOST, () => {
